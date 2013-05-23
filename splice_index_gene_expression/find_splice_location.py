@@ -27,14 +27,16 @@ _plot_dir = os.path.join(_output_dir, 'plots')
 '''
 
 # Set constants
-output_path = os.path.join(_output_dir, 'tables')
+output_path = os.path.join(_output_dir, 'tables', 'parsed_splice_data_final.txt')
 gene_expr_mean_colname = 'mean'
 firmacount_colname = 'w<0.7_count'
+# firmacount_colname = 'w<0_7_count'
 ase_group_count_colname = 'count'
 gene_id_colname = 'gene_ID'
 gene_symbol_colname = 'gene_symbol'
 si_sd_colname = 'SI_SD'
 probe_id_colname = 'id'
+
 full_sample_list = ['X946_Urethra', 
                     'X972.2.Penila',
                     'AB352',
@@ -48,7 +50,21 @@ full_sample_list = ['X946_Urethra',
                     'X945',
                     'X945L.LN',
                     'X961']
-
+'''
+full_sample_list = ['X946_Urethra', 
+                    'X972_2_Penila',
+                    'AB352',
+                    'C42_RNA',
+                    'LN_AI_Luc',
+                    'X963_Lpa_JP',
+                    'X963_L_LN',
+                    'X1005',
+                    'X890L',
+                    'X890_LN',
+                    'X945',
+                    'X945L_LN',
+                    'X961']
+'''
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         print('Splicing data must be provided in the command line.')
@@ -59,16 +75,16 @@ if __name__ == '__main__':
     
     splice_dat = find_spliced_events.spliced_data(splice_path)
     
-    print splice_dat.fpath
-    splice_dat.find_spliced_events(output_path, 
-                                   gene_expr_mean_colname,
-                                   firmacount_colname,
-                                   ase_group_count_colname,
-                                   gene_id_colname,
-                                   gene_symbol_colname,
-                                   si_sd_colname,
-                                   probe_id_colname,
-                                   full_sample_list)
+    # print splice_dat.fpath
+    gene_info = splice_dat.find_spliced_events(output_path, 
+                                               gene_expr_mean_colname,
+                                               firmacount_colname,
+                                               ase_group_count_colname,
+                                               gene_id_colname,
+                                               gene_symbol_colname,
+                                               si_sd_colname,
+                                               probe_id_colname,
+                                               full_sample_list)
     
     
     

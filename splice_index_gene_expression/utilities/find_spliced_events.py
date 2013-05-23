@@ -91,7 +91,8 @@ class spliced_data:
                                             %i for i in full_sample_list]
             # Create list of key names to be added to dictionary with empty list
             gene_keynames = ['gene_id', 'gene_symbol', 
-                             'probe'] + full_sample_list
+                             'probe',
+                             'probe_or_gene'] + full_sample_list
             # non_as_keynames = ['gene_id', 'gene_symbol'] + sample_mean_exprs_names
             exon_info_keynames = ['gene_id', 
                                   'gene_symbol',
@@ -118,10 +119,14 @@ class spliced_data:
             # END: Create dict for checking if the exon/junctions in the gene
             # exhibit any AS events.
             
+            
             # BEGIN: Iterate each row to separate AS events with non AS events
             # Initialize some values that will be used
             rowcount = 0
             prev_gene = 0
+            gene_count = 0
+            ase_count = 0
+            non_ase_count = 0
                 
             for row in splice_reader:
                 '''
@@ -136,7 +141,6 @@ class spliced_data:
                 curr_gene = row[gene_id_index]
 
                 if curr_gene != prev_gene and rowcount > 0:
-                    print('%s rows collected, analyzing info...' %rowcount)
                     '''
                     If curr_gene != prev_gene, we've collected all exon info
                     for this gene. Time to analyze results from our 
@@ -156,33 +160,42 @@ class spliced_data:
                     set probe to all_probes, and expression of entire gene of 
                     each sample. 
                     '''
+                    '''
+                    print exon_filters['mean_gene_exprs']
+                    print exon_filters['ASE_group_count']
+                    print exon_filters['firma_count']
+                    raw_input('Press enter to continue: ')
+                    '''
                     if min(exon_filters['mean_gene_exprs']) >= 3\
-                    and min(exon_filters['ASE_group_count']) >= 2\
-                    and min(exon_filters['firma_count']) >= 2:
+                    and max(exon_filters['ASE_group_count']) >= 2\
+                    and max(exon_filters['firma_count']) >= 2:
                         # Find index at max variance
                         maxprobe_index = exon_info['si_sd'].index(max(exon_info['si_sd']))
-                        print maxprobe_index
+                        # print maxprobe_index
                         gene_info['gene_id'].append(exon_info['gene_id'][maxprobe_index])
                         gene_info['gene_symbol'].append(exon_info['gene_symbol'][maxprobe_index])
                         gene_info['probe'].append(exon_info['probe'][maxprobe_index])
+                        gene_info['probe_or_gene'].append('probe')
                         for i in range(len(full_sample_list)):
                             gene_info[full_sample_list[i]].append(exon_info[sample_si_names[i]][maxprobe_index])
+                        ase_count += 1
                     else:
                         # Find index at max variance
-                        maxprobe_index = max(exon_info['si_sd'])
+                        maxprobe_index = exon_info['si_sd'].index(max(exon_info['si_sd']))
                         gene_info['gene_id'].append(exon_info['gene_id'][maxprobe_index])
                         gene_info['gene_symbol'].append(exon_info['gene_symbol'][maxprobe_index])
                         gene_info['probe'].append('all_probes')
-                        for i in range(full_sample_list):
-                            gene_info[full_sample_list[i]].append(exon_info[sample_mean_exprs_names[i]])
-                            
+                        gene_info['probe_or_gene'].append('gene')
+                        for i in range(len(full_sample_list)):
+                            gene_info[full_sample_list[i]].append(exon_info[sample_mean_exprs_names[i]][maxprobe_index])
+                        non_ase_count += 1
                     # Reinitialize exon_info and exon_filters
                     for key in exon_filters:
                         exon_filters[key] = []
                     for key in exon_info:
                         exon_info[key] = []
-                    print('One gene done, rowcount = %s' %rowcount)
-                    break
+                    # print('%s gene done, rowcount = %s' %(curr_gene, rowcount))
+                    gene_count += 1
                 # Extend lists in dictionary
                 exon_info['gene_id'].append(row[gene_id_index])
                 exon_info['gene_symbol'].append(row[gene_symbol_index])
@@ -201,14 +214,28 @@ class spliced_data:
                     samp_count += 1
                 # END: Add append gExp into exon_info
                 # BEGIN: Append filter info
-                exon_filters['ASE_group_count'].append(row[ase_group_count_index])
-                exon_filters['firma_count'].append(row[firmacount_index])
-                exon_filters['mean_gene_exprs'].append(row[mean_gexp_index])
+                # print row[ase_group_count_index]
+                # print int(row[ase_group_count_index])
+                exon_filters['ASE_group_count'].append(int(row[ase_group_count_index]))
+                exon_filters['firma_count'].append(int(row[firmacount_index]))
+                exon_filters['mean_gene_exprs'].append(float(row[mean_gexp_index]))
                 prev_gene = curr_gene
                 rowcount += 1
-            print gene_info
+            print('All genes done. Total rowcount: %s ' %rowcount)
             # END: Iterate each row to separate AS events with non AS events
-                
+            # BEGIN: Write to file.
+        with open(output_path, 'wb') as writefile:
+            print gene_keynames
+            print gene_info.keys()
+            splice_writer = csv.DictWriter(writefile, delimiter='\t', 
+                                           fieldnames=gene_keynames)
+            splice_writer.writeheader()
+            for i in xrange(gene_count):
+                rowdict = {}
+                for key, val in gene_info.iteritems():
+                    rowdict[key] = val[i]
+                splice_writer.writerow(rowdict)
+        return gene_info
             
         
         
