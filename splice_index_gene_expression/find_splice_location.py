@@ -27,7 +27,7 @@ _plot_dir = os.path.join(_output_dir, 'plots')
 '''
 
 # Set constants
-output_path = os.path.join(_output_dir, 'tables', 'parsed_splice_data_final.txt')
+output_path = os.path.join(_output_dir, 'tables', 'si_and_gene_expression_data_long_probes.txt')
 gene_expr_mean_colname = 'mean'
 firmacount_colname = 'w<0.7_count'
 # firmacount_colname = 'w<0_7_count'
@@ -35,6 +35,7 @@ ase_group_count_colname = 'count'
 gene_id_colname = 'gene_ID'
 gene_symbol_colname = 'gene_symbol'
 si_sd_colname = 'SI_SD'
+probe_sd_colname = 'EXP_SD'
 probe_id_colname = 'id'
 
 full_sample_list = ['X946_Urethra', 
@@ -76,15 +77,30 @@ if __name__ == '__main__':
     splice_dat = find_spliced_events.spliced_data(splice_path)
     
     # print splice_dat.fpath
-    gene_info = splice_dat.find_spliced_events(output_path, 
-                                               gene_expr_mean_colname,
-                                               firmacount_colname,
-                                               ase_group_count_colname,
-                                               gene_id_colname,
-                                               gene_symbol_colname,
-                                               si_sd_colname,
-                                               probe_id_colname,
-                                               full_sample_list)
+    '''
+    gene_info = splice_dat.find_spliced_events_si(output_path, 
+                                                  gene_expr_mean_colname,
+                                                  firmacount_colname,
+                                                  ase_group_count_colname,
+                                                  gene_id_colname,
+                                                  gene_symbol_colname,
+                                                  si_sd_colname,
+                                                  probe_id_colname,
+                                                  full_sample_list,
+                                                  printlong=True)
+    '''
+    
+    gene_info = splice_dat.find_spliced_events_probes(output_path, 
+                                                      gene_expr_mean_colname, 
+                                                      firmacount_colname, 
+                                                      ase_group_count_colname, 
+                                                      gene_id_colname, 
+                                                      gene_symbol_colname, 
+                                                      si_sd_colname, 
+                                                      probe_sd_colname, 
+                                                      probe_id_colname, 
+                                                      full_sample_list, 
+                                                      printlong=True)
     
     
     
