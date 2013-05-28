@@ -28,10 +28,10 @@ library(ggplot2)
 # SourceFiles ----------------------------------------------------------
 
 
-
 # SetConstants ------------------------------------------------------------
 
-filename <- 'si_and_gene_expression_data_long_probes.txt'
+filename <- 'si_and_gene_expression_data_long_probe.txt'
+# filename <- 'si_and_gene_expression_data_long.txt'
 # filename <- 'si_and_gene_expression_data_long.txt'
 unwanted_samples <- c('C42.RNA', 'LN.AI.Luc', 'X1005', 
                      'X890L', 'X945', 'X961')
@@ -67,6 +67,9 @@ str(si_gene_data)
 
 
 # PlotResults -------------------------------------------------------------
+
+
+# Compare Probe vs Gene ---------------------------------------------------
 
 qplot(factor(probe_or_gene), probe_or_geneExp, data=si_gene_data, geom='violin')
 
