@@ -8,6 +8,18 @@ Created on 2013-05-22
 import os
 
 
+class mydirs(object):
+    '''
+    A class representing input, root and output folders. 
+    '''
+    def __init__(self, inputdir, outputdir):
+        self.utilities = os.path.dirname(__file__)
+        self.main = os.path.dirname(os.path.dirname(__file__))
+        self.project = os.path.dirname(os.path.dirname(os.path.dirname(self.main)))
+        self.inputdir = os.path.join(self.project, inputdir)
+        self.outputdir = os.path.join(self.project, outputdir)
+        
+    
 def set_directories(input_folder_name, cohort_folder_name, 
                     output_folder_name):
     '''
