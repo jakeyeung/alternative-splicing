@@ -109,7 +109,7 @@ def extract_and_write_gene_exprs(readwrite):
                 readwrite.writenext(gene_exprs_list)
             prev_gene_name = gene_name
             count += 1
-    return readwrite
+    return None
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
