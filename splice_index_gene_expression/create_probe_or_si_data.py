@@ -54,6 +54,8 @@ def extract_and_write_file(readwrite):
         for tumor_class, sample in classifier_dict.iteritems():
             for _ in sample:
                 outputcolnames.append(tumor_class)
+        # Sample names
+        readwrite.writenext(sample_list)
         readwrite.writenext(outputcolnames)
         '''
         Read and write probe or SI information. 

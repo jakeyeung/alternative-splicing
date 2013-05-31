@@ -76,12 +76,17 @@ def extract_and_write_gene_exprs(readwrite):
         rownames_subset = readwrite.inputcolnames[exprs_start_index:exprs_end_index]
         
         # Write headers
-        # We don't write sample names, we write just the class the sample is in. 
-        writecols = [gene_label_colname]
+        # We write not only sample names, but we write the class the sample is in. 
+        # Write sample names
+        # writecols = [gene_label_colname]
+        classnames = ['']
+        samplenames = ['']
         for tumor_class, sample_name in classifier_dict.iteritems():
             for s in sample_name:
-                writecols.append(tumor_class)
-        readwrite.writenext(writecols)
+                classnames.append(tumor_class)
+                samplenames.append(s)
+        readwrite.writenext(samplenames)
+        readwrite.writenext(classnames)
         
         '''
         Read and write gene expression information.

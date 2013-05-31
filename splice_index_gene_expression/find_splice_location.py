@@ -27,7 +27,7 @@ _plot_dir = os.path.join(_output_dir, 'plots')
 '''
 
 # Set constants
-output_path = os.path.join(_output_dir, 'tables', 'si_and_gene_expression_data_long_probes.txt')
+output_path = os.path.join(_output_dir, 'tables', 'si_and_gene_expression_data_probes.txt')
 gene_expr_mean_colname = 'mean'
 firmacount_colname = 'w<0.7_count'
 # firmacount_colname = 'w<0_7_count'
@@ -100,7 +100,7 @@ if __name__ == '__main__':
                                                       probe_sd_colname, 
                                                       probe_id_colname, 
                                                       full_sample_list, 
-                                                      printlong=True)
+                                                      printlong=False)
     
     
     
