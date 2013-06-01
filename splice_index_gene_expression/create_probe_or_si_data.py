@@ -9,6 +9,9 @@ The readfile should be a table of either:
 1) probe expressions and gene expressions
 2) SI and gene expressions
 With one gene, one data point per sample. 
+
+Example filenames: si_and_gene_expression_data.txt or 
+                   si_and_gene_expression_data_probes.txt
 '''
 
 
@@ -50,13 +53,15 @@ def extract_and_write_file(readwrite):
     # Read rows, extract gene information. 
     with readwrite:
         # Write column names
-        outputcolnames = [gene_symbol_colname]
+        classnames = ['']
+        samplenames = ['']
         for tumor_class, sample in classifier_dict.iteritems():
-            for _ in sample:
-                outputcolnames.append(tumor_class)
+            for s in sample:
+                classnames.append(tumor_class)
+                samplenames.append(s)
         # Sample names
-        readwrite.writenext(sample_list)
-        readwrite.writenext(outputcolnames)
+        readwrite.writenext(samplenames)
+        readwrite.writenext(classnames)
         '''
         Read and write probe or SI information. 
         '''
