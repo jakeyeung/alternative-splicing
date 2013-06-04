@@ -29,8 +29,7 @@ parse_dat <- function(filename){
     
     filename <- filename
     # filename <- 'si_and_gene_expression_data_long.txt'
-    unwanted_samples <- c('C42.RNA', 'LN.AI.Luc', 'X1005', 
-                          'X890L', 'X945', 'X961')
+    unwanted_samples <- c('C42.RNA', 'LN.AI.Luc', 'X890.LN', 'X890.LN', 'X945L.LN')
     
     
     # ReadTable ---------------------------------------------------------------
