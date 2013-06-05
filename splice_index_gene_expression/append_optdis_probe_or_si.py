@@ -30,31 +30,47 @@ genelist_colnames = [genesymbol_colname, 'subnetwork']
 # Set directories
 mydirs = set_directories.mydirs(inputdir, outputdir)
 
-def read_probe_si_file(data_fullpath, scale_values=False):
+def read_probe_si_file(data_fullpath, scale_values=False, gene_exprs_table=False):
     '''
     Take probe expression or si value file and read all of its contents
     storing it into a dictionary which can easily be searchable later. 
     
-    Inputs: full path to either probe expression or si value file containing: 
+    Inputs: 
+    data_full_path:
+    full path to either probe expression or si value file containing: 
         1) gene symbol column name
         2) probe column name
         3) column saying whether alternative splicing occured (probe or gene)
         4) first sample column to the last column are the expression or SI values.
             The expression/SI values are either standardized or not. 
+    scale_values:
+    Whether to scale expression values by mean centering and standard deviation normalization.
+    
+    gene_exprs_table:
+    Whether the data_fullpath is a gene_expression_table, which is handled differently than others.
     
     Outputs: a dictionary with:
         1) Gene names as keys
         2) Gene name, probename, whether it was probe or gene, 
            and expression/SI values as values.
     '''
+    errorcount = 0
     probe_si_dic = {}
     with open(data_fullpath, 'rb') as probe_si_file:
         probesi_reader = csv.reader(probe_si_file, delimiter='\t')
         probesi_headers = probesi_reader.next()
         for row in probesi_reader:
             genename = row[probesi_headers.index(genesymbol_colname)]
-            probename = row[probesi_headers.index(probe_colname)]
-            probe_or_gene = row[probesi_headers.index(probe_or_gene_colname)]
+            if gene_exprs_table == False:
+                probename = row[probesi_headers.index(probe_colname)]
+                probe_or_gene = row[probesi_headers.index(probe_or_gene_colname)]
+            elif gene_exprs_table == True:
+                '''
+                No probename or probe_or_gene columns in gene exprs table. 
+                '''
+                pass
+            else:
+                sys.exit('gene_exprs_table must be True or False')
             try:
                 values = []
                 for s in sample_list:
@@ -68,14 +84,28 @@ def read_probe_si_file(data_fullpath, scale_values=False):
                     used to calculate subnetworks in optdis. 
                     '''
                     values = list(stats.zscore(values))
-                probe_si_dic[genename] = [genename, probename, 
-                                          probe_or_gene] + values
+                if gene_exprs_table == False:
+                    probe_si_dic[genename] = [genename, probename, 
+                                              probe_or_gene] + values
+                elif gene_exprs_table == True:
+                    '''
+                    No probename or probe_or_gene columns in gene exprs table. 
+                    '''
+                    probe_si_dic[genename] = [genename] + values
+                else:
+                    sys.exit('gene_exprs_table must be True or False')
             except ValueError:
-                print('ValueError, probably NA, skipping...')
+                errorcount += 1
     # Return dictionary and all headers except the first element and 
     # unspecified samples because first element is 
     # an ensembl gene id and we have no use for it. 
-    headers = [genename, probename, probe_or_gene] + sample_list
+    if gene_exprs_table == False:
+        headers = [genename, probename, probe_or_gene] + sample_list
+    elif gene_exprs_table == True:
+        headers = [genename] + sample_list
+    else:
+        sys.exit('gene_exprs_table neither True or False, check your input.')
+    print('Done, skipped %s rows probably containing NAs' %errorcount)
     return probe_si_dic, headers
 
 def columnbind_optdis_results(expression_info_dic, read_write_object, headers):
@@ -115,8 +145,8 @@ def columnbind_optdis_results(expression_info_dic, read_write_object, headers):
     
             
 if __name__ == '__main__':
-    if len(sys.argv) < 4:
-        print('Probe/SI info path, optdis results path '\
+    if len(sys.argv) < 5:
+        print('Probe/SI info path, true/false for gene_exprs_table, optdis results path '\
               ' and output filename must be provided in command line.')
         sys.exit()
     '''
@@ -128,14 +158,24 @@ if __name__ == '__main__':
                     takeda/subtype/INFORGAIN/full_list_si_and_gene_exprs_appended.txt
     '''
     data_partialpath = sys.argv[1]
-    optdis_partialpath = sys.argv[2]
-    output_partialpath = sys.argv[3]
+    gene_exprs_table = sys.argv[2]
+    optdis_partialpath = sys.argv[3]
+    output_partialpath = sys.argv[4]
+    
+    if gene_exprs_table in ['true', '1', 't', 'y', 'yes', 'True', 'TRUE']:
+        gene_exprs_table = True
+    elif gene_exprs_table in ['False', 'FALSE', 'F', 'f', 'no', 'No', 'NO']:
+        gene_exprs_table = False
+    else:
+        sys.exit('Unknown input %s, must be either True or False.' %gene_exprs_table)
 
     data_fullpath = os.path.join(mydirs.outputdir, data_partialpath)
     optdis_fullpath = os.path.join(mydirs.outputdir, optdis_partialpath)
     output_fullpath = os.path.join(mydirs.outputdir, output_partialpath)
     
-    probe_si_dic, headers = read_probe_si_file(data_fullpath, scale_values=True)
+    probe_si_dic, headers = read_probe_si_file(data_fullpath, 
+                                               scale_values=True, 
+                                               gene_exprs_table=gene_exprs_table)
     
     read_write_optdisresults = read_write_gene_info.read_write_gene_info(optdis_fullpath, 
                                                                          output_fullpath, 
