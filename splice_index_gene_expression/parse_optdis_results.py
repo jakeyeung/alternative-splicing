@@ -74,13 +74,4 @@ if __name__ == '__main__':
     
     print('%s genes written to file.' %len(gene_list))
     
-    '''
-    outputpath = os.path.join(module_fullpath, 'full_list.txt')
-    
-    with open(outputpath, 'wb') as csvfile:
-        writer = csv.writer(csvfile, delimiter='\t')
-        for gene in gene_list:
-            writer.writerow([gene])
-    '''
-    
     
