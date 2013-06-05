@@ -7,7 +7,7 @@ Created on 2013-06-05
 
 from igraph import Graph as graph
 import matplotlib.pyplot as plt
-from utilities import graph_utilities
+from utilities import igraph_utilities
 
 
 def plot_degree_distribution(network):
@@ -31,7 +31,7 @@ def plot_degree_distribution(network):
     ax.set_xlabel('Node Degree')
     ax.set_ylabel('Number of Genes')
     # Add text for top hubs
-    vertex_degree_tuplelist = graph_utilities.get_top_k_hubs(network, 3)
+    vertex_degree_tuplelist = igraph_utilities.get_top_k_hubs(network, 3)
     # Make into one large tuple to make it easier on matplotlib
     text_tuple = tuple([i for i in vertex_degree_tuplelist])
     ax.text(0.5*max(xs), max(ys), 'Top Hubs:\n%s\n%s\n%s' %text_tuple)
