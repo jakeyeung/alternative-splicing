@@ -23,6 +23,8 @@ class read_write_gene_info(object):
         self.readrowcount = 0
         self.writerowcount = 0
         self.header = header
+        if self.readpath == self.writepath:
+            print('Read and write path the same, exiting for your protection...')
         
     def __enter__(self):
         '''
