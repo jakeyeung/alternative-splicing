@@ -9,13 +9,18 @@ import sys
 import os
 import csv
 from append_optdis_probe_or_si import read_probe_si_file
-from utilities import set_directories, plots
+from utilities import set_directories, plots, interactive_annotations
+from compiler.pycodegen import Interactive
 
 # Set constants
 inputdir = 'input'
 outputdir = 'output'
 group1_samples = ['X946_Urethra', 'X972.2.Penila', 'AB352', 'X963.Lpa.JP', 'X963.L.LN']
 group2_samples = ['X1005', 'X890L', 'X945', 'X961']
+
+xlabel = 'Average Gene Expression: NEPC'
+ylabel = 'Average Gene Expression: PC'
+title = 'Subnetworks and Their Average Gene Expressions'
 
 # Set directories
 mydirs = set_directories.mydirs(inputdir, outputdir)
@@ -106,14 +111,15 @@ def calculate_subnetwork_avg_exprs(gene_group_avg_exprs_dic):
         group1_avg_subnetwork_exprs, group2_avg_subnetwork_exprs
         as tuple.  
     '''
-    for subnetwork, gene_dic in gene_group_avg_exprs_dic.iteritems():
+    subnetwork_group_avg_exprs_dic = gene_group_avg_exprs_dic    # Initialize
+    for subnetwork, gene_dic in subnetwork_group_avg_exprs_dic.iteritems():
         group1_exprs = [i[0] for i in gene_dic.values()]
         group2_exprs = [i[1] for i in gene_dic.values()]
         group1_subnetwork_avg = float(sum(group1_exprs))/len(group1_exprs)
         group2_subnetwork_avg = float(sum(group2_exprs))/len(group2_exprs)
-        gene_group_avg_exprs_dic[subnetwork] = (group1_subnetwork_avg,
-                                                group2_subnetwork_avg)
-    return gene_group_avg_exprs_dic
+        subnetwork_group_avg_exprs_dic[subnetwork] = (group1_subnetwork_avg,
+                                                      group2_subnetwork_avg)
+    return subnetwork_group_avg_exprs_dic
 
 
 if __name__ == '__main__':
@@ -160,12 +166,44 @@ if __name__ == '__main__':
                                                         pc_indices,
                                                         subnetwork_list,
                                                         header=False)
+    '''
+    Calculate number of genes per subnetwork. Used for plotting.
+    Note, I do a loop for all subnetworks in subnetwork_list, but notice 
+    I do the same thing later to obtain x and y vectors. I am doing this twice
+    because for some reason, when I run calculate_subnetwork_avg_exprs, my 
+    gene_group_avg_exprs_dic changes to be equal to subnetwork_group_avg_exprs_dic.
+    For some reason, python doesn't like that I have two dictionaries with identical 
+    keynames. 
+    '''
+    n_genes_per_sn = []
+    genenames_each_sn = []
+    for sn in subnetwork_list:
+        # Store gene names into string, for plotting. 
+        gene_list = gene_group_avg_exprs_dic[sn].keys()
+        genenames_each_sn.append('\n'.join(gene_list))
+        # Store number of genes per sn
+        n_genes_per_sn.append(len(gene_list))
+    '''
+    Now we modify our dictionary to contain subnetwork as keys, and average gene
+    expression between group1 and group2 across genes in subnetwork as values. 
+    Note, this renders gene_group_avg_exprs_dic useless because python doesnt support
+    duplicate keys. 
+    '''
     subnetwork_group_avg_exprs_dic = calculate_subnetwork_avg_exprs(gene_group_avg_exprs_dic)
-    
     # Set up vectors of x and y for plotting.
     x = []
     y = []
-    bubble_size = []
+    # x and y vectors as group1 and group2, respectively.
+    for sn in subnetwork_list:
+        x.append(subnetwork_group_avg_exprs_dic[sn][0])    # Group1 Avg Exprs
+        y.append(subnetwork_group_avg_exprs_dic[sn][1])    # Group2 Avg Exprs
+    
+    # Plot results in bubble chart.
+    # First, multiply subnetwork_list by a constant to make the bubbles appear larger
+    bubble_size = [i*75 for i in n_genes_per_sn]
+    plots.plot_subnetwork_expression(x, y, bubble_size, subnetwork_list, genenames_each_sn, 
+                                     xlabel, ylabel, title)
+        
     
     
     

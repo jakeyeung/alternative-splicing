@@ -72,7 +72,8 @@ class AnnoteFinder:
                 m.set_visible(not m.get_visible())
             self.axis.figure.canvas.draw()
         else:
-            t = axis.text(x,y, " - %s"%(annote), )
+            # t = axis.text(x,y, " - %s"%(annote), )
+            t = axis.text(x,y, "%s"%(annote), )
             m = axis.scatter([x],[y], marker='d', c='r', zorder=100)
             self.drawnAnnotations[(x,y)] =(t,m)
             self.axis.figure.canvas.draw()
@@ -84,9 +85,9 @@ class AnnoteFinder:
 
 
 if __name__ == '__main__':
-'''
-Example code...
-'''
+    '''
+    Example code...
+    '''
     import matplotlib.pylab as plt
 
     x = range(10)
