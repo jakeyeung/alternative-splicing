@@ -5,7 +5,10 @@ Created on 2013-06-05
 '''
 
 
-from igraph import Graph as graph
+try: 
+    from igraph import Graph as graph
+except ImportError:
+    print('igraph not found, ignoring...')
 import matplotlib.pyplot as plt
 from utilities import igraph_utilities, interactive_annotations
 
@@ -37,27 +40,44 @@ def plot_degree_distribution(network):
     ax.text(0.5*max(xs), max(ys), 'Top Hubs:\n%s\n%s\n%s' %text_tuple)
     plt.show()
     
-def plot_subnetwork_expression(x_vector, y_vector, bubble_size,
+def plot_subnetwork_expression(x_vector, y_vector, 
+                               bubble_size, color_vector,
                                ordered_labels, 
                                bubble_annotations,
                                xlabel, 
-                               ylabel, title):
+                               ylabel,
+                               output_fullpath):
     '''
     Create bubble plot
     '''
+    # Get set of color_vector
+    color_set = list(set(color_vector))    # Two colors only :(
+    # Plot data
     ax = plt.subplot(111)
-    ax.scatter(x_vector, y_vector, s=bubble_size, linewidth=2, edgecolor='w', c='lightblue')
-    ax.set_alpha(0.5)
+    ax.scatter(x_vector, y_vector, s=bubble_size, linewidth=2, 
+               edgecolor='w', c=color_vector, alpha=0.75)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     for x, y, lab in zip(x_vector, y_vector, ordered_labels):
-        ax.text(x, y, lab, size=11, horizontalalignment='right')
-    # Draw 45 degree line on graph. 
-    _, xmax, _, ymax = plt.axis()
-    vector45deg = range(0, int(max(xmax, ymax)))    # Spans axis limits.
-    ax.plot(vector45deg, vector45deg, '--')
+        ax.text(x, y, lab, size=11, horizontalalignment='right', 
+                verticalalignment='top')
     # Add annotate properties
-    af =  interactive_annotations.AnnoteFinder(x_vector, y_vector, bubble_annotations)
+    af =  interactive_annotations.AnnoteFinder(x_vector, y_vector, 
+                                               bubble_annotations)
     plt.connect('button_press_event', af)
+    # Add Legend for Each Color
+    p1 = plt.Circle((0, 0), radius=bubble_size[0], color=color_set[0])
+    p2 = plt.Circle((0, 0), radius=bubble_size[0], color=color_set[1])
+    plt.legend([p1, p2], ['No AS Detected', 'AS Detected'])
+    
+    
+    # Draw 45 degree line on graph. 
+    xmin, xmax, ymin, ymax = plt.axis()
+    vector45deg = [int(min(xmin, ymin)), int(max(xmax, ymax))]    # Spans axis limits.
+    ax.plot(vector45deg, vector45deg, '--')
+    # Plot with maximized window
+    fig = plt.gcf()
+    fig.set_size_inches(18.5,10.5)
+    # plt.savefig(output_fullpath)
     plt.show()
     

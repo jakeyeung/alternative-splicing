@@ -8,9 +8,9 @@ Read OptDis output, correlate this output with
 import sys
 import os
 import csv
+from scipy import stats
 from append_optdis_probe_or_si import read_probe_si_file
-from utilities import set_directories, plots, interactive_annotations
-from compiler.pycodegen import Interactive
+from utilities import set_directories, plots
 
 # Set constants
 inputdir = 'input'
@@ -20,7 +20,9 @@ group2_samples = ['X1005', 'X890L', 'X945', 'X961']
 
 xlabel = 'Average Gene Expression: NEPC'
 ylabel = 'Average Gene Expression: PC'
-title = 'Subnetworks and Their Average Gene Expressions'
+# title = 'Subnetworks and Their Average Gene Expressions'
+
+AS_detected_string = '_AS_detected' # Label genes with alternative splice event.
 
 # Set directories
 mydirs = set_directories.mydirs(inputdir, outputdir)
@@ -45,7 +47,7 @@ def get_group1_group2_indices(group1_samples, group2_samples, sample_names):
 def calculate_gene_avg_exprs(optdis_output_path, exprs_dict, 
                                    group1_indices, group2_indices, 
                                    subnetwork_list,
-                                   header=False):
+                                   header=False, normalize_exprs=True):
     '''
     Calculate avg expression for EACH gene
     Return a dictionary containing subnetwork (key) and in values contains 
@@ -80,8 +82,15 @@ def calculate_gene_avg_exprs(optdis_output_path, exprs_dict,
         for row in optdis_reader:
             genename = row[0]    # Gene name
             subnetwork = int(row[1])    # Subnetwork Number
+            probe_or_gene = row[4]
             # Search genes expression in exprs_dict
             exprs = exprs_dict[genename]
+            if normalize_exprs == True:
+                exprs = stats.zscore(exprs)
+            elif normalize_exprs == False:
+                pass
+            else:
+                sys.exit('Normalize expression must be True or False.')
             # Split expressions into two groups
             group1_exprs = []
             group2_exprs = []
@@ -90,11 +99,21 @@ def calculate_gene_avg_exprs(optdis_output_path, exprs_dict,
             # Take average gene expression for each
             group1_avg = float(sum(group1_exprs))/len(group1_exprs)
             group2_avg = float(sum(group2_exprs))/len(group2_exprs)
+            # Append gene name as AS_detected if gene has AS event. 
+            if probe_or_gene == 'gene':
+                pass
+            elif probe_or_gene == 'probe':
+                # Add (AS_detected) to end of genename
+                genename += AS_detected_string
+            else:
+                sys.exit('%s neither gene or probe' %s)
+            # Append to dictionary:
             if subnetwork in gene_group_avg_exprs_dic:
                 gene_group_avg_exprs_dic[subnetwork][genename] = (group1_avg, 
                                                                   group2_avg)
             else:
                 sys.exit('%s not found as key in dictionary' %subnetwork)
+            
     return gene_group_avg_exprs_dic
 
 def calculate_subnetwork_avg_exprs(gene_group_avg_exprs_dic):
@@ -134,9 +153,12 @@ if __name__ == '__main__':
         n_subnetworks = int(sys.argv[3])
     except ValueError:
         sys.exit('Number of subnetworks must be integer.')
+    plot_output_partialpath = sys.argv[4]
     
     optdis_fullpath = os.path.join(mydirs.outputdir, optdis_partialpath)
     exprs_fullpath = os.path.join(mydirs.outputdir, expression_partialpath)
+    plot_output_fullpath = os.path.join(mydirs.outputdir, plot_output_partialpath)
+    
     # Create sequence of numbers corresponding to subnetworks.
     subnetwork_list = [(i + 1) for i in range(0, int(n_subnetworks))]
     
@@ -165,7 +187,8 @@ if __name__ == '__main__':
                                                         nepc_indices, 
                                                         pc_indices,
                                                         subnetwork_list,
-                                                        header=False)
+                                                        header=True,
+                                                        normalize_exprs=False)
     '''
     Calculate number of genes per subnetwork. Used for plotting.
     Note, I do a loop for all subnetworks in subnetwork_list, but notice 
@@ -177,12 +200,23 @@ if __name__ == '__main__':
     '''
     n_genes_per_sn = []
     genenames_each_sn = []
+    color_AS_events = []
     for sn in subnetwork_list:
         # Store gene names into string, for plotting. 
         gene_list = gene_group_avg_exprs_dic[sn].keys()
-        genenames_each_sn.append('\n'.join(gene_list))
+        genenames_each_sn.append('\n'.join(['%s:' %sn] + gene_list))
+        # color subnetwork as 'lightblue' for subnetworks containing no 
+        # alternative splice events. 'lightred' for subnetworks containing
+        # alternative slpice events.
+        for g in gene_list:
+            if g.find(AS_detected_string) != -1:    # AS string found.
+                color_AS_events.append('lightgreen')
+                break
+        else:
+            color_AS_events.append('lightblue')
         # Store number of genes per sn
-        n_genes_per_sn.append(len(gene_list))
+        n_genes_per_sn.append(len(gene_list)) 
+    
     '''
     Now we modify our dictionary to contain subnetwork as keys, and average gene
     expression between group1 and group2 across genes in subnetwork as values. 
@@ -200,20 +234,10 @@ if __name__ == '__main__':
     
     # Plot results in bubble chart.
     # First, multiply subnetwork_list by a constant to make the bubbles appear larger
-    bubble_size = [i*75 for i in n_genes_per_sn]
-    plots.plot_subnetwork_expression(x, y, bubble_size, subnetwork_list, genenames_each_sn, 
-                                     xlabel, ylabel, title)
-        
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    bubble_size = [i*150 for i in n_genes_per_sn]
+    plots.plot_subnetwork_expression(x, y, bubble_size, 
+                                     color_AS_events,
+                                     subnetwork_list, 
+                                     genenames_each_sn, 
+                                     xlabel, ylabel,
+                                     plot_output_fullpath)
