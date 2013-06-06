@@ -37,3 +37,9 @@ def plot_degree_distribution(network):
     ax.text(0.5*max(xs), max(ys), 'Top Hubs:\n%s\n%s\n%s' %text_tuple)
     plt.show()
     
+def plot_subnetwork_expression(group1_expression, group2_expression, 
+                               group1label, group2label, 
+                               subnetwork_list):
+    
+    
+    
