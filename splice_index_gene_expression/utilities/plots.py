@@ -46,7 +46,9 @@ def plot_subnetwork_expression(x_vector, y_vector,
                                bubble_annotations,
                                xlabel, 
                                ylabel,
-                               output_fullpath):
+                               title,
+                               saveplot=False,
+                               output_fullpath=None):
     '''
     Create bubble plot
     '''
@@ -69,7 +71,7 @@ def plot_subnetwork_expression(x_vector, y_vector,
     p1 = plt.Circle((0, 0), radius=bubble_size[0], color=color_set[0])
     p2 = plt.Circle((0, 0), radius=bubble_size[0], color=color_set[1])
     plt.legend([p1, p2], ['No AS Detected', 'AS Detected'])
-    
+    plt.title(title)
     
     # Draw 45 degree line on graph. 
     xmin, xmax, ymin, ymax = plt.axis()
@@ -78,17 +80,21 @@ def plot_subnetwork_expression(x_vector, y_vector,
     # Plot with maximized window
     fig = plt.gcf()
     fig.set_size_inches(18.5,10.5)
-    # plt.savefig(output_fullpath)
-    plt.show()
+    if saveplot==False:
+        plt.show()
+    elif saveplot == True:
+        plt.savefig(output_fullpath)
+        print('Plot saved to %s' %output_fullpath)
     
 def plot_stacked_bar(count1, count2,
                      barplot_categories, barplot_events,
                      barplot_barwidths,
-                     color_vector, xlabel, ylabel, title):
+                     color_vector, xlabel, ylabel, title,
+                     output_fullpath):
     ind = range(0, len(count1))
     
     count_list = [count1, count2]
-    iteration = [[0, 0, 0], count1]
+    iteration = [count2, [0, 0, 0]]
     for count, category, color, bottom in zip(count_list, 
                                        barplot_categories, 
                                        color_vector, iteration):
@@ -99,5 +105,8 @@ def plot_stacked_bar(count1, count2,
     plt.title(title)
     plt.legend()
     plt.xticks([(i + barplot_barwidths/2.) for i in ind], tuple(barplot_events))
-    plt.show()
+    fig = plt.gcf()
+    fig.set_size_inches(18.5,10.5)
+    plt.savefig(output_fullpath)
+    plt.clf()
     

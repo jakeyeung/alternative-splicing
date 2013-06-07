@@ -134,10 +134,14 @@ if __name__ == '__main__':
     optdis_partialpath = sys.argv[1]
     probegene_partialpath = sys.argv[2]
     hprd_partialpath = sys.argv[3]
+    genecount_plot_partialpath = sys.argv[4]
+    genefrac_plot_partialpath = sys.argv[5]
     
     optdis_fullpath = os.path.join(mydirs.outputdir, optdis_partialpath)
     probegene_fullpath = os.path.join(mydirs.outputdir, probegene_partialpath)
     hprd_fullpath = os.path.join(mydirs.outputdir, hprd_partialpath)
+    genecount_plot_fullpath = os.path.join(mydirs.outputdir, genecount_plot_partialpath)
+    genefrac_plot_fullpath = os.path.join(mydirs.outputdir, genefrac_plot_partialpath)
     
     # Classify input genes as non_AS or AS
     non_as_genes_input, as_genes_input = find_genes_in_input(probegene_fullpath, 
@@ -156,12 +160,13 @@ if __name__ == '__main__':
                           len(non_as_genes_output)]
     as_genes_count = [len(as_genes_input), len(as_genes_ppi), 
                       len(as_genes_output)]
-    print non_as_genes_count, as_genes_count
     plots.plot_stacked_bar(non_as_genes_count,
                            as_genes_count,
                            barplot_categories, barplot_events, 
                            barplot_barwidths, 
-                           color_vector, xlabel, ylabel_count, title_count)
+                           color_vector, xlabel, ylabel_count, title_count,
+                           genecount_plot_fullpath)
+    print('Plot saved to %s' %genecount_plot_fullpath)
     
     # Plot input genes, ppi genes, optdis genes by proportion.
     total_count = [(i + j) for i, j in zip(non_as_genes_count, as_genes_count)]
@@ -169,14 +174,15 @@ if __name__ == '__main__':
                                                       total_count)]
     as_genes_frac = [float(i) / j for i, j in zip(as_genes_count, total_count)]
     
-    print non_as_genes_frac, as_genes_frac
     plots.plot_stacked_bar(non_as_genes_frac, as_genes_frac, 
                            barplot_categories, barplot_events, 
                            barplot_barwidths, color_vector, xlabel, 
-                           ylabel_frac, title_frac)
+                           ylabel_frac, title_frac,
+                           genefrac_plot_fullpath)
     
-    print len(non_as_genes_input), len(non_as_genes_ppi), len(non_as_genes_output), len(as_genes_input), len(as_genes_ppi), len(as_genes_output)
+    print('Plot saved to %s' %genefrac_plot_fullpath)
     
+    print non_as_genes_count, as_genes_count
     
     
     

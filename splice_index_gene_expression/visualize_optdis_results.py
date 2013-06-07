@@ -153,7 +153,16 @@ if __name__ == '__main__':
         n_subnetworks = int(sys.argv[3])
     except ValueError:
         sys.exit('Number of subnetworks must be integer.')
-    plot_output_partialpath = sys.argv[4]
+    title = str(sys.argv[4])
+    saveplot = sys.argv[5]
+    plot_output_partialpath = sys.argv[6]
+    
+    if saveplot == 'True':
+        saveplot = True
+    elif saveplot == 'False':
+        saveplot = False
+    else:
+        sys.exit('Saveplot arg must be neither True or False, not %s' %saveplot)
     
     optdis_fullpath = os.path.join(mydirs.outputdir, optdis_partialpath)
     exprs_fullpath = os.path.join(mydirs.outputdir, expression_partialpath)
@@ -239,5 +248,6 @@ if __name__ == '__main__':
                                      color_AS_events,
                                      subnetwork_list, 
                                      genenames_each_sn, 
-                                     xlabel, ylabel,
-                                     plot_output_fullpath)
+                                     xlabel, ylabel, title,
+                                     saveplot=saveplot,
+                                     output_fullpath=plot_output_fullpath)
