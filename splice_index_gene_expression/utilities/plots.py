@@ -81,3 +81,23 @@ def plot_subnetwork_expression(x_vector, y_vector,
     # plt.savefig(output_fullpath)
     plt.show()
     
+def plot_stacked_bar(count1, count2,
+                     barplot_categories, barplot_events,
+                     barplot_barwidths,
+                     color_vector, xlabel, ylabel, title):
+    ind = range(0, len(count1))
+    
+    count_list = [count1, count2]
+    iteration = [[0, 0, 0], count1]
+    for count, category, color, bottom in zip(count_list, 
+                                       barplot_categories, 
+                                       color_vector, iteration):
+        plt.bar(ind, tuple(count), width=barplot_barwidths, 
+                color=color, label=category, bottom=bottom)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.title(title)
+    plt.legend()
+    plt.xticks([(i + barplot_barwidths/2.) for i in ind], tuple(barplot_events))
+    plt.show()
+    

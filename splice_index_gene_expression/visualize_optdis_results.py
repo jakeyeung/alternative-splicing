@@ -106,7 +106,7 @@ def calculate_gene_avg_exprs(optdis_output_path, exprs_dict,
                 # Add (AS_detected) to end of genename
                 genename += AS_detected_string
             else:
-                sys.exit('%s neither gene or probe' %s)
+                sys.exit('%s neither gene or probe' %probe_or_gene)
             # Append to dictionary:
             if subnetwork in gene_group_avg_exprs_dic:
                 gene_group_avg_exprs_dic[subnetwork][genename] = (group1_avg, 
@@ -143,7 +143,7 @@ def calculate_subnetwork_avg_exprs(gene_group_avg_exprs_dic):
 
 if __name__ == '__main__':
     if len(sys.argv) < 4:
-        print('Optdis results, expression data, and number of subnetworks must be specified.' \
+        print('Optdis results, expression data, number of subnetworks and output filename must be specified.' \
               '\nFilepath is relative to the output directory ')
         sys.exit()
     # Partial paths are relative to the output directory. 
