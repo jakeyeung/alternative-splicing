@@ -44,10 +44,11 @@ def get_group1_group2_indices(group1_samples, group2_samples, sample_names):
             sys.exit('%s not in group1 or group2' %s)
     return group1_indices, group2_indices
     
-def calculate_gene_avg_exprs(optdis_output_path, exprs_dict, 
-                                   group1_indices, group2_indices, 
-                                   subnetwork_list,
-                                   header=False, normalize_exprs=True):
+def calculate_gene_avg_exprs(optdis_output_path,
+                             exprs_dict, 
+                             group1_indices, group2_indices, 
+                             subnetwork_list, is_gene_exprs_only=False,
+                             header=False, normalize_exprs=True):
     '''
     Calculate avg expression for EACH gene
     Return a dictionary containing subnetwork (key) and in values contains 
@@ -82,7 +83,8 @@ def calculate_gene_avg_exprs(optdis_output_path, exprs_dict,
         for row in optdis_reader:
             genename = row[0]    # Gene name
             subnetwork = int(row[1])    # Subnetwork Number
-            probe_or_gene = row[4]
+            if is_gene_exprs_only == False:
+                probe_or_gene = row[4]    # gene_exprs_only doesnt have this column
             # Search genes expression in exprs_dict
             exprs = exprs_dict[genename]
             if normalize_exprs == True:
@@ -100,13 +102,14 @@ def calculate_gene_avg_exprs(optdis_output_path, exprs_dict,
             group1_avg = float(sum(group1_exprs))/len(group1_exprs)
             group2_avg = float(sum(group2_exprs))/len(group2_exprs)
             # Append gene name as AS_detected if gene has AS event. 
-            if probe_or_gene == 'gene':
-                pass
-            elif probe_or_gene == 'probe':
-                # Add (AS_detected) to end of genename
-                genename += AS_detected_string
-            else:
-                sys.exit('%s neither gene or probe' %probe_or_gene)
+            if is_gene_exprs_only == False:
+                if probe_or_gene == 'gene':
+                    pass
+                elif probe_or_gene == 'probe':
+                    # Add (AS_detected) to end of genename
+                    genename += AS_detected_string
+                else:
+                    sys.exit('%s neither gene or probe' %probe_or_gene)
             # Append to dictionary:
             if subnetwork in gene_group_avg_exprs_dic:
                 gene_group_avg_exprs_dic[subnetwork][genename] = (group1_avg, 
@@ -148,15 +151,23 @@ if __name__ == '__main__':
         sys.exit()
     # Partial paths are relative to the output directory. 
     optdis_partialpath = sys.argv[1]
-    expression_partialpath = sys.argv[2]
+    is_gene_exprs_only = sys.argv[2]
+    expression_partialpath = sys.argv[3]
     try:
-        n_subnetworks = int(sys.argv[3])
+        n_subnetworks = int(sys.argv[4])
     except ValueError:
         sys.exit('Number of subnetworks must be integer.')
-    title = str(sys.argv[4])
-    saveplot = sys.argv[5]
-    plot_output_partialpath = sys.argv[6]
+    title = str(sys.argv[5])
+    saveplot = sys.argv[6]
+    plot_output_partialpath = sys.argv[7]
     
+    # Handle True False Inputs
+    if is_gene_exprs_only == 'True':
+        is_gene_exprs_only = True
+    elif is_gene_exprs_only == 'False':
+        is_gene_exprs_only = False
+    else:
+        sys.exit('is_gene_exprs_only must be True or False, not %s' %is_gene_exprs_only)
     if saveplot == 'True':
         saveplot = True
     elif saveplot == 'False':
@@ -164,6 +175,7 @@ if __name__ == '__main__':
     else:
         sys.exit('Saveplot arg must be neither True or False, not %s' %saveplot)
     
+    # Append full paths
     optdis_fullpath = os.path.join(mydirs.outputdir, optdis_partialpath)
     exprs_fullpath = os.path.join(mydirs.outputdir, expression_partialpath)
     plot_output_fullpath = os.path.join(mydirs.outputdir, plot_output_partialpath)
@@ -196,6 +208,7 @@ if __name__ == '__main__':
                                                         nepc_indices, 
                                                         pc_indices,
                                                         subnetwork_list,
+                                                        is_gene_exprs_only=is_gene_exprs_only,
                                                         header=True,
                                                         normalize_exprs=False)
     '''

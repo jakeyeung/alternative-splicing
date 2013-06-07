@@ -4,7 +4,7 @@ Created on 2013-06-05
 @author: jyeung
 '''
 
-
+import sys
 try: 
     from igraph import Graph as graph
 except ImportError:
@@ -69,8 +69,13 @@ def plot_subnetwork_expression(x_vector, y_vector,
     plt.connect('button_press_event', af)
     # Add Legend for Each Color
     p1 = plt.Circle((0, 0), radius=bubble_size[0], color=color_set[0])
-    p2 = plt.Circle((0, 0), radius=bubble_size[0], color=color_set[1])
-    plt.legend([p1, p2], ['No AS Detected', 'AS Detected'])
+    if len(color_set) == 2:
+        p2 = plt.Circle((0, 0), radius=bubble_size[0], color=color_set[1])
+        plt.legend([p1, p2], ['No AS Detected', 'AS Detected'])
+    elif len(color_set) == 1:
+        pass
+    else:
+        sys.exit('Only 1 or 2 colors can be specified.')
     plt.title(title)
     
     # Draw 45 degree line on graph. 
