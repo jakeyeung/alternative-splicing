@@ -85,6 +85,3 @@ if __name__ == '__main__':
           set_labels = ('Gene Exprs Only', 'Probe and Gene Exprs', 
                         'SI and Gene Exprs'))
     plt.show()
-    
-    
-    
