@@ -171,7 +171,7 @@ def find_and_choose_spliced_probes(gene_exprs_fullpath, probe_exprs_fullpath,
                     for keyname in ([gene_id_str, gene_symbol_str, probe_str] + \
                                     sample_list_gene_exprs_appended):
                         if keyname == probe_str:
-                            writerow.append('all_probes_used')
+                            writerow.append('all_probes')
                         else:
                             # Pick any index, doesnt matter they are all same
                             writerow.append(probe_exprs_dict[keyname][0])
@@ -265,8 +265,6 @@ if __name__ == '__main__':
                                                            si_values_fullpath], 
                                                           output_fullpath)
     
-    with read_write_obj:
-        print read_write_obj.readnext()
     find_and_choose_spliced_probes(gene_exprs_fullpath, probe_exprs_fullpath, 
                                    si_values_fullpath, output_fullpath, 
                                    gene_exprs_str, probe_exprs_str, si_values_str, 

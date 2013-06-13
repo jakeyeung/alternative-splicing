@@ -32,6 +32,7 @@ class spliced_data:
                                full_sample_list,
                                printlong=False):
         '''
+        Colnames to use...
         gene_expr_mean_colname = 'mean'
         w_count_colname = 'w<0.7_count'
         ASE_group_count = 'count'

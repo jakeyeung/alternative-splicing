@@ -15,7 +15,7 @@ from utilities import set_directories, plots
 # Set constants
 inputdir = 'input'
 outputdir = 'output'
-group1_samples = ['X946_Urethra', 'X972.2.Penila', 'AB352', 'X963.Lpa.JP', 'X963.L.LN']
+group1_samples = ['X946_Urethra', 'X972_2_Penila', 'AB352', 'X963.Lpa.JP', 'X963.L.LN']
 group2_samples = ['X1005', 'X890L', 'X945', 'X961']
 
 xlabel = 'Average Gene Expression: NEPC'
