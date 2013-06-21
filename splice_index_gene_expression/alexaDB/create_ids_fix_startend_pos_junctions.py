@@ -94,8 +94,10 @@ def create_ids(fasta_fullpath, annot_fullpath,
     # Set column names (in annot file) as constants.
     ensembl_id_colname = 'EnsEMBL_Gene_ID'
     seq_name_colname = 'Seq_Name'
-    # start_pos_colname = 'Unit1_start_chr'
-    end_pos_colname = 'Unit1_end_chr'
+    # start1_pos_colname = 'Unit1_start_chr'
+    end_pos1_colname = 'Unit1_end_chr'
+    # start2_pos_colname = 'Unit2_start_chr'
+    end_pos2_colname = 'Unit2_end_chr'
     
     # Create read write obj to iterate and write rows in fasta and annot.
     read_write_obj = read_write_fasta_annot(fasta_fullpath, annot_fullpath, 
@@ -132,12 +134,12 @@ def create_ids(fasta_fullpath, annot_fullpath,
             
             # increment start position by one, deincrement end pos by one.
             # then replace old start/end pos with new start/end pos.
-            # start_pos = int(annot_row[annot_colnames.index(start_pos_colname)])
-            end_pos = int(annot_row[annot_colnames.index(end_pos_colname)])
-            # start_pos += 1
-            end_pos -= 1
-            # annot_row[annot_colnames.index(start_pos_colname)] = start_pos
-            annot_row[annot_colnames.index(end_pos_colname)] = end_pos
+            end_pos1 = int(annot_row[annot_colnames.index(end_pos1_colname)])
+            end_pos2 = int(annot_row[annot_colnames.index(end_pos2_colname)])
+            end_pos1 -= 1
+            end_pos2 -= 1
+            annot_row[annot_colnames.index(end_pos1_colname)] = end_pos1
+            annot_row[annot_colnames.index(end_pos2_colname)] = end_pos2
             
             # Write new annot_row to annot output
             read_write_obj.writeannotnext(annot_row)
@@ -163,7 +165,7 @@ def create_ids(fasta_fullpath, annot_fullpath,
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
-        print('exonJunctions fasta, annotations,  '\
+        print('exonBoundaries fasta, annotations,  '\
               'and output filename must be '\
               'specified in commandline.')
         sys.exit()
