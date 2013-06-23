@@ -10,6 +10,7 @@ try:
 except ImportError:
     print('igraph not found, ignoring...')
 import matplotlib.pyplot as plt
+import numpy as np
 from utilities import igraph_utilities, interactive_annotations
 
 
@@ -96,7 +97,10 @@ def plot_stacked_bar(count1, count2,
                      barplot_barwidths,
                      color_vector, xlabel, ylabel, title,
                      output_fullpath):
-    ind = range(0, len(count1))
+    '''
+    Seems to only work for barplot events of 3!
+    '''
+    ind = np.arange(len(count1))
     
     count_list = [count1, count2]
     iteration = [count2, [0, 0, 0]]
@@ -105,6 +109,29 @@ def plot_stacked_bar(count1, count2,
                                        color_vector, iteration):
         plt.bar(ind, tuple(count), width=barplot_barwidths, 
                 color=color, label=category, bottom=bottom)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.title(title)
+    plt.legend()
+    plt.xticks([(i + barplot_barwidths/2.) for i in ind], tuple(barplot_events))
+    fig = plt.gcf()
+    fig.set_size_inches(18.5,10.5)
+    plt.savefig(output_fullpath)
+    plt.clf()
+    
+def plot_stacked_bar2(count1, count2,
+                     barplot_categories, barplot_events,
+                     barplot_barwidths,
+                     color_vector, xlabel, ylabel, title,
+                     output_fullpath):
+    '''
+    Repeat to do for barplot_events length of 2. 
+    '''
+    ind = range(0, len(count1))
+    plt.bar(ind, tuple(count1), width=barplot_barwidths, 
+            color=color_vector[0], label=barplot_categories[0])
+    plt.bar(ind, tuple(count2), width=barplot_barwidths,
+            color=color_vector[1], label=barplot_categories[1])
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.title(title)
