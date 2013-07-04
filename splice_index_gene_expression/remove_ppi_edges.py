@@ -1,0 +1,160 @@
+'''
+Created on 2013-07-04
+
+@author: jyeung
+
+Remove PPI edges where two genes's expression is below some user defined threshold.
+'''
+
+
+import os
+import csv
+import sys
+from utilities import set_directories
+
+
+# Set directories
+mydirs = set_directories.mydirs('input', 'output')
+
+
+def read_gene_expression(gene_expression_fullpath, samplenames_list):
+    '''
+    Read gene expression file, it should contain as column names:
+    ensemblID, id, gene_symbol, samplenames, mean, SD.
+    
+    We will read this file, obtain its gene_symbol and create a dictionary
+    with gene_symbol as 'key', list of expression values (ordered by samplenames_list)
+    as 'values'. 
+    
+    Note this file contains multiple probes per gene, but since the file is gene expression
+    each probe will have the same value within a gene.
+    '''
+    gene_symbol_colname = 'gene_symbol'
+    # Init dictionary with gene_symbol as key, list of exprs across samples as value
+    gene_expression_dic = {}
+    
+    with open(gene_expression_fullpath, 'rb') as readfile:
+        reader = csv.reader(readfile, delimiter='\t')
+        # Read the headers
+        colnames = reader.next()
+        for row in reader:
+            gene_symbol = row[colnames.index(gene_symbol_colname)]
+            if gene_symbol not in gene_expression_dic:
+                '''
+                If gene_symbol not in gene_expression_dic, then we must
+                add a list of gene expression across samples into the dic.
+                '''
+                gene_exprs_list = []
+                for s in samplenames_list:
+                    gene_exprs_list.append(float(row[colnames.index(s)]))
+                gene_expression_dic[gene_symbol] = gene_exprs_list
+            else:
+                '''
+                If gene_symbol already in gene_expression_dic, it means
+                we have already, so skip.
+                '''
+                pass
+    return gene_expression_dic
+
+
+def remove_edges_from_ppi(ppi_fullpath, gene_exprs_dic, 
+                          frac_threshold, output_fullpath,
+                          header=False):
+    '''
+    Read each line in ppi fullpath, then check if the two genes is above
+    the frac_threshold (to be calculated).
+    If both are below frac_threshold,
+    do not write the gene pair into output file.
+    Else write gene pair into output file. 
+    
+    Header by default is False, if it contains header, switch to True to skip 
+    first row. 
+    '''
+    
+    # BEGIN: Calculate threshold gene expression from frac_threshold.
+    # Create long list of gene expression values.
+    gene_exprs_list = sorted([i for sublist in gene_exprs_dic.values() \
+                              for i in sublist])
+    gene_exprs_threshold = gene_exprs_list[int(frac_threshold * len(gene_exprs_list))]
+    print('log2 gene exprs threshold to pass = %.3f' %gene_exprs_threshold)
+    # END: Calculate threshold gene exprs from frac_threshold.
+    
+    # BEGIN: Read PPI network, check if two genes are above threshold, write 
+    # to file if above, do not write otherwise.
+    reject_count = 0
+    row_count = 0
+    interactions_not_found = 0
+    with open(ppi_fullpath, 'rb') as readfile, \
+         open(output_fullpath, 'wb') as writefile:
+        reader = csv.reader(readfile, delimiter='\t')
+        writer = csv.writer(writefile, delimiter='\t')
+        if header == True:
+            reader.next()
+        elif header == False:
+            pass
+        else:
+            sys.exit('header must be True or False.')
+        for row in reader:
+            row_count += 1
+            '''
+            For each row, assumes gene1 is in first column, 
+            gene2 is in second column.
+            '''
+            gene1_name = row[0]
+            gene2_name = row[1]
+            try:
+                gene1_exprs_list =  gene_exprs_dic[gene1_name]
+                gene2_exprs_list = gene_exprs_dic[gene2_name]
+                # Get average from list
+                gene1_exprs = float(sum(gene1_exprs_list)) / len(gene1_exprs_list)
+                gene2_exprs = float(sum(gene2_exprs_list)) / len(gene2_exprs_list)
+                if gene1_exprs and gene2_exprs >= gene_exprs_threshold:
+                    writer.writerow([gene1_name, gene2_name, 1])
+                else:
+                    writer.writerow([gene1_name, gene2_name, 0])
+                    reject_count += 1
+            except KeyError:
+                if gene1_name not in gene_exprs_dic:
+                    # print('%s not found, skipping.' %gene1_name)
+                    interactions_not_found += 1
+                elif gene2_name not in gene_exprs_dic:
+                    # print('%s not found, skipping.' %gene2_name)
+                    interactions_not_found += 1
+                else:
+                    sys.exit('%s and %s are strange, human check required.' %(gene1_name, gene2_name))
+    # END: Read PPI network...
+    print('%s interactions removed out of %s' %(reject_count, row_count))
+    print('%s genes in PPI not found in cohort out of %s.' \
+          %(interactions_not_found, row_count))
+    return None
+ 
+
+if __name__ == '__main__':
+    if len(sys.argv) < 4:
+        print('Gene expression file, ppi_network, CSV samplenames, '\
+              'fractional threshold, and output filename must be indicated in commandline.'\
+              'gene expression file and ppi network must be relative to input folder.')
+        sys.exit()
+    gene_expression_filename = sys.argv[1]
+    ppi_filename = sys.argv[2]
+    samplenames_csv = sys.argv[3]
+    try:
+        frac_threshold = float(sys.argv[4])
+    except ValueError:
+        sys.exit('Could not convert %s to float.' %frac_threshold)
+    output_filename = sys.argv[5]
+    
+    gene_expression_fullpath = os.path.join(mydirs.inputdir, gene_expression_filename)
+    ppi_fullpath = os.path.join(mydirs.inputdir, ppi_filename)
+    output_fullpath = os.path.join(mydirs.outputdir, output_filename)
+    samplenames_list = samplenames_csv.split(',')
+    
+    # Find threshold by reading gene expression, and saying anything
+    # below frac_threshold is too low to be considered expressed.
+    gene_exprs_dic = read_gene_expression(gene_expression_fullpath, samplenames_list)
+    
+    remove_edges_from_ppi(ppi_fullpath, gene_exprs_dic, frac_threshold, output_fullpath, header=False)
+    
+    
+    
+    
