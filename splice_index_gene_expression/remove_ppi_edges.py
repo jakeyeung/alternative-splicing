@@ -59,7 +59,8 @@ def read_gene_expression(gene_expression_fullpath, samplenames_list, gene_symbol
 
 
 def remove_edges_from_ppi(ppi_fullpath, gene_exprs_dic, 
-                          frac_threshold, output_fullpath, 
+                          frac_threshold, output_fullpath,
+                          frac_samples_to_pass_threshold=1, 
                           normalize_exprs=False,
                           header=False, write_to_file=True):
     '''
@@ -113,11 +114,17 @@ def remove_edges_from_ppi(ppi_fullpath, gene_exprs_dic,
             gene1_name = row[0]
             gene2_name = row[1]
             try:
-                gene1_exprs_list =  gene_exprs_dic[gene1_name]
-                gene2_exprs_list = gene_exprs_dic[gene2_name]
-                # Get average from list
-                gene1_exprs = float(sum(gene1_exprs_list)) / len(gene1_exprs_list)
-                gene2_exprs = float(sum(gene2_exprs_list)) / len(gene2_exprs_list)
+                gene1_exprs_list = sorted(gene_exprs_dic[gene1_name], reverse=True)
+                gene2_exprs_list = sorted(gene_exprs_dic[gene2_name], reverse=True)
+                
+                '''
+                # Define gene1/2 exprs as the maximum value in a gene exprs list that has been
+                # filtered to only include a fraction of the samples.
+                # This means if frac_samples_to_pass_threshold==0.5, half the samples must be 
+                # above the threshold in order to be considered included in the tissue. 
+                '''
+                gene1_exprs = min(gene1_exprs_list[0:int(frac_samples_to_pass_threshold*len(gene1_exprs_list))])
+                gene2_exprs = min(gene2_exprs_list[0:int(frac_samples_to_pass_threshold*len(gene2_exprs_list))])
                 if gene1_exprs and gene2_exprs >= gene_exprs_threshold:
                     if write_to_file==True:
                         writer.writerow([gene1_name, gene2_name, 1])
