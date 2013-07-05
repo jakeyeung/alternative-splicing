@@ -10,6 +10,7 @@ Remove PPI edges where two genes's expression is below some user defined thresho
 import os
 import csv
 import sys
+from scipy import stats
 from utilities import set_directories
 
 
@@ -58,8 +59,9 @@ def read_gene_expression(gene_expression_fullpath, samplenames_list):
 
 
 def remove_edges_from_ppi(ppi_fullpath, gene_exprs_dic, 
-                          frac_threshold, output_fullpath,
-                          header=False):
+                          frac_threshold, output_fullpath, 
+                          normalize_exprs=False,
+                          header=False, write_to_file=True):
     '''
     Read each line in ppi fullpath, then check if the two genes is above
     the frac_threshold (to be calculated).
@@ -75,8 +77,16 @@ def remove_edges_from_ppi(ppi_fullpath, gene_exprs_dic,
     # Create long list of gene expression values.
     gene_exprs_list = sorted([i for sublist in gene_exprs_dic.values() \
                               for i in sublist])
+    if normalize_exprs==True:
+        gene_exprs_list = stats.zscore(gene_exprs_list)
+    elif normalize_exprs==False:
+        pass
+    else:
+        sys.exit('normalize_exprs must be True or False, %s detected.' \
+                 %normalize_exprs)
     gene_exprs_threshold = gene_exprs_list[int(frac_threshold * len(gene_exprs_list))]
     print('log2 gene exprs threshold to pass = %.3f' %gene_exprs_threshold)
+    
     # END: Calculate threshold gene exprs from frac_threshold.
     
     # BEGIN: Read PPI network, check if two genes are above threshold, write 
@@ -109,9 +119,21 @@ def remove_edges_from_ppi(ppi_fullpath, gene_exprs_dic,
                 gene1_exprs = float(sum(gene1_exprs_list)) / len(gene1_exprs_list)
                 gene2_exprs = float(sum(gene2_exprs_list)) / len(gene2_exprs_list)
                 if gene1_exprs and gene2_exprs >= gene_exprs_threshold:
-                    writer.writerow([gene1_name, gene2_name, 1])
+                    if write_to_file==True:
+                        writer.writerow([gene1_name, gene2_name, 1])
+                    elif write_to_file==False:
+                        pass
+                    else:
+                        sys.exit('Writefile must be True or False, %s found'\
+                                  %writefile)
                 else:
-                    writer.writerow([gene1_name, gene2_name, 0])
+                    if write_to_file==True:
+                        writer.writerow([gene1_name, gene2_name, 0])
+                    elif write_to_file==False:
+                        pass
+                    else:
+                        sys.exit('Writefile must be True or False, %s found'\
+                                  %writefile)
                     reject_count += 1
             except KeyError:
                 if gene1_name not in gene_exprs_dic:
@@ -123,10 +145,11 @@ def remove_edges_from_ppi(ppi_fullpath, gene_exprs_dic,
                 else:
                     sys.exit('%s and %s are strange, human check required.' %(gene1_name, gene2_name))
     # END: Read PPI network...
-    print('%s interactions removed out of %s' %(reject_count, row_count))
+    print('%s interactions removed out of %s' %(reject_count, row_count-interactions_not_found))
     print('%s genes in PPI not found in cohort out of %s.' \
           %(interactions_not_found, row_count))
-    return None
+    return {'row_count': row_count, 'unmapped_genes': interactions_not_found, 
+            'edges_removed': reject_count, 'mapped_genes':row_count-interactions_not_found}
  
 
 if __name__ == '__main__':
@@ -153,8 +176,11 @@ if __name__ == '__main__':
     # below frac_threshold is too low to be considered expressed.
     gene_exprs_dic = read_gene_expression(gene_expression_fullpath, samplenames_list)
     
-    remove_edges_from_ppi(ppi_fullpath, gene_exprs_dic, frac_threshold, output_fullpath, header=False)
-    
+    summary_dic = remove_edges_from_ppi(ppi_fullpath, gene_exprs_dic, 
+                                        frac_threshold, output_fullpath,
+                                        normalize_exprs=True, 
+                                        header=False, write_to_file=True)
+    print summary_dic
     
     
     
