@@ -18,7 +18,7 @@ from utilities import set_directories
 mydirs = set_directories.mydirs('input', 'output')
 
 
-def read_gene_expression(gene_expression_fullpath, samplenames_list):
+def read_gene_expression(gene_expression_fullpath, samplenames_list, gene_symbol_colname):
     '''
     Read gene expression file, it should contain as column names:
     ensemblID, id, gene_symbol, samplenames, mean, SD.
@@ -30,7 +30,7 @@ def read_gene_expression(gene_expression_fullpath, samplenames_list):
     Note this file contains multiple probes per gene, but since the file is gene expression
     each probe will have the same value within a gene.
     '''
-    gene_symbol_colname = 'gene_symbol'
+    # gene_symbol_colname = 'gene_symbol'
     # Init dictionary with gene_symbol as key, list of exprs across samples as value
     gene_expression_dic = {}
     
@@ -149,7 +149,8 @@ def remove_edges_from_ppi(ppi_fullpath, gene_exprs_dic,
     print('%s genes in PPI not found in cohort out of %s.' \
           %(interactions_not_found, row_count))
     return {'row_count': row_count, 'unmapped_genes': interactions_not_found, 
-            'edges_removed': reject_count, 'mapped_genes':row_count-interactions_not_found}
+            'edges_removed': reject_count, 'mapped_genes':row_count-interactions_not_found,
+            'gene_exprs_threshold': gene_exprs_threshold}
  
 
 if __name__ == '__main__':
@@ -161,11 +162,12 @@ if __name__ == '__main__':
     gene_expression_filename = sys.argv[1]
     ppi_filename = sys.argv[2]
     samplenames_csv = sys.argv[3]
+    gene_symbol_colname = sys.argv[4]
     try:
-        frac_threshold = float(sys.argv[4])
+        frac_threshold = float(sys.argv[5])
     except ValueError:
         sys.exit('Could not convert %s to float.' %frac_threshold)
-    output_filename = sys.argv[5]
+    output_filename = sys.argv[6]
     
     gene_expression_fullpath = os.path.join(mydirs.inputdir, gene_expression_filename)
     ppi_fullpath = os.path.join(mydirs.inputdir, ppi_filename)
