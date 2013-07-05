@@ -15,8 +15,8 @@ from utilities import set_directories, plots
 inputdir = 'input'
 outputdir = 'output'
 
-xlabel = 'Average Gene Expression: NEPC'
-ylabel = 'Average Gene Expression: PC'
+xlabel = 'Average $log_2$ Gene Expression: NEPC'
+ylabel = 'Average $log_2$ Gene Expression: PC'
 # title = 'Subnetworks and Their Average Gene Expressions'
 
 AS_detected_string = '_AS_detected' # Label genes with alternative splice event.
@@ -160,7 +160,8 @@ if __name__ == '__main__':
         n_subnetworks = int(sys.argv[6])
     except ValueError:
         sys.exit('Number of subnetworks must be integer.')
-    title = str(sys.argv[7])
+    title = str(sys.argv[7])    # Words separated by underscore!
+    title = title.replace('_', ' ')
     saveplot = sys.argv[8]
     plot_output_partialpath = sys.argv[9]
     
