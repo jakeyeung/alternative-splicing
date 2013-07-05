@@ -22,9 +22,6 @@ xlabel = r'$log_2$ Gene Expression Threshold'
 ylabel = 'Edges Removed'
 title = 'Edges Removed vs Threshold'
 
-# Function constants
-frac_samples_to_pass_threshold = 0.75
-
 
 def list_range(start, stop, length_of_list):
     '''
@@ -46,7 +43,12 @@ if __name__ == '__main__':
     gene_symbol_colname = sys.argv[2]
     ppi_filename = sys.argv[3]
     samplenames_csv = sys.argv[4]
-    dummy_filename = sys.argv[5]
+    try:
+        frac_samples_to_pass_threshold = float(sys.argv[5])
+    except ValueError:
+        sys.exit('Could not convert frac_samples_to_pass_threshold, %s was inputed' \
+                 %frac_samples_to_pass_threshold)
+    dummy_filename = sys.argv[6]
     
     gene_expression_fullpath = os.path.join(mydirs.inputdir, gene_expression_filename)
     ppi_fullpath = os.path.join(mydirs.inputdir, ppi_filename)
