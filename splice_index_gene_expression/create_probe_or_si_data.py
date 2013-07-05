@@ -30,15 +30,13 @@ tabledir = 'tables'
 gene_symbol_colname = 'gene_symbol'
 # Sample constants
 sample_list = ['X946_Urethra', 
-                'X972.2.Penila',
+                'X972_2_Penila',
                 'AB352',
-                'X963.Lpa.JP',
-                'X963.L.LN',
                 'X1005',
                 'X890L',
                 'X945',
                 'X961']
-classifier_dict = {'NEPC':['X946_Urethra', 'X972.2.Penila', 'AB352', 'X963.Lpa.JP', 'X963.L.LN',], 
+classifier_dict = {'NEPC':['X946_Urethra', 'X972_2_Penila', 'AB352'], 
                    'PC':['X1005', 'X890L', 'X945', 'X961']}
 full_sample_length = 13    # All samples, including cell lines and lymph nodes.
 
