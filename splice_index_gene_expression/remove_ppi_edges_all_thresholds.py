@@ -35,9 +35,10 @@ if __name__ == '__main__':
               'gene expression file and ppi network must be relative to input folder.')
         sys.exit()
     gene_expression_filename = sys.argv[1]
-    ppi_filename = sys.argv[2]
-    samplenames_csv = sys.argv[3]
-    dummy_filename = sys.argv[4]
+    gene_symbol_colname = sys.argv[2]
+    ppi_filename = sys.argv[3]
+    samplenames_csv = sys.argv[4]
+    dummy_filename = sys.argv[5]
     
     gene_expression_fullpath = os.path.join(mydirs.inputdir, gene_expression_filename)
     ppi_fullpath = os.path.join(mydirs.inputdir, ppi_filename)
@@ -46,18 +47,20 @@ if __name__ == '__main__':
     
     # Find threshold by reading gene expression, and saying anything
     # below frac_threshold is too low to be considered expressed.
-    gene_exprs_dic = read_gene_expression(gene_expression_fullpath, samplenames_list)
+    gene_exprs_dic = read_gene_expression(gene_expression_fullpath, samplenames_list, gene_symbol_colname)
     
     threshold_list = list_range(0, 1, number_of_thresholds)
     frac_edges_removed = []
+    gene_exprs_threshold_list = []
     
     # remove_edges_from_ppi(ppi_fullpath, gene_exprs_dic, 0.25, dummy_fullpath, header=False, write_to_file=False)
     for frac_threshold in threshold_list:
         summary_dic = remove_edges_from_ppi(ppi_fullpath, gene_exprs_dic, 
                                             frac_threshold, dummy_fullpath, 
-                                            normalize_exprs=True,
+                                            normalize_exprs=False,
                                             header=False, write_to_file=False)
+        gene_exprs_threshold_list.append(summary_dic['gene_exprs_threshold'])
         frac_edges_removed.append(summary_dic['edges_removed'] / float(summary_dic['mapped_genes']))
-    plots.plot_line_graph(threshold_list, frac_edges_removed, 'Fractional Threshold',
+    plots.plot_line_graph(gene_exprs_threshold_list, frac_edges_removed, r'$log_2\ Gene\ Expression\ Threshold$',
                            'Edges Removed', 'Edges Removed vs Threshold')
         
