@@ -17,6 +17,14 @@ from remove_ppi_edges import read_gene_expression, remove_edges_from_ppi
 mydirs = set_directories.mydirs('input', 'output')
 number_of_thresholds = 20
 
+# Set plot constants
+xlabel = r'$log_2$ Gene Expression Threshold'
+ylabel = 'Edges Removed'
+title = 'Edges Removed vs Threshold'
+
+# Function constants
+frac_samples_to_pass_threshold = 0.75
+
 
 def list_range(start, stop, length_of_list):
     '''
@@ -56,11 +64,14 @@ if __name__ == '__main__':
     # remove_edges_from_ppi(ppi_fullpath, gene_exprs_dic, 0.25, dummy_fullpath, header=False, write_to_file=False)
     for frac_threshold in threshold_list:
         summary_dic = remove_edges_from_ppi(ppi_fullpath, gene_exprs_dic, 
-                                            frac_threshold, dummy_fullpath, 
+                                            frac_threshold, dummy_fullpath,
+                                            frac_samples_to_pass_threshold=frac_samples_to_pass_threshold, 
                                             normalize_exprs=False,
                                             header=False, write_to_file=False)
         gene_exprs_threshold_list.append(summary_dic['gene_exprs_threshold'])
         frac_edges_removed.append(summary_dic['edges_removed'] / float(summary_dic['mapped_genes']))
-    plots.plot_line_graph(gene_exprs_threshold_list, frac_edges_removed, r'$log_2\ Gene\ Expression\ Threshold$',
-                           'Edges Removed', 'Edges Removed vs Threshold')
+    plots.plot_line_graph(gene_exprs_threshold_list, frac_edges_removed, xlabel,
+                           ylabel, '%s (%s frac of samples above threshold)' \
+                           %(title, frac_samples_to_pass_threshold))
+    
         
