@@ -73,7 +73,7 @@ class AnnoteFinder:
             self.axis.figure.canvas.draw()
         else:
             # t = axis.text(x,y, " - %s"%(annote), )
-            t = axis.text(x,y, "%s"%(annote), horizontalalignment='left', verticalalignment='bottom')
+            t = axis.text(x,y, "%s"%(annote), horizontalalignment='left', verticalalignment='bottom', size=15)
             m = axis.scatter([x],[y], marker='d', c='r', zorder=100)
             self.drawnAnnotations[(x,y)] =(t,m)
             self.axis.figure.canvas.draw()
