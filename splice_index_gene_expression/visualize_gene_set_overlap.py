@@ -36,9 +36,14 @@ if __name__ == '__main__':
         print('Three OptDis output partial paths'\
               '(relative to output directory) must be specified in command line.')
         sys.exit()
-    gene_exprs_only_partialpath = sys.argv[1]
-    probe_and_gene_partialpath = sys.argv[2]
-    si_and_gene_partialpath = sys.argv[3]
+    total_data_sets = int(sys.argv[1])
+    gene_exprs_only_partialpath = sys.argv[2]
+    probe_and_gene_partialpath = sys.argv[3]
+    si_and_gene_partialpath = sys.argv[4]
+    
+    if total_data_sets not in [2, 3]:
+        print('Total data sets must be either 2 or 3, %s found' %total_data_sets)
+        sys.exit()
     
     gene_exprs_only_fullpath = os.path.join(mydirs.outputdir, 
                                             gene_exprs_only_partialpath)
