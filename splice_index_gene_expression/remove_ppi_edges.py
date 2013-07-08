@@ -61,6 +61,7 @@ def read_gene_expression(gene_expression_fullpath, samplenames_list, gene_symbol
 def remove_edges_from_ppi(ppi_fullpath, gene_exprs_dic, 
                           frac_threshold, output_fullpath,
                           frac_samples_to_pass_threshold=1, 
+                          use_gene_exprs_threshold=False,
                           normalize_exprs=False,
                           header=False, write_to_file=True):
     '''
@@ -85,7 +86,10 @@ def remove_edges_from_ppi(ppi_fullpath, gene_exprs_dic,
     else:
         sys.exit('normalize_exprs must be True or False, %s detected.' \
                  %normalize_exprs)
-    gene_exprs_threshold = gene_exprs_list[int(frac_threshold * len(gene_exprs_list))]
+    if use_gene_exprs_threshold==False:
+        gene_exprs_threshold = gene_exprs_list[int(frac_threshold * len(gene_exprs_list))]
+    else:
+        gene_exprs_threshold = use_gene_exprs_threshold
     print('log2 gene exprs threshold to pass = %.3f' %gene_exprs_threshold)
     
     # END: Calculate threshold gene exprs from frac_threshold.
@@ -174,7 +178,9 @@ if __name__ == '__main__':
         frac_threshold = float(sys.argv[5])
     except ValueError:
         sys.exit('Could not convert %s to float.' %frac_threshold)
-    output_filename = sys.argv[6]
+    frac_samples_to_pass_threshold = float(sys.argv[6])
+    use_gene_exprs_threshold = float(sys.argv[7])
+    output_filename = sys.argv[8]
     
     gene_expression_fullpath = os.path.join(mydirs.inputdir, gene_expression_filename)
     ppi_fullpath = os.path.join(mydirs.inputdir, ppi_filename)
@@ -183,10 +189,14 @@ if __name__ == '__main__':
     
     # Find threshold by reading gene expression, and saying anything
     # below frac_threshold is too low to be considered expressed.
-    gene_exprs_dic = read_gene_expression(gene_expression_fullpath, samplenames_list)
+    gene_exprs_dic = read_gene_expression(gene_expression_fullpath, 
+                                          samplenames_list, gene_symbol_colname)
     
     summary_dic = remove_edges_from_ppi(ppi_fullpath, gene_exprs_dic, 
-                                        frac_threshold, output_fullpath,
+                                        frac_threshold,
+                                        output_fullpath,
+                                        frac_samples_to_pass_threshold=frac_samples_to_pass_threshold,
+                                        use_gene_exprs_threshold=use_gene_exprs_threshold,
                                         normalize_exprs=True, 
                                         header=False, write_to_file=True)
     print summary_dic
