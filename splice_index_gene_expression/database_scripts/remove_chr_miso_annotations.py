@@ -62,5 +62,3 @@ if __name__ == '__main__':
     write_file = sys.argv[2]
     
     remove_chr_prefix(read_file, write_file)
-    
-    
