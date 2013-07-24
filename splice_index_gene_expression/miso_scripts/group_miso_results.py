@@ -13,12 +13,15 @@ Secondly, we'll create similarly for the 4 NEPCa one summary directory.
 import sys
 import csv
 import os
+from multiprocessing import Process
 from group_miso_utils import \
-    write_combined_miso_header, make_dir, write_combined_psi_logscore
+    write_combined_miso_header, make_dir, write_combined_psi_logscore, \
+    get_larger_list_size, get_sample_names_from_file, check_if_empty_dir
 
 
 def open_miso_output_file(miso_outpath):
     '''
+    TODO: THIS FUNCTION'S USELESS DELETE IT. 
     Open the raw output from miso pipeline and extract information from it.
     '''
     with open(miso_outpath, 'rb') as readfile:
@@ -30,8 +33,12 @@ def get_intersection_of_files(main_dir, sample_dir_names_list, chromo):
     Itereate through list of sample_dir_names and obtain a set of .miso output
     files in miso_main_dir/sample_dir/chromo/ that are common through 
     all the sample directories that were iterated. 
+    
+    Also output total possible fnames by finding the list of largest length
+    as we iterate through samples. This gives us an idea of how many get filtered out.
     '''
     # Initialize master_fnames_list
+    largest_fnames_size = 0    # Total possible fnames.
     master_fnames_list = []
     samp_count = 0
     for samp_dir in sample_dir_names_list:
@@ -40,7 +47,8 @@ def get_intersection_of_files(main_dir, sample_dir_names_list, chromo):
         # Filter for .miso files only.
         output_fnames_list = [f for f in output_fnames_list if f.endswith('.miso')]
         if len(output_fnames_list) == 0:
-            print('Warning: no .miso files found in %s.')
+            print('Warning: no .miso files found in %s.' %samp_dir)
+        largest_fnames_size = get_larger_list_size(output_fnames_list, largest_fnames_size)
         '''
         If this is first iteration, make fnames_list the masters list.
         Otherwise, find intersection between masters list and fnames list
@@ -50,15 +58,15 @@ def get_intersection_of_files(main_dir, sample_dir_names_list, chromo):
                 master_fnames_list = \
                     list(set(master_fnames_list).intersection(output_fnames_list))
             elif len(master_fnames_list) == 0:
-                print('Warning: master_fnames_list is zero.')
+                # print('Warning: master_fnames_list is zero.')
                 pass
             else:
                 sys.exit('Cannot find length of master_fnames_list.')
         else:    # If this is first iteration, initialize master_fnames_list.
             master_fnames_list = output_fnames_list
         samp_count += 1
-    print('Found common %s events in %s.' %(len(master_fnames_list), chromo))
-    return master_fnames_list
+    # print('Found common %s events in %s.' %(len(master_fnames_list), chromo))
+    return master_fnames_list, largest_fnames_size
 
 def consolidate_miso_across_samples(main_dir, sample_dir_names_list, 
                                     chromo, master_fnames_list, 
@@ -90,34 +98,50 @@ def consolidate_miso_across_samples(main_dir, sample_dir_names_list,
                                         chromo,
                                         f, writer)
             file_count += 1
-    print('%s files summarized for %s samples.' %(file_count, len(sample_dir_names_list)))
+    # print('%s files summarized for %s samples.' %(file_count, len(sample_dir_names_list)))
 
-def main():
-    main_dir = sys.argv[1]
-    sample_dir_names_csv = sys.argv[2]
-    output_path = sys.argv[3]
-    
-    # Define constants
-    # chr_str = 'chr'
-    
-    # Create list of sample directory names.
-    sample_dir_names_list = sample_dir_names_csv.split(',')
-    # Create list of chromosome names corresponding to folders within sample dir
-    # chr_list = [''.join([chr_str, str(c)]) for c in range(1, 23) + ['X', 'Y']]
-    # raw_input(chr_list)
-    chromosome_list = ['chr1', 'chr2']
-    # Look at one chromo first for testing. REMOVE THIS COMMENT LATER.
-    chromo = chromosome_list[0]
-    # Find intersection of all file names in all the samples.
-    master_fnames_list = get_intersection_of_files(main_dir, 
+def get_fnames_consolidate_miso(main_dir, sample_dir_names_list, chromo, 
+                                output_path):
+    '''
+    Simply combines the two functions get_intersection_of_files() and 
+    consolidate_miso_across_samples(). This makes it easier to create 
+    queues for multiprocessing.
+    '''
+    master_fnames_list, \
+        total_possible = get_intersection_of_files(main_dir, 
                                                    sample_dir_names_list, 
                                                    chromo)
     # Create first header for each common file name.
     consolidate_miso_across_samples(main_dir, sample_dir_names_list,
                                     chromo, master_fnames_list,
                                     output_path)
-    # Go through each common file name and sampled psi and log values.
+    print('%s files (of %s total possible) consolidated for chromosome %s' \
+          %(len(master_fnames_list), total_possible, chromo))
+    return None
+
+def main():
+    main_dir = sys.argv[1]
+    sample_dir_fullpath = sys.argv[2]
+    output_path = sys.argv[3]
     
+    # Define constants
+    chr_str = 'chr'
+    # Create list of chromosome names corresponding to folders within sample dir
+    chr_list = [''.join([chr_str, str(c)]) for c in range(1, 23) + ['X', 'Y']]
+    
+    # Create list of sample directory names.
+    sample_dir_names_list = get_sample_names_from_file(sample_dir_fullpath)
+    
+    # Subset list for only those that contain miso outputs.
+    sample_dir_names_list = check_if_empty_dir(main_dir, sample_dir_names_list, chr_list)
+    # sample_dir_names_list = sample_dir_names_csv.split(',')
+    
+    # Run on multiple threads.
+    for chromo in chr_list:
+        print('Sending %s job to core...' %chromo)
+        Process(target=get_fnames_consolidate_miso,
+                args=(main_dir, sample_dir_names_list, chromo, 
+                      output_path)).start()
 
 if __name__ == '__main__':
     main()
