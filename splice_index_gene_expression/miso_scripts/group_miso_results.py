@@ -13,7 +13,8 @@ Secondly, we'll create similarly for the 4 NEPCa one summary directory.
 import sys
 import csv
 import os
-from group_miso_utils import write_headers_all_samples
+from group_miso_utils import \
+    write_combined_miso_header, make_dir, write_combined_psi_logscore
 
 
 def open_miso_output_file(miso_outpath):
@@ -34,7 +35,6 @@ def get_intersection_of_files(main_dir, sample_dir_names_list, chromo):
     master_fnames_list = []
     samp_count = 0
     for samp_dir in sample_dir_names_list:
-        print samp_dir
         chr_output_file_dir = os.path.join(main_dir, samp_dir, chromo)
         output_fnames_list = os.listdir(chr_output_file_dir)
         # Filter for .miso files only.
@@ -57,13 +57,12 @@ def get_intersection_of_files(main_dir, sample_dir_names_list, chromo):
         else:    # If this is first iteration, initialize master_fnames_list.
             master_fnames_list = output_fnames_list
         samp_count += 1
+    print('Found common %s events in %s.' %(len(master_fnames_list), chromo))
     return master_fnames_list
 
-
-
-def combine_miso_outputs_across_samples(main_dir, sample_dir_names_list, 
-                                        chromo, master_fnames_list, 
-                                        output_path):
+def consolidate_miso_across_samples(main_dir, sample_dir_names_list, 
+                                    chromo, master_fnames_list, 
+                                    output_path):
     '''
     For each file in master_fnames_list:
     Read inside main_dir/sample_dir/chromo/misofile for all sample_dirs.
@@ -71,30 +70,41 @@ def combine_miso_outputs_across_samples(main_dir, sample_dir_names_list,
     (meaning adding up all the counts).
     2) write sampled_psi and log_score to output_path for each
     sample. 
-    '''
     
+    TODO: is it weird to put csv writer obj into a function?
     '''
-    # Define constants found in header.
-    percent_accept_index = 5
-    counts_index = 7
-    assigned_counts_index = 8
-    '''
-    
     # This will be inefficient, because I will open each file twice...
+    file_count = 0
     for f in master_fnames_list:
-        with open(output_path, 'wb') as writefile:
+        # Construct fullpath for output file, make directory if does not exist.
+        # Path will look like output_path/chr1/
+        chr_out_path = make_dir(os.path.join(output_path, chromo))
+        with open(os.path.join(chr_out_path, f), 'wb') as writefile:
             writer = csv.writer(writefile, delimiter='\t')
-            write_headers_all_samples(sample_dir_names_list, main_dir, 
-                                      chromo, f, writer)
+            # Write summary header of file (loops through all samples)
+            write_combined_miso_header(sample_dir_names_list, main_dir, 
+                                       chromo, f, writer)
+            # Write sampled_psi and log_score for each sample:
+            write_combined_psi_logscore(sample_dir_names_list,
+                                        main_dir,
+                                        chromo,
+                                        f, writer)
+            file_count += 1
+    print('%s files summarized for %s samples.' %(file_count, len(sample_dir_names_list)))
 
 def main():
     main_dir = sys.argv[1]
     sample_dir_names_csv = sys.argv[2]
     output_path = sys.argv[3]
     
+    # Define constants
+    # chr_str = 'chr'
+    
     # Create list of sample directory names.
     sample_dir_names_list = sample_dir_names_csv.split(',')
     # Create list of chromosome names corresponding to folders within sample dir
+    # chr_list = [''.join([chr_str, str(c)]) for c in range(1, 23) + ['X', 'Y']]
+    # raw_input(chr_list)
     chromosome_list = ['chr1', 'chr2']
     # Look at one chromo first for testing. REMOVE THIS COMMENT LATER.
     chromo = chromosome_list[0]
@@ -102,9 +112,11 @@ def main():
     master_fnames_list = get_intersection_of_files(main_dir, 
                                                    sample_dir_names_list, 
                                                    chromo)
-    combine_miso_outputs_across_samples(main_dir, sample_dir_names_list,
-                                        chromo, master_fnames_list,
-                                        output_path)
+    # Create first header for each common file name.
+    consolidate_miso_across_samples(main_dir, sample_dir_names_list,
+                                    chromo, master_fnames_list,
+                                    output_path)
+    # Go through each common file name and sampled psi and log values.
     
 
 if __name__ == '__main__':
