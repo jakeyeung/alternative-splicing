@@ -10,6 +10,63 @@ import os
 import csv
 import re
 
+def check_if_empty_dir(path, directory_list, suffix_dir_list):
+    '''
+    Given a path+directory+suffix_dir, check if there are any files
+    in the directory. If no files, remove that directory
+    from the list, return only directories that contain files.
+    '''
+    bad_dirs = []
+    filter_count = 0
+    for samp_dir in directory_list:
+        # Check if chr1, chr2 folders even exist...
+        mainpath = os.path.join(path, samp_dir)
+        files_in_mainpath = os.listdir(mainpath)
+        if len(files_in_mainpath) == 0:
+            bad_dirs.append(samp_dir)
+            filter_count += 1
+        else:    # Dont go into loop unless there are actually folders
+            for suf_dir in suffix_dir_list:
+                fullpath = os.path.join(path, samp_dir, suf_dir)
+                files_in_fullpath = os.listdir(fullpath)
+                files_in_fullpath = \
+                    [f for f in files_in_fullpath if f.endswith('.miso')]
+                if len(files_in_fullpath) == 0:
+                    bad_dirs.append(samp_dir)
+                    filter_count += 1
+                    break
+    filtered_dir_list = [f for f in directory_list if f not in bad_dirs]
+    print('%s total samples were filtered out because they were empty.' \
+          %filter_count)
+    return filtered_dir_list
+
+def get_sample_names_from_file(sample_name_file):
+    '''
+    Open text file containing sample names on the columns.
+    
+    Extract first column containing sample names, while appending
+    a prefix in front of each sample name.
+    
+    Return sample names as a list. 
+    '''
+    sample_list = []
+    with open(sample_name_file, 'rb') as readfile:
+        reader = csv.reader(readfile, delimiter='\t')
+        for row in reader:
+            sample_list.append(row[0])
+    return sample_list
+
+def get_larger_list_size(list_of_interest, current_size):
+    '''
+    Check if current length of output_fnames_list is 
+    larger than largest_fnames_size, if it is larger
+    then update largest_fnames_size
+    '''
+    if len(list_of_interest) > current_size:
+        return len(list_of_interest)
+    else:
+        return current_size
+
 def make_dir(path):
     '''
     Make a directory if it doesn't exist.
@@ -76,7 +133,7 @@ def write_combined_miso_header(sample_dir_names_list, main_dir,
                     try:
                         jlist.append(int(match.group(0)))
                     except ValueError:
-                        print('Error: could not convert %s to int.' %match.group(0))
+                            ('Error: could not convert %s to int.' %match.group(0))
                 else:
                     jlist.append(0)
     # Modify the last saved header with percent_accept, 
