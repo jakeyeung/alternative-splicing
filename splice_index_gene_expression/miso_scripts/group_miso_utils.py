@@ -10,9 +10,16 @@ import os
 import csv
 import re
 
-
-def write_headers_all_samples(sample_dir_names_list, main_dir, 
-                              chromo, miso_output, csv_write_obj):
+def make_dir(path):
+    '''
+    Make a directory if it doesn't exist.
+    '''
+    if not os.path.exists(path):
+        os.makedirs(path)
+    return path
+    
+def write_combined_miso_header(sample_dir_names_list, main_dir, 
+                               chromo, miso_output, csv_write_obj):
     '''
     For given miso output file (.miso), find that .miso file from a list of
     samples, then write a common header by keeping everything the same
@@ -82,6 +89,32 @@ def write_headers_all_samples(sample_dir_names_list, main_dir,
           sum(counts_01_list), sum(counts_11_list))
     header[assigned_counts_index] = 'assigned_counts=0:%s,1:%s' \
         %(sum(assigned_counts_0_list), sum(assigned_counts_1_list))
-    raw_input(header)
     csv_write_obj.writerow(header)
     return None
+
+def write_combined_psi_logscore(sample_dir_names_list, main_dir, 
+                               chromo, miso_output, csv_write_obj):
+    '''
+    For a given miso_output file (that should be common across the
+    samples of interest), find the sampled_psi and log_score for
+    all samples in sample_dir_names_list. Write this to csv_write_obj.
+    '''
+    # Define column headers.
+    sampledpsi_str = 'sampled_psi'    # First column is sampled_psi
+    logscore_str = 'log_score'    # Second column is log_score
+    # Write column headers to write_obj.
+    csv_write_obj.writerow([sampledpsi_str, logscore_str])
+    sampled_psi_count = 0
+    for samp_dir in sample_dir_names_list:
+        with \
+            open(os.path.join(main_dir, samp_dir, 
+                              chromo, miso_output), 'rb') as readfile:
+            reader = csv.reader(readfile, delimiter='\t')
+            # Skip first row and second row.
+            reader.next()
+            reader.next()
+            # Itereate rows containing the sampled_psi and log_score values.
+            for row in reader:
+                csv_write_obj.writerow(row)
+                sampled_psi_count += 1
+    return sampled_psi_count
