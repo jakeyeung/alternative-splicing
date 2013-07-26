@@ -124,8 +124,10 @@ def write_combined_miso_header(sample_dir_names_list, main_dir,
                                                 ['c']*4 + ['ass_c']*2):
                 # Create regex expression to search
                 if jtype == 'c':
+                    # Search digits after (0,0):
                     reg_exprs = ''.join(['(?<=\(', jpat, '\)\:)\d+'])
                 else:
+                    # Search digits after 0:
                     reg_exprs = ''.join(['(?<=', jpat, '\:)\d+'])
                 match = re.search(reg_exprs, jstr)
                 # match = re.search('(?<=\(0,0\)\:)\d+', counts_str)
