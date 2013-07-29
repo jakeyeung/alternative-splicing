@@ -59,6 +59,7 @@ def create_exon_coords(event_name):
             exon_ends.append(int(coordinate))
         else:
             sys.exit('Parsing error in %, %' %(i, coordinate))
+    
     return exon_starts, exon_ends
 
 def create_exon_intron_bed_files(output_bed_file, bed_description, eventtype='SE'):
@@ -114,7 +115,7 @@ def create_exon_intron_bed_files(output_bed_file, bed_description, eventtype='SE
         
     return output_file_dic_exons, output_file_dic_introns, fullpaths
 
-def create_intron_coords_from_exon_coords(exon_starts, exon_ends, strand):
+def create_intron_coords_from_exon_coords(exon_starts, exon_ends, strand, eventtype='SE'):
     '''
     Given exon_starts, exon_ends, create its corresponding intron_start
     and intron_ends.
@@ -158,6 +159,11 @@ def create_intron_coords_from_exon_coords(exon_starts, exon_ends, strand):
     defined as (skipped exon end + 1) to (exon1 start - 1)
     Intron 2 will be defined as (exon3 end + 1) to (skippedexon start - 1)
     '''
+    # Define constants
+    if eventtype == 'SE':
+        # Take 300 bps around skipped exon instead of full intron.
+        dist_around_se = 300    
+    
     # Clip ends, but differently depending on strand + or strand -
     if strand == '+':
         exon_ends_clipped = exon_ends[:-1]    # Last exon end is 3' end
@@ -174,26 +180,27 @@ def create_intron_coords_from_exon_coords(exon_starts, exon_ends, strand):
         print(exon_ends_clipped)
         print(exon_starts_clipped)
         sys.exit()
+    
+    '''    
+    # For skipped exon events (SE), we will extract 300 bp around the 
+    # skipped exon for the intron area.
+    
+    Use second exon (index 1) and get upstream and downstream 300 bp.
+    
+    Use that value as new first intron start or second intron end 
+    only if it does not overlap with the upstream/downstream exon.
     '''
-    if strand == '+':
-        try:
-            intron_starts = [(int(i)) for i in exon_ends[:-1]]
-            intron_ends = [(int(i)) for i in exon_starts[1:]]
-        except ValueError:
-            print('Could not increment integers in one or both of the lists:')
-            print(exon_ends)
-            print(exon_starts)
-            sys.exit()
-    elif strand == '-':
-        try:
-            intron_starts = [(int(i)+1) for i in exon_ends[1:]]
-            intron_ends = [(int(i)-1) for i in exon_starts[:-1]]
-        except ValueError:
-            print('Could not increment integers in one or both of the lists:')
-            print(exon_ends)
-            print(exon_starts)
-            sys.exit()
-    '''
+    if eventtype == 'SE':
+        # Get upstream and downstream 300 bp around SE.
+        upstrm_se = exon_starts[1] - dist_around_se
+        dwnstrm_se = exon_ends[1] + dist_around_se
+        if strand == '+':
+            intron_ends[1] = min(dwnstrm_se, intron_ends[1])
+            intron_starts[0] = max(upstrm_se, intron_starts[0])
+        elif strand == '-':
+            intron_ends[0] = min(dwnstrm_se, intron_ends[0])
+            intron_starts[1] = max(upstrm_se, intron_starts[1])
+            
     return intron_starts, intron_ends
 
 def write_coords_to_multi_files(output_bed_file, output_file_dic_exons, 
