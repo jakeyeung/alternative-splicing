@@ -149,11 +149,12 @@ def create_intron_coords_from_exon_coords(exon_starts, exon_ends, strand):
         
         # NOTE:
         UCSC uses the zero-based start and the 1-based end!
-        Therefore, intron-starts does NOT plus one.
+        Therefore, intron-start was de-incremented by 1, 
+            intron-end was not modified.
         '''
         try:
-            intron_starts = [(int(i)) for i in exon_ends[:-1]]
-            intron_ends = [(int(i)-1) for i in exon_starts[1:]]
+            intron_starts = [(int(i-1)) for i in exon_ends[:-1]]
+            intron_ends = [(int(i)) for i in exon_starts[1:]]
         except ValueError:
             print('Could not increment integers in one or both of the lists:')
             print(exon_ends)
