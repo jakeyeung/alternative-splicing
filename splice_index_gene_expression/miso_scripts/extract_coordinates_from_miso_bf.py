@@ -134,26 +134,50 @@ def create_intron_coords_from_exon_coords(exon_starts, exon_ends, strand):
         intron_ends: list of coordinates of the END of the intron (beginning
         of next exon).
     ''' 
+    '''
+    Method for positive strand:
+    # Introns will not include the first exon_start nor the last exon_end, because
+    # introns only connect exons. First and last exon have nothing to connect.
+    # 
+    # Therefore, we remove first element in exon_start and last element in exon_end,
+    # then we connect the corresponding exons together and call them introns.
+    
+    Also:
+        -intron starts at one bp AFTER end of exon.
+        -intron ends at one bp BEFORE start of next exon.
+    
+    # NOTE:
+    UCSC uses the zero-based start and the 1-based end!
+    Therefore, intron-start was de-incremented by 1, 
+        intron-end was not modified.
+    '''
+    '''
+    Method for negative strand:
+    exon start/ends are decreasing in order. 
+    Intron 1 will therefore be
+    defined as (skipped exon end + 1) to (exon1 start - 1)
+    Intron 2 will be defined as (exon3 end + 1) to (skippedexon start - 1)
+    '''
+    # Clip ends, but differently depending on strand + or strand -
     if strand == '+':
-        '''
-        Method for positive strand:
-        # Introns will not include the first exon_start nor the last exon_end, because
-        # introns only connect exons. First and last exon have nothing to connect.
-        # 
-        # Therefore, we remove first element in exon_start and last element in exon_end,
-        # then we connect the corresponding exons together and call them introns.
-        
-        Also:
-            -intron starts at one bp AFTER end of exon.
-            -intron ends at one bp BEFORE start of next exon.
-        
-        # NOTE:
-        UCSC uses the zero-based start and the 1-based end!
-        Therefore, intron-start was de-incremented by 1, 
-            intron-end was not modified.
-        '''
+        exon_ends_clipped = exon_ends[:-1]    # Last exon end is 3' end
+        exon_starts_clipped = exon_starts[1:]    # First exon end is 5' start
+    elif strand == '-':
+        exon_ends_clipped = exon_ends[1:]    # First exon_end is 5' start.
+        exon_starts_clipped = exon_starts[:-1]    # Last exon_start is 3' end.
+    # Get intron starts and ends  
+    try:
+        intron_starts = [int(i) for i in exon_ends_clipped]
+        intron_ends = [int(i) for i in exon_starts_clipped]
+    except ValueError:
+        print('Could not increment integers in one or both of the lists:')
+        print(exon_ends_clipped)
+        print(exon_starts_clipped)
+        sys.exit()
+    '''
+    if strand == '+':
         try:
-            intron_starts = [(int(i-1)) for i in exon_ends[:-1]]
+            intron_starts = [(int(i)) for i in exon_ends[:-1]]
             intron_ends = [(int(i)) for i in exon_starts[1:]]
         except ValueError:
             print('Could not increment integers in one or both of the lists:')
@@ -161,13 +185,6 @@ def create_intron_coords_from_exon_coords(exon_starts, exon_ends, strand):
             print(exon_starts)
             sys.exit()
     elif strand == '-':
-        '''
-        Method for negative strand:
-        exon start/ends are decreasing in order. 
-        Intron 1 will therefore be
-        defined as (skipped exon end + 1) to (exon1 start - 1)
-        Intron 2 will be defined as (exon3 end + 1) to (skippedexon start - 1)
-        '''
         try:
             intron_starts = [(int(i)+1) for i in exon_ends[1:]]
             intron_ends = [(int(i)-1) for i in exon_starts[:-1]]
@@ -176,6 +193,7 @@ def create_intron_coords_from_exon_coords(exon_starts, exon_ends, strand):
             print(exon_ends)
             print(exon_starts)
             sys.exit()
+    '''
     return intron_starts, intron_ends
 
 def write_coords_to_multi_files(output_bed_file, output_file_dic_exons, 
