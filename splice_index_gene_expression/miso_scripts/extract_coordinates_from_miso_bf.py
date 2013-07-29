@@ -41,6 +41,9 @@ def create_exon_coords(event_name):
     Count by groups of 3 along the list, 'l', extracting
     the second (start) and third (end) element of each group.
     Ignore first element because it is chrom. 
+    
+    NOTE: UCSC uses 0-base start and 1-based end! Therefore,
+    we have to subtract ONE from the exon-start.
     '''
     event_name_list = event_name.split(':')
     # Loop through event_name_list, get every 2nd and 3rd element
@@ -51,7 +54,7 @@ def create_exon_coords(event_name):
         if i % 3 == 0:
             pass    # no remainder means you are at first element/chrom
         elif i % 3 == 1:
-            exon_starts.append(int(coordinate))
+            exon_starts.append(int(coordinate)-1)    # 
         elif i % 3 == 2:
             exon_ends.append(int(coordinate))
         else:
@@ -143,9 +146,13 @@ def create_intron_coords_from_exon_coords(exon_starts, exon_ends, strand):
         Also:
             -intron starts at one bp AFTER end of exon.
             -intron ends at one bp BEFORE start of next exon.
+        
+        # NOTE:
+        UCSC uses the zero-based start and the 1-based end!
+        Therefore, intron-starts does NOT plus one.
         '''
         try:
-            intron_starts = [(int(i)+1) for i in exon_ends[:-1]]
+            intron_starts = [(int(i)) for i in exon_ends[:-1]]
             intron_ends = [(int(i)-1) for i in exon_starts[1:]]
         except ValueError:
             print('Could not increment integers in one or both of the lists:')
