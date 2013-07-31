@@ -8,6 +8,8 @@ We will focus on:
     MXE
     Alt3'SS
     Alt5'SS
+    
+#TODO: Remove those constants in dic keys!
 '''
 
 
@@ -136,15 +138,15 @@ def get_coords_from_eventid(juc_coord_dic, eventid, chromo, strand,
                                       eventid_parsed_id, chromo, 
                                       juc_start, juc_end, 
                                       strand, juc_type)
+                '''
                 print ':'.join([chromo, juc_start, juc_end])
                 print juc_coord_dic[':'.join([chromo, juc_start, juc_end])]
                 print(strand)
                 print(i, j)
                 print((juc_start, juc_end))
                 raw_input(coords)
+                '''
                 juc_count += 1
-        
-                
     return juc_coord_dic
 
 def index_annotations(annot_file, eventtype='SE'):
@@ -154,6 +156,9 @@ def index_annotations(annot_file, eventtype='SE'):
     Dictionary format: 
         key: colon joined chromo, juc_start, juc_end
         value: dictionary with keys: eventid, start, end, chromo, strand, type 
+        
+    In this case, juc_start means END of an exon.
+                  juc_end means START of the next exon.
     '''
     # Initialize constants
     chr_index = 0
@@ -218,9 +223,117 @@ def index_annotations(annot_file, eventtype='SE'):
                     get_coords_from_eventid(juc_dic, eventid, chromo, strand)
                 rowcount += 1
     return juc_dic, rowcount
-                
-                
 
+def annotate_alexa_file(alexa_bed_file, junc_dic, output_file):
+    '''
+    With an indexed annotation of junctions read from MISO annotation, we will
+    now read the alexa bed file, for each junction in alexa bed, we will
+    search with the junction corresponds to any junctions from the indexed
+    MISO annotation.
+    
+    If alexa junc matches with miso annotation, write a file containing
+    the event details as well as the alexa junc id.
+    
+    Note, we assume junc_dic to have keys of form:
+    "chromosome:intron_start:intron_end"
+        We will rebuild this form and search the junc_dic if key exists.
+    '''
+    # Define colname indices in alexa bed file
+    chromo_ind = 0
+    alexa_start_ind = 1    # Start of junction, some bp upstrm from exon end.
+    alexa_end_ind = 2    # End of junction, some bp dwnstrm of exon start.
+    alexa_id_ind = 3
+    blocksize_ind = 10
+    # blockstarts_ind = 11
+    
+    # Define constant
+    juc_str = 'juc'    # Alexa ID should start with this.
+    
+    # Define expected junc_dic subkey strings.
+    eventid_str = 'eventid'
+    start_str = 'start'
+    end_str = 'end'
+    chromo_str = 'chromo'
+    strand_str = 'strand'
+    type_str = 'type'
+    
+    # Define output header constants
+    juc_id_str = 'junction_id'
+    blocksizes_str = 'blocksizes'
+    
+    # Define count constants
+    readcount = 0
+    writecount = 0 
+    
+    with open(alexa_bed_file, 'rb') as readfile:
+        reader = csv.reader(readfile, delimiter='\t')
+        # Open write file similarly
+        writefile = open(output_file, 'wb')
+        writer = csv.writer(writefile, delimiter='\t')
+        # Write header
+        writer.writerow([chromo_str, start_str, end_str, juc_id_str, blocksizes_str,
+                         eventid_str, strand_str, type_str])
+        for row in reader:
+            '''
+            Bed file contains psr and juc, but psr only has 6 columns.
+            Whereas juc has 11 columns. Use this fact to skip rows 
+            that are not jucs.
+            '''
+            if len(row) <= 6:
+                continue
+            # Get data from row
+            alexa_id = row[alexa_id_ind]
+            # Check that alexa_id contains 'juc'
+            if alexa_id[0:3] != juc_str:
+                print('Warning, %s is not a junction alexa id.' %alexa_id)
+            chromo = row[chromo_ind]
+            alexa_start = row[alexa_start_ind]
+            alexa_end = row[alexa_end_ind]
+            # blocksize and starts are comma separated. So split'em.
+            blocksize = row[blocksize_ind].split(',')
+            # blockstarts = row[blockstarts_ind].split(',')
+            '''
+            Intron starts at end of exon.
+            This means it can be calculated by 
+            intron_start = alexa_start + size of first block.
+            
+            Intron ends at start of next exon.
+            Calculate using:
+            intron_end = alexa_start + 2nd element in block start
+            or
+            intron_end = alexa_end - size of 2nd block.
+            '''
+            try:
+                intron_start = int(alexa_start) + int(blocksize[0])
+                intron_end = int(alexa_end) - int(blocksize[1])
+                # intron_end = int(alexa_start) + int(blockstarts[1])
+            except ValueError:
+                print('Could not convert one of the following into an integer:')
+                for s in [alexa_start, alexa_end, blocksize[0], blocksize[1]]:
+                    print s
+            
+            # Rebuild index and search dictionary for key.
+            dic_key = ':'.join([chromo, str(intron_start), str(intron_end)])
+            if dic_key in junc_dic:
+                # Prepare list for writerow, initialize with
+                # chromo, start, end, alexaid
+                write_list = [chromo, alexa_start, alexa_end, alexa_id, 
+                              row[blocksize_ind]]
+                for subkey in [eventid_str, strand_str, type_str]:
+                    '''
+                    Values in subkey are a list, so join by comma.
+                    We have iterated it so it goes eventid, strand, type.
+                    This gives the row the proper order to match
+                    the header.
+                    '''
+                    write_list.append(','.join(junc_dic[dic_key][subkey]))
+                writer.writerow(write_list)
+                writecount += 1
+            else:
+                pass
+            readcount += 1
+        writefile.close()
+    return readcount, writecount
 
 def main():
     if len(sys.argv) < 5:
@@ -228,14 +341,22 @@ def main():
         sys.exit()
     alexa_bed_file = sys.argv[1]
     annot_file = sys.argv[2]    # From MISO
-    output_bed_file = sys.argv[3]
+    output_file = sys.argv[3]
     eventtype = sys.argv[4]
     
-    juc_dic, rowcount = \
+    print('Indexing miso annotation for eventtype = %s...' %eventtype)
+    junc_dic, _ = \
         index_annotations(annot_file, eventtype=eventtype)
+    print('Created %s indexes.' %len(junc_dic.keys()))
     
-    # print juc_dic.keys()
-    print len(juc_dic.keys())
+    print(junc_dic.keys()[0:10])
+    
+    print('Reading alexaDB junctions and searching for AS events...')
+    readcount, writecount = \
+        annotate_alexa_file(alexa_bed_file, junc_dic, output_file)
+    print('Lines read (# of alexa junctions): %s' %readcount)
+    print('Lines written (# of ase events): %s' %writecount)
+    
     
     
 
