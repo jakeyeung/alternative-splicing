@@ -55,6 +55,36 @@ class read_bed_misobf(object):
         self.misobffile.close()
         self.writefile1.close()
         self.writefile2.close()
+        
+def create_bed_paths(bed_path, suffix_list):
+    '''
+    From a bed path without exon1/2/3 intron1/2 suffixes.
+    Add them manually.
+    e.g.
+    bed_paths_list:
+    pc_vs_nepc.bed -> pc_vs_nepc_exon1.bed
+    bed_paths_inclusion_list:
+    pc_vs_nepc.bed -> pc_vs_nepc_exon1_inclusion.bed
+    bed_paths_exclusion_list:
+    pc_vs_nepc.bed -> pc_vs_nepc_exon1_exclusion.bed
+    '''
+    # init paths lists.
+    bed_paths_list = []
+    bed_paths_inclusion_list = []
+    bed_paths_exclusion_list = []
+    
+    # Split and append stuff. 
+    bed_path_split = bed_path.split('.bed')[0]    # Take strings before .bed
+    for suffix in suffix_list:
+        bed_path_appended = ''.join([bed_path_split, suffix, '.bed'])
+        bed_path_inclusion_appended = ''.join([bed_path_split, suffix, 
+                                               '_inclusion.bed'])
+        bed_path_exclusion_appended = ''.join([bed_path_split, suffix,
+                                               '_exclusion.bed'])
+        bed_paths_list.append(bed_path_appended)
+        bed_paths_inclusion_list.append(bed_path_inclusion_appended)
+        bed_paths_exclusion_list.append(bed_path_exclusion_appended)
+    return bed_paths_list, bed_paths_inclusion_list, bed_paths_exclusion_list
 
 def modify_bed_header(bed_header, str_to_append, append_start=10):
     '''
@@ -70,11 +100,10 @@ def modify_bed_header(bed_header, str_to_append, append_start=10):
     appended_exprs = '_'.join([exprs, str_to_append])
     
     # Define append finish
-    append_start = append_start + len(m.group())
+    append_end = append_start + len(m.group())
     
-    # Put appended string into bed header (convert to list)
     bed_header_list = list(bed_header)
-    bed_header_list[append_start:append_start] = list(appended_exprs)
+    bed_header_list[append_start:append_end] = list(appended_exprs)
     return ''.join(bed_header_list)
 
 def split_bed_by_inclusion_exclusion(bed_path, misobf_path, 
@@ -156,22 +185,34 @@ def split_bed_by_inclusion_exclusion(bed_path, misobf_path,
                 sys.exit()
 
 def main():
-    if len(sys.argv) < 5:
-        print('bed_path, misobf_path, inclusion_bed_path and '\
-              'exclusion_bed_path must be specified in command line.')
+    if len(sys.argv) < 3:
+        print('bed_path (no exon/intron suffix), misobf_path must be '\
+              'specified in command line.')
     bed_path = sys.argv[1]
     misobf_path = sys.argv[2]
-    inclusion_bed_path = sys.argv[3]    # Relative to NEPC
-    exclusion_bed_path = sys.argv[4]    # Relative to NEPC
+    suffix_list_csv = sys.argv[3]    # _exon1,exon2,_exon3,_intron1,_intron2
+    # inclusion_bed_path = sys.argv[3]    # Relative to NEPC
+    # exclusion_bed_path = sys.argv[4]    # Relative to NEPC
     
-    print('Splitting bed files to inclusion and exclusion.'\
-          '\nAssuming sample1_posterior_mean is PC and '\
-          'sample2_posterior_mean is NEPC...')
-    split_bed_by_inclusion_exclusion(bed_path, misobf_path, 
-                                     inclusion_bed_path, 
-                                     exclusion_bed_path)
-    print('Inclusion file written to %s' %inclusion_bed_path)
-    print('Exclusion file written to %s' %exclusion_bed_path)
+    # Create list of read bed paths:
+    suffix_list = suffix_list_csv.split(',')
+    bed_paths_list, bed_paths_incl_list, bed_paths_excl_list = \
+        create_bed_paths(bed_path, suffix_list)
+        
+    for bed_path, inclusion_bed_path, exclusion_bed_path in \
+        zip(bed_paths_list, bed_paths_incl_list, bed_paths_excl_list):
+            print('Splitting bed files to inclusion and exclusion.'\
+                  '\nAssuming sample1_posterior_mean is PC and '\
+                  'sample2_posterior_mean is NEPC...')
+            print('Bed file: %s' %bed_path)
+            print('Miso BF file: %s' %misobf_path)
+            print('Outputs: \n%s\n%s' %(inclusion_bed_path, 
+                                        exclusion_bed_path))
+            split_bed_by_inclusion_exclusion(bed_path, misobf_path, 
+                                             inclusion_bed_path, 
+                                             exclusion_bed_path)
+            print('Inclusion file written to %s' %inclusion_bed_path)
+            print('Exclusion file written to %s' %exclusion_bed_path)
 
 if __name__ == '__main__':
     main()
