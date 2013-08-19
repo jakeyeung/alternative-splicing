@@ -449,6 +449,8 @@ def annotate_alexa_file(alexa_bed_file, index_dic, output_file):
     readcount = 0
     writecount = 0 
     
+    alexa_id_list = []
+    
     with open(alexa_bed_file, 'rb') as readfile:
         reader = csv.reader(readfile, delimiter='\t')
         # Open write file similarly
@@ -463,6 +465,8 @@ def annotate_alexa_file(alexa_bed_file, index_dic, output_file):
             Whereas juc has 11 columns. Use this fact to skip rows 
             that are not jucs.
             '''
+            readcount += 1
+            
             if len(row) <= 6:
                 continue
             # Get data from row
@@ -497,55 +501,65 @@ def annotate_alexa_file(alexa_bed_file, index_dic, output_file):
             block_start_key = ':'.join([chromo, str(block_1_start), 
                                         block_start_str])
             block_end_key = ':'.join([chromo, str(block_1_end), block_end_str])
-            for dic_key in [block_start_key, block_end_key]:
-                if dic_key in index_dic:
+            
+            if block_start_key in index_dic and block_end_key in index_dic:
+                dic_key = block_start_key    # Doesn't matter which is dic_key
+            
+            elif block_start_key in index_dic:
+                dic_key = block_start_key
+            
+            elif block_end_key in index_dic:
+                dic_key = block_end_key
+            
+            else:
+                continue    # no matches, go to next row. 
+            
+            '''
+            # OK so either block_1_start/end matched, but make sure it also
+            # matches EITHER block_2_start OR block_2_end.
+            
+            If we can find the index/indices at which the block_2_start
+            or block_2_end matches, then we can write all the other 
+            information such as eventid, block start/ends 
+            and junction type into file. 
+            '''
+            index_list = []    # Initialize
+            for subkey, block_2_pos in zip([block_2_start_str, 
+                                            block_2_end_str], 
+                                            [block_2_start, 
+                                            block_2_end]):
+                # Intermediate list since we iterate twice.
+                temp_index_list = \
+                ([i for i, x in enumerate(index_dic[dic_key][subkey]) \
+                    if x == block_2_pos])    
+                for temp_i in temp_index_list:
+                    index_list.append(temp_i)
+            # Remove duplicates.
+            index_list = list(set(index_list))
+            
+            # If length not zero, then we write info to file.
+            if len(index_list) != 0:                    
+                # Prepare list for writerow, initialize with
+                # chromo, start, end, alexaid and blocksizes
+                write_list = [chromo, alexa_start, alexa_end, alexa_id, 
+                              row[blocksize_ind]]
+                # Add the MISO annotations now.
+                for subkey in [eventid_str, strand_str, type_str]:
                     '''
-                    # OK so either start or end matched, but make sure it also
-                    # matches EITHER block_2_start OR block_2_end.
-                    
-                    If we can find the index/indices at which the block_2_start
-                    or block_2_end matches, then we can write all the other 
-                    information such as eventid, block start/ends 
-                    and junction type into file. 
+                    Values in subkey are a list, so join by comma.
+                    We have iterated it so it goes eventid, strand, type.
+                    This gives the row the proper order to match
+                    the header.
                     '''
-                    index_list = []    # Initialize
-                    for subkey, block_2_pos in zip([block_2_start_str, 
-                                                    block_2_end_str], 
-                                                    [block_2_start, 
-                                                    block_2_end]):
-                        # Intermediate list since we iterate twice.
-                        temp_index_list = \
-                        ([i for i, x in enumerate(index_dic[dic_key][subkey]) \
-                            if x == block_2_pos])    
-                        for temp_i in temp_index_list:
-                            index_list.append(temp_i)
-                    # Remove duplicates.
-                    index_list = list(set(index_list))
-                    
-                    # If length not zero, then we write info to file.
-                    if len(index_list) != 0:                    
-                        # Prepare list for writerow, initialize with
-                        # chromo, start, end, alexaid and blocksizes
-                        write_list = [chromo, alexa_start, alexa_end, alexa_id, 
-                                      row[blocksize_ind]]
-                        # Add the MISO annotations now.
-                        for subkey in [eventid_str, strand_str, type_str]:
-                            '''
-                            Values in subkey are a list, so join by comma.
-                            We have iterated it so it goes eventid, strand, type.
-                            This gives the row the proper order to match
-                            the header.
-                            '''
-                            val_list = []
-                            for i in index_list:
-                                val_list.append(index_dic[dic_key][subkey][i])
-                            write_list.append(','.join(val_list))
-                        writer.writerow(write_list)
-                        writecount += 1
-                else:
-                    pass
-                readcount += 1
+                    val_list = []
+                    for i in index_list:
+                        val_list.append(index_dic[dic_key][subkey][i])
+                    write_list.append(','.join(val_list))
+                writer.writerow(write_list)
+                writecount += 1
         writefile.close()
+        print len(alexa_id_list), alexa_id_list
+        print
     return readcount, writecount
 
 def main():
