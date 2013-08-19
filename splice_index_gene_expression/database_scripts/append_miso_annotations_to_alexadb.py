@@ -103,32 +103,41 @@ def write_juc_blocks_to_dic(index_dic, eventid, chromo, exon_block_1,
     '''
     # Init subkeys
     eventid_str = 'eventid'
-    block_1_startend_str = 'block_1_startend'
-    block_2_startend_str = 'block_2_startend'
+    block_1_start_str = 'block_1_start'
+    block_1_end_str = 'block_1_end'
+    block_2_start_str = 'block_2_start'
+    block_2_end_str = 'block_2_end'
     chromo_str = 'chromo'
     strand_str = 'strand'
     type_str = 'type'
+    block_start_str = 'block_start'
+    block_end_str = 'block_end'
     
-    coordinates_block_1 = ':'.join([chromo, exon_block_1[0], exon_block_1[1]])
-    coordinates_block_2 = ':'.join([chromo, exon_block_2[0], exon_block_2[1]])
-    # Join the two with an '@' symbol, making it the index_dic_key
-    dic_key = '@'.join([coordinates_block_1, coordinates_block_2])
-    if dic_key not in index_dic:
-        # Initialize values as list so it is extendable. 
-        index_dic[dic_key] = {eventid_str: [eventid],
-                              block_1_startend_str: [exon_block_1],
-                              block_2_startend_str: [exon_block_2],
-                              chromo_str: [chromo],
-                              strand_str: [strand],
-                              type_str: [juc_type]}
+    key_block_start = ':'.join([chromo, exon_block_1[0], block_start_str])
+    key_block_end = ':'.join([chromo, exon_block_1[1], block_end_str])
+    
+    for dic_key in [key_block_start, key_block_end]:
+        if dic_key not in index_dic:
+            # Initialize values as list so it is extendable. 
+            index_dic[dic_key] = {eventid_str: [eventid],
+                                  block_1_start_str: [int(exon_block_1[0])],
+                                  block_1_end_str: [int(exon_block_1[1])],
+                                  block_2_start_str: [int(exon_block_2[0])],
+                                  block_2_end_str: [int(exon_block_2[1])],
+                                  chromo_str: [chromo],
+                                  strand_str: [strand],
+                                  type_str: [juc_type]}
     else:
         '''
         If key already exists, append to list.
         '''
         for subkey, subval in zip\
-            ([eventid_str, block_1_startend_str, block_2_startend_str, 
+            ([eventid_str, block_1_start_str, block_1_end_str, 
+              block_2_start_str, block_2_end_str, 
               chromo_str, strand_str, type_str],
-             [eventid, exon_block_1, exon_block_2, chromo, strand, juc_type]):
+             [eventid, int(exon_block_1[0]), int(exon_block_1[0]), 
+              int(exon_block_2[0]), int(exon_block_2[1]), 
+              chromo, strand, juc_type]):
             index_dic[dic_key][subkey].append(subval)
     return index_dic
 
@@ -517,7 +526,9 @@ def main():
         index_annotations(annot_file, eventtype=eventtype)
     print('Created %s indexes.' %len(junc_dic.keys()))
     
-    print(junc_dic.keys()[0:10])
+    # print(junc_dic.keys()[0:10])
+    for k in junc_dic.keys()[0:10]:
+        print k, junc_dic[k]
     
     print('Reading alexaDB junctions and searching for AS events...')
     readcount, writecount = \
