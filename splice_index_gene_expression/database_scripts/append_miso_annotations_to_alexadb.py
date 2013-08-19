@@ -401,7 +401,7 @@ def index_annotations(annot_file, eventtype='SE'):
                 rowcount += 1
     return index_dic, rowcount
 
-def annotate_alexa_file(alexa_bed_file, junc_dic, output_file):
+def annotate_alexa_file(alexa_bed_file, index_dic, output_file):
     '''
     With an indexed annotation of junctions read from MISO annotation, we will
     now read the alexa bed file, for each junction in alexa bed, we will
@@ -411,9 +411,10 @@ def annotate_alexa_file(alexa_bed_file, junc_dic, output_file):
     If alexa junc matches with miso annotation, write a file containing
     the event details as well as the alexa junc id.
     
-    Note, we assume junc_dic to have keys of form:
-    "chromosome:intron_start:intron_end"
-        We will rebuild this form and search the junc_dic if key exists.
+    Note, we assume index_dic to have keys of two forms:
+    "chromosome:exon_start_pos:block_start" or 
+    "chromosome:exon_end_pos:block-end"
+        We will rebuild this form and search the index_dic if either key exists.
     '''
     # Define colname indices in alexa bed file
     chromo_ind = 0
@@ -426,13 +427,19 @@ def annotate_alexa_file(alexa_bed_file, junc_dic, output_file):
     # Define constant
     juc_str = 'juc'    # Alexa ID should start with this.
     
-    # Define expected junc_dic subkey strings.
+    # Define expected index_dic subkey strings.
     eventid_str = 'eventid'
     start_str = 'start'
     end_str = 'end'
     chromo_str = 'chromo'
     strand_str = 'strand'
     type_str = 'type'
+    mismatch_score_str = 'mismatch_score'
+    
+    block_start_str = 'block_start'    # For recreating dic key
+    block_end_str = 'block_end'    # For recreating dic key
+    block_2_start_str = 'block_2_start'    # For searching subkey
+    block_2_end_str = 'block_2_end'    # For searching subkey
     
     # Define output header constants
     juc_id_str = 'junction_id'
@@ -470,45 +477,74 @@ def annotate_alexa_file(alexa_bed_file, junc_dic, output_file):
             blocksize = row[blocksize_ind].split(',')
             # blockstarts = row[blockstarts_ind].split(',')
             '''
-            Intron starts at end of exon.
-            This means it can be calculated by 
-            intron_start = alexa_start + size of first block.
-            
-            Intron ends at start of next exon.
-            Calculate using:
-            intron_end = alexa_start + 2nd element in block start
-            or
-            intron_end = alexa_end - size of 2nd block.
+            Get start and ends of first block/exon.
+            block_1_start = alexa_start
+            block_1_end = alexa_start + size of 1st block. 
             '''
             try:
-                intron_start = int(alexa_start) + int(blocksize[0])
-                intron_end = int(alexa_end) - int(blocksize[1])
-                # intron_end = int(alexa_start) + int(blockstarts[1])
+                block_1_start = int(alexa_start)
+                block_1_end = int(alexa_start) + int(blocksize[0])
+                block_2_start = int(alexa_end) - int(blocksize[1])
+                block_2_end = int(alexa_end)
+                # block_1_end = int(alexa_start) + int(blockstarts[1])
             except ValueError:
                 print('Could not convert one of the following into an integer:')
                 for s in [alexa_start, alexa_end, blocksize[0], blocksize[1]]:
                     print s
             
             # Rebuild index and search dictionary for key.
-            dic_key = ':'.join([chromo, str(intron_start), str(intron_end)])
-            if dic_key in junc_dic:
-                # Prepare list for writerow, initialize with
-                # chromo, start, end, alexaid
-                write_list = [chromo, alexa_start, alexa_end, alexa_id, 
-                              row[blocksize_ind]]
-                for subkey in [eventid_str, strand_str, type_str]:
+            # Build a start key and an end key...
+            block_start_key = ':'.join([chromo, str(block_1_start), 
+                                        block_start_str])
+            block_end_key = ':'.join([chromo, str(block_1_end), block_end_str])
+            for dic_key in [block_start_key, block_end_key]:
+                if dic_key in index_dic:
                     '''
-                    Values in subkey are a list, so join by comma.
-                    We have iterated it so it goes eventid, strand, type.
-                    This gives the row the proper order to match
-                    the header.
+                    # OK so either start or end matched, but make sure it also
+                    # matches EITHER block_2_start OR block_2_end.
+                    
+                    If we can find the index/indices at which the block_2_start
+                    or block_2_end matches, then we can write all the other 
+                    information such as eventid, block start/ends 
+                    and junction type into file. 
                     '''
-                    write_list.append(','.join(junc_dic[dic_key][subkey]))
-                writer.writerow(write_list)
-                writecount += 1
-            else:
-                pass
-            readcount += 1
+                    index_list = []    # Initialize
+                    for subkey, block_2_pos in zip([block_2_start_str, 
+                                                    block_2_end_str], 
+                                                    [block_2_start, 
+                                                    block_2_end]):
+                        # Intermediate list since we iterate twice.
+                        temp_index_list = \
+                        ([i for i, x in enumerate(index_dic[dic_key][subkey]) \
+                            if x == block_2_pos])    
+                        for temp_i in temp_index_list:
+                            index_list.append(temp_i)
+                    # Remove duplicates.
+                    index_list = list(set(index_list))
+                    
+                    # If length not zero, then we write info to file.
+                    if len(index_list) != 0:                    
+                        # Prepare list for writerow, initialize with
+                        # chromo, start, end, alexaid and blocksizes
+                        write_list = [chromo, alexa_start, alexa_end, alexa_id, 
+                                      row[blocksize_ind]]
+                        # Add the MISO annotations now.
+                        for subkey in [eventid_str, strand_str, type_str]:
+                            '''
+                            Values in subkey are a list, so join by comma.
+                            We have iterated it so it goes eventid, strand, type.
+                            This gives the row the proper order to match
+                            the header.
+                            '''
+                            val_list = []
+                            for i in index_list:
+                                val_list.append(index_dic[dic_key][subkey][i])
+                            write_list.append(','.join(val_list))
+                        writer.writerow(write_list)
+                        writecount += 1
+                else:
+                    pass
+                readcount += 1
         writefile.close()
     return readcount, writecount
 
@@ -521,7 +557,7 @@ def main():
     output_file = sys.argv[3]
     eventtype = sys.argv[4]
     
-    print('Indexing miso annotation for eventtype = %s...' %eventtype)
+    print('Indexing miso annotation for eventtype == %s...' %eventtype)
     junc_dic, _ = \
         index_annotations(annot_file, eventtype=eventtype)
     print('Created %s indexes.' %len(junc_dic.keys()))
