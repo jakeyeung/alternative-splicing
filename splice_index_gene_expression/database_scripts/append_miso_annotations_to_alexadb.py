@@ -127,18 +127,18 @@ def write_juc_blocks_to_dic(index_dic, eventid, chromo, exon_block_1,
                                   chromo_str: [chromo],
                                   strand_str: [strand],
                                   type_str: [juc_type]}
-    else:
-        '''
-        If key already exists, append to list.
-        '''
-        for subkey, subval in zip\
-            ([eventid_str, block_1_start_str, block_1_end_str, 
-              block_2_start_str, block_2_end_str, 
-              chromo_str, strand_str, type_str],
-             [eventid, int(exon_block_1[0]), int(exon_block_1[0]), 
-              int(exon_block_2[0]), int(exon_block_2[1]), 
-              chromo, strand, juc_type]):
-            index_dic[dic_key][subkey].append(subval)
+        else:
+            '''
+            If key already exists, append to list.
+            '''
+            for subkey, subval in zip\
+                ([eventid_str, block_1_start_str, block_1_end_str, 
+                  block_2_start_str, block_2_end_str, 
+                  chromo_str, strand_str, type_str],
+                 [eventid, int(exon_block_1[0]), int(exon_block_1[1]), 
+                  int(exon_block_2[0]), int(exon_block_2[1]), 
+                  chromo, strand, juc_type]):
+                index_dic[dic_key][subkey].append(subval)
     return index_dic
 
 def join_jucs_from_coords(coords, strand, eventtype='SE'):
@@ -389,9 +389,9 @@ def index_annotations(annot_file, eventtype='SE'):
                 juc_blocks_dic, keynames = \
                     create_juc_blocks_from_coords(coords, strand, eventtype)
                 # Keynames are in order upstream, exclusion, downstream. 
-                for key, juc_type in zip(keynames, ['upstream_inclusion', 
+                for key, juc_type in zip(keynames, ['inclusion_upstream', 
                                                     'exclusion', 
-                                                    'downstream_inclusion']):
+                                                    'inclusion_downstream']):
                     exon_block_1 = juc_blocks_dic[key][0]    # Tuple
                     exon_block_2 = juc_blocks_dic[key][1]
                     index_dic = write_juc_blocks_to_dic(index_dic, eventid, 
@@ -527,7 +527,7 @@ def main():
     print('Created %s indexes.' %len(junc_dic.keys()))
     
     # print(junc_dic.keys()[0:10])
-    for k in junc_dic.keys()[0:10]:
+    for k in junc_dic.keys()[0:20]:
         print k, junc_dic[k]
     
     print('Reading alexaDB junctions and searching for AS events...')
