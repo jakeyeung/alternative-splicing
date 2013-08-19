@@ -41,6 +41,97 @@ def write_jucs_to_dic(juc_dic, eventid, chromo, juc_start, juc_end,
             juc_dic[juc_key][subkey].append(subval)
     return juc_dic
 
+def create_juc_blocks_from_coords(coords, strand, eventtype='SE'):
+    '''
+    Strategy:
+    1. Create "blocks" representing the two exons that are joined in a
+        junction in upstream inclusion, exclusion and downstream inclusion (SE)
+    2. Return "blocks" as a dictionary.
+     
+    '''
+    # Init output dic
+    juc_blocks_dic = {}
+    # Init constant strings
+    upstream_str = 'upstrm_juc_block'
+    downstream_str = 'downstrm_juc_block'
+    exclusion_str = 'exclusion_juc_block'
+    keynames = [upstream_str, exclusion_str, downstream_str]
+    
+    coords = sorted(coords)    # Can differ depending on strand, so we sort.
+    if eventtype=='SE':
+        if strand=='+':
+            '''
+            We will define junctions by a list of tuples, each tuple is a 
+            start-end of an exon body. Therefore, the list of tuples are
+            the two exon bodies that the junction joins. 
+            
+            coords is sorted from smallest to largest, therefore, 
+             - when strand is POSITIVE, upstream exon is (coords[0], coords[1])
+             - when strand is NEGATIVE, upstream exon is (coords[4], coords[5])
+              - coords should be a length of 6 because we are dealing with 
+                  skipped exons.
+            '''
+            if len(coords) != 6:
+                print('Length of coordinates list is not 6. List: %s' %coords)
+                sys.exit()
+            upstream_juc = [(coords[0], coords[1]), (coords[2], coords[3])]
+            exclusion_juc = [(coords[0], coords[1]), (coords[4], coords[5])]
+            downstream_juc = [(coords[2], coords[3]), (coords[4], coords[5])]
+        elif strand=='-':
+            downstream_juc = [(coords[0], coords[1]), (coords[2], coords[3])]
+            exclusion_juc = [(coords[0], coords[1]), (coords[4], coords[5])]
+            upstream_juc = [(coords[2], coords[3]), (coords[4], coords[5])]
+        else:
+            print('Expected %s strand to be + or -' %strand)
+            sys.exit()
+        # Store values into dictionary.
+        juc_blocks_dic[upstream_str] = upstream_juc
+        juc_blocks_dic[downstream_str] = downstream_juc
+        juc_blocks_dic[exclusion_str] = exclusion_juc
+        return juc_blocks_dic, keynames
+    
+def write_juc_blocks_to_dic(index_dic, eventid, chromo, exon_block_1,
+                            exon_block_2, strand, juc_type):
+    '''
+    Given a junction that covers two exon blocks (block1 and block2), 
+    create an indexed key and put relevant information such as 
+    juc_type and strand into the dictionary. 
+    
+    Assumes exon_block_i is a tuple with:
+        index 0 -> start
+        index 1 -> end
+    '''
+    # Init subkeys
+    eventid_str = 'eventid'
+    block_1_startend_str = 'block_1_startend'
+    block_2_startend_str = 'block_2_startend'
+    chromo_str = 'chromo'
+    strand_str = 'strand'
+    type_str = 'type'
+    
+    coordinates_block_1 = ':'.join([chromo, exon_block_1[0], exon_block_1[1]])
+    coordinates_block_2 = ':'.join([chromo, exon_block_2[0], exon_block_2[1]])
+    # Join the two with an '@' symbol, making it the index_dic_key
+    dic_key = '@'.join([coordinates_block_1, coordinates_block_2])
+    if dic_key not in index_dic:
+        # Initialize values as list so it is extendable. 
+        index_dic[dic_key] = {eventid_str: [eventid],
+                              block_1_startend_str: [exon_block_1],
+                              block_2_startend_str: [exon_block_2],
+                              chromo_str: [chromo],
+                              strand_str: [strand],
+                              type_str: [juc_type]}
+    else:
+        '''
+        If key already exists, append to list.
+        '''
+        for subkey, subval in zip\
+            ([eventid_str, block_1_startend_str, block_2_startend_str, 
+              chromo_str, strand_str, type_str],
+             [eventid, exon_block_1, exon_block_2, chromo, strand, juc_type]):
+            index_dic[dic_key][subkey].append(subval)
+    return index_dic
+
 def join_jucs_from_coords(coords, strand, eventtype='SE'):
     if eventtype=='SE':
         
@@ -231,7 +322,7 @@ def index_annotations(annot_file, eventtype='SE'):
     dwnstrm_incl_str = 'inclusion_downstream'
     
     # Initialize dics
-    juc_dic = {}
+    index_dic = {}
     
     if eventtype == 'SE':
         '''
@@ -286,17 +377,20 @@ def index_annotations(annot_file, eventtype='SE'):
                 # Get start and end coordinates for junctions.
                 coords, eventid = \
                     get_coords_from_eventid(eventid, chromo, strand)
-                juc_coords_list = join_jucs_from_coords(coords, strand, eventtype)
-                # List in order: upstream, exclusion, downstream.
-                for start_end_tup, juc_type in zip(juc_coords_list, 
-                                                   [upstrm_incl_str, 
-                                                    excl_str, 
-                                                    dwnstrm_incl_str]):
-                    juc_start = start_end_tup[0]
-                    juc_end = start_end_tup[1]
-                    juc_dic = write_jucs_to_dic(juc_dic, eventid, chromo, juc_start, juc_end, strand, juc_type)
+                juc_blocks_dic, keynames = \
+                    create_juc_blocks_from_coords(coords, strand, eventtype)
+                # Keynames are in order upstream, exclusion, downstream. 
+                for key, juc_type in zip(keynames, ['upstream_inclusion', 
+                                                    'exclusion', 
+                                                    'downstream_inclusion']):
+                    exon_block_1 = juc_blocks_dic[key][0]    # Tuple
+                    exon_block_2 = juc_blocks_dic[key][1]
+                    index_dic = write_juc_blocks_to_dic(index_dic, eventid, 
+                                                        chromo, exon_block_1, 
+                                                        exon_block_2, strand, 
+                                                        juc_type)
                 rowcount += 1
-    return juc_dic, rowcount
+    return index_dic, rowcount
 
 def annotate_alexa_file(alexa_bed_file, junc_dic, output_file):
     '''
