@@ -41,7 +41,65 @@ def write_jucs_to_dic(juc_dic, eventid, chromo, juc_start, juc_end,
             juc_dic[juc_key][subkey].append(subval)
     return juc_dic
 
-def get_coords_from_eventid(juc_coord_dic, eventid, chromo, strand, 
+def join_jucs_from_coords(coords, strand, eventtype='SE'):
+    if eventtype=='SE':
+        
+        '''
+        Strategy
+        1. Order coordinates from smallest to largest (regardless of strand)
+        2. Create three junction coordinates (upstream inclusion, 
+            downstream inclusion, exclusion)
+            2a. Upstream inclusion junction is:
+                 - second (1) to third (2) coordinate for +
+                 - fourth (3) to fifth (4) coordinate for -
+            2b. Downstream inclusion junction is:
+                 - fourth (3) to fifth (4) coordinate for +
+                 - second (1) to third (2) coordinate for -
+            2c. Exclusion junction is:
+                 - second (1) to fifth (4) coordinate for + and -.
+        3. Return junction starts and ends as a list in the following order:
+            upstream (start, end), exclusion (start, end), downstream
+        '''
+        # Define keyname constants
+        # exclusion_key = 'exclusion'
+        # inclusion_up_key = 'inclusion_upstream'
+        # inclusion_down_key = 'inclusion_downstream'
+        # coord_dic = {}
+        # Check there are 6 coordinates
+        if len(coords) != 6:
+            print('Expected 6 coordinates for an SE event.')
+            sys.exit()
+        # 1.
+        coords = sorted(coords)
+        # Get exclusion junction, strand independent.
+        excl_juc_start = coords[1]
+        excl_juc_end = coords[4]
+        # Get inclusion junctions, which is strand dependent.
+        if strand=='+':
+            up_incl_juc_start = coords[1]
+            up_incl_juc_end = coords[2]
+            dwn_incl_juc_start = coords[3]
+            dwn_incl_juc_end = coords[4]
+        elif strand=='-':
+            dwn_incl_juc_start = coords[1]
+            dwn_incl_juc_end = coords[2]
+            up_incl_juc_start = coords[3]
+            up_incl_juc_end = coords[4]
+        else:
+            print('Expected strand to be + or -, %s found.' %strand)
+            sys.exit()
+        # Create list to summarize results.
+        juc_coords_list = []
+        for start, end in zip([up_incl_juc_start, 
+                               excl_juc_start, 
+                               dwn_incl_juc_start], 
+                              [up_incl_juc_end, 
+                               excl_juc_end, 
+                               dwn_incl_juc_end]):
+            juc_coords_list.append((start, end)) 
+        return juc_coords_list
+
+def get_coords_from_eventid(eventid, chromo, strand, 
                             eventtype='SE'):
     '''
     From MISO annotations, get exon coordinates from eventid.
@@ -79,9 +137,12 @@ def get_coords_from_eventid(juc_coord_dic, eventid, chromo, strand,
             So be careful!
             '''
             coords.append(i)
-            
+    return coords, eventid_parsed_id
+         
+    '''
+    Old crappy code...
+      
     #raw_input(coords)
-    
     # Should be even number.
     if len(coords) % 2 != 0:
         print('Warning, non-even number of coords, cannot pair up.')
@@ -111,12 +172,10 @@ def get_coords_from_eventid(juc_coord_dic, eventid, chromo, strand,
                                       eventid_parsed_id, chromo, 
                                       juc_start, juc_end, 
                                       strand, juc_type)
-                '''
-                print(strand)
-                print(i, j)
-                print((juc_start, juc_end))
-                raw_input(coords)
-                '''
+                #print(strand)
+                #print(i, j)
+                #print((juc_start, juc_end))
+                #raw_input(coords)
                 juc_count += 1
         elif strand == '-':
             #print range(0, n_jucs)
@@ -138,20 +197,19 @@ def get_coords_from_eventid(juc_coord_dic, eventid, chromo, strand,
                                       eventid_parsed_id, chromo, 
                                       juc_start, juc_end, 
                                       strand, juc_type)
-                '''
-                print ':'.join([chromo, juc_start, juc_end])
-                print juc_coord_dic[':'.join([chromo, juc_start, juc_end])]
-                print(strand)
-                print(i, j)
-                print((juc_start, juc_end))
-                raw_input(coords)
-                '''
+                #print ':'.join([chromo, juc_start, juc_end])
+                #print juc_coord_dic[':'.join([chromo, juc_start, juc_end])]
+                #print(strand)
+                #print(i, j)
+                #print((juc_start, juc_end))
+                #raw_input(coords)
                 juc_count += 1
     return juc_coord_dic
+        '''
 
 def index_annotations(annot_file, eventtype='SE'):
     '''
-    Open miso annotation file and create indexed dictionaries.
+    Open miso annotation file (GFF3) and create indexed dictionaries.
     
     Dictionary format: 
         key: colon joined chromo, juc_start, juc_end
@@ -166,6 +224,11 @@ def index_annotations(annot_file, eventtype='SE'):
     gene_or_exon_index = 2
     strand_index = 6
     id_index = 8
+    
+    # String constants
+    upstrm_incl_str = 'inclusion_upstream'
+    excl_str = 'exclusion'
+    dwnstrm_incl_str = 'inclusion_downstream'
     
     # Initialize dics
     juc_dic = {}
@@ -191,6 +254,8 @@ def index_annotations(annot_file, eventtype='SE'):
         We also need to be wary of negative and positive strands, which
         may reverse the order of start and stop for exons 1, 2, 3.
         '''
+        #TODO checking SE does nothing at the moment. 
+        pass
     rowcount = 0
     with open(annot_file, 'rb') as readfile:
         reader = csv.reader(readfile, delimiter='\t')
@@ -207,7 +272,7 @@ def index_annotations(annot_file, eventtype='SE'):
             # Only look at row if third column == 'gene'
             if row[gene_or_exon_index] != 'gene':
                 pass
-            else:
+            else:    # if == gene
                 # Get values of the gene that shows differential expression
                 if row[eventtype_index] == eventtype:
                     pass
@@ -219,8 +284,17 @@ def index_annotations(annot_file, eventtype='SE'):
                 eventid = row[id_index]
                 strand = row[strand_index]
                 # Get start and end coordinates for junctions.
-                juc_dic = \
-                    get_coords_from_eventid(juc_dic, eventid, chromo, strand)
+                coords, eventid = \
+                    get_coords_from_eventid(eventid, chromo, strand)
+                juc_coords_list = join_jucs_from_coords(coords, strand, eventtype)
+                # List in order: upstream, exclusion, downstream.
+                for start_end_tup, juc_type in zip(juc_coords_list, 
+                                                   [upstrm_incl_str, 
+                                                    excl_str, 
+                                                    dwnstrm_incl_str]):
+                    juc_start = start_end_tup[0]
+                    juc_end = start_end_tup[1]
+                    juc_dic = write_jucs_to_dic(juc_dic, eventid, chromo, juc_start, juc_end, strand, juc_type)
                 rowcount += 1
     return juc_dic, rowcount
 
@@ -283,7 +357,7 @@ def annotate_alexa_file(alexa_bed_file, junc_dic, output_file):
                 continue
             # Get data from row
             alexa_id = row[alexa_id_ind]
-            # Check that alexa_id contains 'juc'
+            # Check that alexa_id contains 'juc' in first three letters.
             if alexa_id[0:3] != juc_str:
                 print('Warning, %s is not a junction alexa id.' %alexa_id)
             chromo = row[chromo_ind]
@@ -357,9 +431,6 @@ def main():
     print('Lines read (# of alexa junctions): %s' %readcount)
     print('Lines written (# of ase events): %s' %writecount)
     
-    
-    
-
 if __name__ == '__main__':
     main()
     
