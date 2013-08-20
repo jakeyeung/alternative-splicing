@@ -438,8 +438,11 @@ def annotate_alexa_file(alexa_bed_file, index_dic, output_file):
     
     block_start_str = 'block_start'    # For recreating dic key
     block_end_str = 'block_end'    # For recreating dic key
-    block_2_start_str = 'block_2_start'    # For searching subkey
-    block_2_end_str = 'block_2_end'    # For searching subkey
+    # Constants for searching subkeys
+    block_1_start_str = 'block_1_start'
+    block_1_end_str = 'block_2_end'
+    block_2_start_str = 'block_2_start'
+    block_2_end_str = 'block_2_end'
     
     # Define output header constants
     juc_id_str = 'junction_id'
@@ -449,8 +452,6 @@ def annotate_alexa_file(alexa_bed_file, index_dic, output_file):
     readcount = 0
     writecount = 0 
     
-    alexa_id_list = []
-    
     with open(alexa_bed_file, 'rb') as readfile:
         reader = csv.reader(readfile, delimiter='\t')
         # Open write file similarly
@@ -458,7 +459,7 @@ def annotate_alexa_file(alexa_bed_file, index_dic, output_file):
         writer = csv.writer(writefile, delimiter='\t')
         # Write header
         writer.writerow([chromo_str, start_str, end_str, juc_id_str, blocksizes_str,
-                         eventid_str, strand_str, type_str])
+                         eventid_str, strand_str, type_str, mismatch_score_str])
         for row in reader:
             '''
             Bed file contains psr and juc, but psr only has 6 columns.
@@ -555,11 +556,22 @@ def annotate_alexa_file(alexa_bed_file, index_dic, output_file):
                     for i in index_list:
                         val_list.append(index_dic[dic_key][subkey][i])
                     write_list.append(','.join(val_list))
+                # Calculate a mismatch score.
+                mismatch_score_list = []
+                for i in index_list:
+                    mismatch_score = 0
+                    for subkey, alexa_block_pos in \
+                    zip([block_1_start_str, block_1_end_str, 
+                         block_2_start_str, block_2_end_str], 
+                        [block_1_start, block_1_end, 
+                         block_2_start, block_2_end]):
+                        mismatch_score += abs(index_dic[dic_key][subkey][i] - 
+                                              alexa_block_pos)
+                    mismatch_score_list.append(str(mismatch_score))
+                write_list.append(','.join(mismatch_score_list))
                 writer.writerow(write_list)
                 writecount += 1
         writefile.close()
-        print len(alexa_id_list), alexa_id_list
-        print
     return readcount, writecount
 
 def main():
