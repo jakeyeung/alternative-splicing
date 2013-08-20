@@ -210,6 +210,10 @@ def get_coords_from_eventid(eventid, chromo, strand,
     
     Dictionary has the following keynames:
     eventid, start, end, chromo, strand, type
+    
+    # SUPER IMPORTANT:
+    you must subtract start coordinates by 1. End coordinates are OK.
+    
     '''
     # Initialize constants
     
@@ -221,8 +225,9 @@ def get_coords_from_eventid(eventid, chromo, strand,
     eventid_parsed = eventid_parsed_id.split(':')[:-1]
     # Loop through eventid, get the strings that do not contain chromo.
     coords = []
-    for i in eventid_parsed:
-        if chromo not in i:
+    i = 0    # Counter
+    for coordinate in eventid_parsed:
+        if chromo not in coordinate:
             '''
             Order of coords begins from start of transcript to end.
             But coord pairs (exon start, exon end) is such that 
@@ -236,7 +241,11 @@ def get_coords_from_eventid(eventid, chromo, strand,
             
             So be careful!
             '''
-            coords.append(i)
+            i += 1
+            if i % 2 == 1:
+                coords.append(str(int(coordinate) - 1))
+            else:
+                coords.append(coordinate)
     return coords, eventid_parsed_id
          
     '''
@@ -326,9 +335,9 @@ def index_annotations(annot_file, eventtype='SE'):
     id_index = 8
     
     # String constants
-    upstrm_incl_str = 'inclusion_upstream'
-    excl_str = 'exclusion'
-    dwnstrm_incl_str = 'inclusion_downstream'
+    # upstrm_incl_str = 'inclusion_upstream'
+    # excl_str = 'exclusion'
+    # dwnstrm_incl_str = 'inclusion_downstream'
     
     # Initialize dics
     index_dic = {}
@@ -398,6 +407,13 @@ def index_annotations(annot_file, eventtype='SE'):
                                                         chromo, exon_block_1, 
                                                         exon_block_2, strand, 
                                                         juc_type)
+                    '''
+                    print key
+                    print juc_type
+                    print(index_dic)
+                    raw_input()
+                    '''
+                    
                 rowcount += 1
     return index_dic, rowcount
 
@@ -440,7 +456,7 @@ def annotate_alexa_file(alexa_bed_file, index_dic, output_file):
     block_end_str = 'block_end'    # For recreating dic key
     # Constants for searching subkeys
     block_1_start_str = 'block_1_start'
-    block_1_end_str = 'block_2_end'
+    block_1_end_str = 'block_1_end'
     block_2_start_str = 'block_2_start'
     block_2_end_str = 'block_2_end'
     
@@ -451,6 +467,7 @@ def annotate_alexa_file(alexa_bed_file, index_dic, output_file):
     # Define count constants
     readcount = 0
     writecount = 0 
+    matchcount = 0
     
     with open(alexa_bed_file, 'rb') as readfile:
         reader = csv.reader(readfile, delimiter='\t')
@@ -503,21 +520,27 @@ def annotate_alexa_file(alexa_bed_file, index_dic, output_file):
                                         block_start_str])
             block_end_key = ':'.join([chromo, str(block_1_end), block_end_str])
             
+            '''
             if block_start_key in index_dic and block_end_key in index_dic:
-                dic_key = block_start_key    # Doesn't matter which is dic_key
-            
-            elif block_start_key in index_dic:
-                dic_key = block_start_key
+                dic_key = block_end_key    # Doesn't matter which is dic_key
             
             elif block_end_key in index_dic:
                 dic_key = block_end_key
             
+            elif block_start_key in index_dic:
+                dic_key = block_start_key
+                print block_end_key
+                print dic_key
+                print row
+                raw_input()
+            '''
+            if block_end_key in index_dic:
+                dic_key = block_end_key
             else:
                 continue    # no matches, go to next row. 
             
             '''
-            # OK so either block_1_start/end matched, but make sure it also
-            # matches EITHER block_2_start OR block_2_end.
+            # Block end key matched, see if it also matches start of block 2.
             
             If we can find the index/indices at which the block_2_start
             or block_2_end matches, then we can write all the other 
@@ -525,14 +548,25 @@ def annotate_alexa_file(alexa_bed_file, index_dic, output_file):
             and junction type into file. 
             '''
             index_list = []    # Initialize
-            for subkey, block_2_pos in zip([block_2_start_str, 
-                                            block_2_end_str], 
-                                            [block_2_start, 
-                                            block_2_end]):
+            for subkey, block_2_pos in zip([block_2_start_str], 
+                                            [block_2_start]):
                 # Intermediate list since we iterate twice.
                 temp_index_list = \
                 ([i for i, x in enumerate(index_dic[dic_key][subkey]) \
-                    if x == block_2_pos])    
+                    if x == block_2_pos])  
+                if len(temp_index_list) > 0:
+                    pass
+                    '''
+                    print row
+                    print block_1_start, block_1_end, block_2_start, block_2_end
+                    print dic_key
+                    print subkey, block_2_pos
+                    print index_dic[dic_key][eventid_str]
+                    print index_dic[dic_key][block_2_start_str], index_dic[dic_key][block_2_end_str]
+                    print index_dic[dic_key]['type']
+                    print temp_index_list, index_list
+                    raw_input()
+                    ''' 
                 for temp_i in temp_index_list:
                     index_list.append(temp_i)
             # Remove duplicates.
@@ -561,18 +595,30 @@ def annotate_alexa_file(alexa_bed_file, index_dic, output_file):
                 for i in index_list:
                     mismatch_score = 0
                     for subkey, alexa_block_pos in \
-                    zip([block_1_start_str, block_1_end_str, 
-                         block_2_start_str, block_2_end_str], 
-                        [block_1_start, block_1_end, 
-                         block_2_start, block_2_end]):
+                    zip([block_1_end_str, block_2_start_str], 
+                        [block_1_end, block_2_start]):
                         mismatch_score += abs(index_dic[dic_key][subkey][i] - 
                                               alexa_block_pos)
+                        '''
+                        if mismatch_score == 1:
+                            print row
+                            print block_1_start, block_1_end, block_2_start, block_2_end
+                            print dic_key
+                            print index_dic[dic_key][eventid_str]
+                            print index_dic[dic_key][block_1_start_str], index_dic[dic_key][block_1_end_str], index_dic[dic_key][block_2_start_str], index_dic[dic_key][block_2_end_str]
+                            print index_list, i
+                            print mismatch_score
+                            print index_dic[dic_key][subkey][i], alexa_block_pos, subkey
+                            raw_input()
+                        '''
+                        
                     mismatch_score_list.append(str(mismatch_score))
+                    matchcount += 1
                 write_list.append(','.join(mismatch_score_list))
                 writer.writerow(write_list)
                 writecount += 1
         writefile.close()
-    return readcount, writecount
+    return readcount, writecount, matchcount
 
 def main():
     if len(sys.argv) < 5:
@@ -584,19 +630,20 @@ def main():
     eventtype = sys.argv[4]
     
     print('Indexing miso annotation for eventtype == %s...' %eventtype)
-    junc_dic, _ = \
+    junc_dic, genecount = \
         index_annotations(annot_file, eventtype=eventtype)
-    print('Created %s indexes.' %len(junc_dic.keys()))
+    print('Created %s indexes from %s events.' %(len(junc_dic.keys()), genecount))
     
     # print(junc_dic.keys()[0:10])
-    for k in junc_dic.keys()[0:20]:
-        print k, junc_dic[k]
+    # for k in junc_dic.keys()[0:20]:
+        # print k, junc_dic[k]
     
     print('Reading alexaDB junctions and searching for AS events...')
-    readcount, writecount = \
+    readcount, writecount, matchcount = \
         annotate_alexa_file(alexa_bed_file, junc_dic, output_file)
     print('Lines read (# of alexa junctions): %s' %readcount)
     print('Lines written (# of ase events): %s' %writecount)
+    print('Events matched: %s' %matchcount)
     
 if __name__ == '__main__':
     main()
