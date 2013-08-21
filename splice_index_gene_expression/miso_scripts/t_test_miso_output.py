@@ -21,7 +21,7 @@ Keep in mind:
 
 import sys
 from group_miso_utils import get_sample_names_from_file, create_chromo_list, \
-    get_all_fnames, check_if_empty_dir
+    get_all_fnames, check_if_empty_dir, t_test_as_events
 
 def main():
     '''
@@ -54,11 +54,9 @@ def main():
     # Get list of AS events that need to be t-tested.
     master_fnames_list = get_all_fnames(all_samples, main_dir, jchr)
     
-    '''
     # Do t-test between the two groups. 
-    t_test_as_events(master_fnames_list, group_1_samplenames, 
-                      group_2_samplenames, main_dir, output_dir)
-    '''
+    t_test_as_events(master_fnames_list, group_1_samples, 
+                      group_2_samples, main_dir, jchr, output_dir)
     
     
 if __name__ == '__main__':

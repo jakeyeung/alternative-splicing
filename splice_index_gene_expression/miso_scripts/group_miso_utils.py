@@ -9,10 +9,78 @@ Some functions to help out group_miso_results.py
 import os
 import csv
 import re
+from scipy import stats
+import numpy as np
 
+def get_info_from_miso(psi_median_str, sample_name_str, psi_info_dic, 
+                       main_dir, samp, chromo, fname):
+    '''
+    Checks if file exists, if exists, then add info to psi_info_dic
+    '''
+    # Create filepath
+    file_path = os.path.join(main_dir, samp, chromo, fname)
+    if os.path.exists(file_path):
+        with open(file_path, 'rb') as readfile:
+            reader = csv.reader(readfile, delimiter='\t')
+            # Skip first two rows
+            reader.next()
+            '''
+            TODO: Get header information from second row.
+            '''
+            reader.next()
+            psi_value_list = []
+            for row in reader:
+                # First column (row[0]) is psi value,
+                # Second column (row[1]) is log_score.
+                # Psi value is comma separated, split it when take
+                # the first value, which is the first isoform (inclusion ratio)
+                psi_value_list.append(float(row[0].split(',')[0]))
+            # keynames[0] should be psi_median_str from t_test_as_events()
+            psi_info_dic[psi_median_str].append(np.median(psi_value_list))
+            psi_info_dic[sample_name_str].append(samp)
+    print(psi_info_dic)
+    raw_input()
+    return psi_info_dic
+                
+    
 def t_test_as_events(master_fnames_list, group_1_samplenames, 
-                      group_2_samplenames, main_dir, output_dir):
-    pass
+                      group_2_samplenames, main_dir, chromo, output_dir):
+    '''
+    Look at each as event across all samples between the two groups, then
+    do a t-test to see if they are indeed different.
+    
+    Write this information to file. 
+    '''
+    # Define keyname constants
+    psi_median_str = 'psi_median'
+    sample_name_str = 'sample_name'
+    counts_00_str = 'counts_00'
+    counts_10_str = 'counts_10'
+    counts_01_str = 'counts_01'
+    counts_11_str = 'counts_11'
+    assigned_counts_0_str = 'assigned_counts_0'
+    assigned_counts_1_str = 'assigned_counts_1'
+    keynames = [psi_median_str, sample_name_str, counts_00_str, counts_10_str, 
+                counts_01_str, counts_11_str, 
+                assigned_counts_0_str, assigned_counts_1_str]
+    
+    for fname in master_fnames_list:
+        # Get psi information from each group as dictionary
+        psi_info_dic = {}
+        # Initialize keynames with empty list.
+        for k in keynames:
+            psi_info_dic[k] = []
+        
+        for samp1 in group_1_samplenames:
+            file_dir = os.path.join(main_dir, samp1, chromo)
+            # Get info from file
+            psi_info_dic = get_info_from_miso(psi_median_str, sample_name_str, 
+                                              psi_info_dic, 
+                                              main_dir, samp1, 
+                                              chromo, fname)
+    print psi_info_dic
+            
+    
     
 def get_all_fnames(sample_dir_list, main_dir, chromo):
     '''
@@ -162,10 +230,10 @@ def write_combined_miso_header(sample_dir_names_list, main_dir,
                                                 [counts_str]*4 + [assigned_str]*2,
                                                 ['c']*4 + ['ass_c']*2):
                 # Create regex expression to search
-                if jtype == 'c':
+                if jtype == 'c':    # counts
                     # Search digits after (0,0):
                     reg_exprs = ''.join(['(?<=\(', jpat, '\)\:)\d+'])
-                else:
+                else:    # assigned_counts
                     # Search digits after 0:
                     reg_exprs = ''.join(['(?<=', jpat, '\:)\d+'])
                 match = re.search(reg_exprs, jstr)
