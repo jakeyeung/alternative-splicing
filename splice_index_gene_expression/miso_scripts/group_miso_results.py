@@ -123,7 +123,7 @@ def main():
     main_dir = sys.argv[1]
     sample_dir_fullpath = sys.argv[2]
     output_path = sys.argv[3]
-    
+        
     # Define constants
     chr_str = 'chr'
     # Create list of chromosome names corresponding to folders within sample dir

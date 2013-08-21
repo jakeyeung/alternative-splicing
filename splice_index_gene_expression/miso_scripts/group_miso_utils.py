@@ -10,6 +10,45 @@ import os
 import csv
 import re
 
+def t_test_as_events(master_fnames_list, group_1_samplenames, 
+                      group_2_samplenames, main_dir, output_dir):
+    pass
+    
+def get_all_fnames(sample_dir_list, main_dir, chromo):
+    '''
+    For each sample,
+    
+    Looks into miso_dir/samp_dir/chromo and gets the filename of 
+    every file in that directory. 
+    
+    Returns a list of all possible filenames across all samples.
+    There will be no duplicates in this list. 
+    '''
+    master_fnames_list = []
+    
+    for samp_dir in sample_dir_list:
+        file_dir = os.path.join(main_dir, samp_dir, chromo)
+        fnames_list = os.listdir(file_dir)
+        # Add files with ending .miso in list to master list.
+        master_fnames_list += [f for f in fnames_list if f.endswith('.miso')]
+        if len(fnames_list) == 0:
+            print('Warning: no .miso files found in %s.' %samp_dir)
+    # Remove dulpicates.
+    master_fnames_list = list(set(master_fnames_list))
+    return master_fnames_list
+    
+    
+def create_chromo_list(prefix='chr'):
+    '''
+    Create list of chromosomes (chr1, chr2, chr3... chr22, chrX, chrY)
+    Assumes prefix of chr unless otherwise specified.
+    '''
+    # Define constants
+    chr_str = prefix
+    # Create list of chromosome names corresponding to folders within sample dir
+    chr_list = [''.join([chr_str, str(c)]) for c in range(1, 23) + ['X', 'Y']]
+    return chr_list
+    
 def check_if_empty_dir(path, directory_list, suffix_dir_list):
     '''
     Given a path+directory+suffix_dir, check if there are any files
