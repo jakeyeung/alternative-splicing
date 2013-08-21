@@ -452,13 +452,13 @@ def annotate_alexa_file(alexa_bed_file, index_dic, output_file):
     type_str = 'type'
     mismatch_score_str = 'mismatch_score'
     
-    block_start_str = 'block_start'    # For recreating dic key
+    # block_start_str = 'block_start'    # For recreating dic key
     block_end_str = 'block_end'    # For recreating dic key
     # Constants for searching subkeys
-    block_1_start_str = 'block_1_start'
+    # block_1_start_str = 'block_1_start'
     block_1_end_str = 'block_1_end'
     block_2_start_str = 'block_2_start'
-    block_2_end_str = 'block_2_end'
+    # block_2_end_str = 'block_2_end'
     
     # Define output header constants
     juc_id_str = 'junction_id'
@@ -468,6 +468,7 @@ def annotate_alexa_file(alexa_bed_file, index_dic, output_file):
     readcount = 0
     writecount = 0 
     matchcount = 0
+    readcount2 = 0
     
     with open(alexa_bed_file, 'rb') as readfile:
         reader = csv.reader(readfile, delimiter='\t')
@@ -483,8 +484,6 @@ def annotate_alexa_file(alexa_bed_file, index_dic, output_file):
             Whereas juc has 11 columns. Use this fact to skip rows 
             that are not jucs.
             '''
-            readcount += 1
-            
             if len(row) <= 6:
                 continue
             # Get data from row
@@ -504,10 +503,10 @@ def annotate_alexa_file(alexa_bed_file, index_dic, output_file):
             block_1_end = alexa_start + size of 1st block. 
             '''
             try:
-                block_1_start = int(alexa_start)
+                # block_1_start = int(alexa_start)
                 block_1_end = int(alexa_start) + int(blocksize[0])
                 block_2_start = int(alexa_end) - int(blocksize[1])
-                block_2_end = int(alexa_end)
+                # block_2_end = int(alexa_end)
                 # block_1_end = int(alexa_start) + int(blockstarts[1])
             except ValueError:
                 print('Could not convert one of the following into an integer:')
@@ -515,9 +514,7 @@ def annotate_alexa_file(alexa_bed_file, index_dic, output_file):
                     print s
             
             # Rebuild index and search dictionary for key.
-            # Build a start key and an end key...
-            block_start_key = ':'.join([chromo, str(block_1_start), 
-                                        block_start_str])
+            # Build an end key.
             block_end_key = ':'.join([chromo, str(block_1_end), block_end_str])
             
             '''
@@ -534,8 +531,11 @@ def annotate_alexa_file(alexa_bed_file, index_dic, output_file):
                 print row
                 raw_input()
             '''
+            
+            readcount += 1    # Read only if len(row) > 6
             if block_end_key in index_dic:
                 dic_key = block_end_key
+                readcount2 += 1
             else:
                 continue    # no matches, go to next row. 
             
@@ -618,7 +618,7 @@ def annotate_alexa_file(alexa_bed_file, index_dic, output_file):
                 writer.writerow(write_list)
                 writecount += 1
         writefile.close()
-    return readcount, writecount, matchcount
+    return readcount, writecount, matchcount, readcount2
 
 def main():
     if len(sys.argv) < 5:
@@ -639,11 +639,12 @@ def main():
         # print k, junc_dic[k]
     
     print('Reading alexaDB junctions and searching for AS events...')
-    readcount, writecount, matchcount = \
+    readcount, writecount, matchcount, readcount2 = \
         annotate_alexa_file(alexa_bed_file, junc_dic, output_file)
     print('Lines read (# of alexa junctions): %s' %readcount)
     print('Lines written (# of ase events): %s' %writecount)
     print('Events matched: %s' %matchcount)
+    print('Readcount2: %s' %readcount2)
     
 if __name__ == '__main__':
     main()
