@@ -14,8 +14,10 @@ import pickle
 from scipy import stats
 import numpy as np
 
-def read_pickle_write_to_file():
-    pass
+def read_pickle(pickle_path):
+    with open(pickle_path, 'rb') as pkl_file:
+        mydata = pickle.load(pkl_file)
+    return mydata
 
 def save_dic_as_pickle(dic, chromo, fname, output_path, protocol=-1):
     '''
