@@ -236,7 +236,7 @@ def get_info_from_miso(psi_median_str, log_score_str,
         pass
     return psi_info_dic
 
-def get_psi_dic_keynames():
+def get_psi_dic_keynames(full_keynames=False):
     '''
     Gets keynames used in get_psi_dic_across_samples()
     '''
@@ -257,10 +257,16 @@ def get_psi_dic_keynames():
                 counts_10_str, counts_01_str, counts_11_str, 
                 assigned_counts_0_str, assigned_counts_1_str, 
                 percent_accepted_str, group_str]
+    if full_keynames==True:
+        pval_str = 'pval'
+        keynames.append(pval_str)
+    else:
+        pval_str = 'pval'
+    
     return keynames, psi_median_str, log_score_str, sample_name_str, \
         counts_00_str, counts_10_str, counts_01_str, counts_11_str, \
         assigned_counts_0_str, assigned_counts_1_str, \
-        percent_accepted_str, group_str
+        percent_accepted_str, group_str, pval_str
     
 def get_psi_dic_across_samples(fname, group_1_samplenames, 
                                 group_2_samplenames, main_dir, chromo, 
@@ -275,7 +281,7 @@ def get_psi_dic_across_samples(fname, group_1_samplenames,
     keynames, psi_median_str, log_score_str, sample_name_str, \
             counts_00_str, counts_10_str, counts_01_str, counts_11_str, \
             assigned_counts_0_str, assigned_counts_1_str, \
-            percent_accepted_str, group_str = get_psi_dic_keynames()
+            percent_accepted_str, group_str, _ = get_psi_dic_keynames()
             
     # Get psi information from each group as dictionary
     psi_info_dic = {}
