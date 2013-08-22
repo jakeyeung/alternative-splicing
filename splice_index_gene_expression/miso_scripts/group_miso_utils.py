@@ -235,15 +235,10 @@ def get_info_from_miso(psi_median_str, log_score_str,
         # print('%s does not exist for sample %s' %(file_path, samp))
         pass
     return psi_info_dic
-    
-def get_psi_dic_across_samples(fname, group_1_samplenames, 
-                                group_2_samplenames, main_dir, chromo, 
-                                output_dir):
+
+def get_psi_dic_keynames():
     '''
-    Look at each as event across all samples between the two groups, then
-    do a t-test to see if they are indeed different.
-    
-    Write this information to file. 
+    Gets keynames used in get_psi_dic_across_samples()
     '''
     # Define keyname constants
     psi_median_str = 'psi_median'
@@ -262,6 +257,26 @@ def get_psi_dic_across_samples(fname, group_1_samplenames,
                 counts_10_str, counts_01_str, counts_11_str, 
                 assigned_counts_0_str, assigned_counts_1_str, 
                 percent_accepted_str, group_str]
+    return keynames, psi_median_str, log_score_str, sample_name_str, \
+        counts_00_str, counts_10_str, counts_01_str, counts_11_str, \
+        assigned_counts_0_str, assigned_counts_1_str, \
+        percent_accepted_str, group_str
+    
+def get_psi_dic_across_samples(fname, group_1_samplenames, 
+                                group_2_samplenames, main_dir, chromo, 
+                                output_dir):
+    '''
+    Look at each as event across all samples between the two groups, then
+    do a t-test to see if they are indeed different.
+    
+    Write this information to file. 
+    '''
+    # Get keynames for psi_info_dic
+    keynames, psi_median_str, log_score_str, sample_name_str, \
+            counts_00_str, counts_10_str, counts_01_str, counts_11_str, \
+            assigned_counts_0_str, assigned_counts_1_str, \
+            percent_accepted_str, group_str = get_psi_dic_keynames()
+            
     # Get psi information from each group as dictionary
     psi_info_dic = {}
     # Initialize keynames with empty list.
