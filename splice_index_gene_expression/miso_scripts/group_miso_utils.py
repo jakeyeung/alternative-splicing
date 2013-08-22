@@ -14,6 +14,9 @@ import pickle
 from scipy import stats
 import numpy as np
 
+def read_pickle_write_to_file():
+    pass
+
 def save_dic_as_pickle(dic, chromo, fname, output_path, protocol=-1):
     '''
     Saves dictionary to output path.
@@ -32,8 +35,7 @@ def save_dic_as_pickle(dic, chromo, fname, output_path, protocol=-1):
     
     with open(output_fullpath, 'wb') as output:
         pickle.dump(dic, output, -1)
-    print('Saved to %s' %output_fullpath)
-    return None
+    return output_fullpath
 
 def split_psi_medians_into_two_lists(info_list, group_list):
     '''
