@@ -6,28 +6,124 @@ Created on 2013-07-23
 Some functions to help out group_miso_results.py
 '''
 
+import sys
 import os
 import csv
 import re
 from scipy import stats
 import numpy as np
 
-def get_info_from_miso(psi_median_str, sample_name_str, psi_info_dic, 
-                       main_dir, samp, chromo, fname):
+def get_percent_accepted_from_header(header, percent_accept_index = 5):
+    '''
+    Read the row, assumes it is the miso header which contains (by default):
+        percent_accepted column at index 5.
+        
+    Output percent accept 
+    '''
+    # Get column names from index
+    percent_str = header[percent_accept_index]
+    # Get the right side of equal sign from e.g. "percent_accept=99"
+    percent_accept = float(percent_str.split('=')[1])
+    return percent_accept
+    
+def read_counts_from_miso_header(header, 
+                                 counts_index = 7, 
+                                 assigned_counts_index = 8):
+    '''
+    Read the row, assumes it is the miso header which contains (by default):
+        counts (0,0), (1,0), (0,1), (1,1) at index 7
+        assigned-counts (0, 1) at index 8.
+        
+    Output counts and assigned-counts to user. 
+    '''
+    # Get column names from index
+    counts_str = header[counts_index]
+    assigned_str = header[assigned_counts_index]
+    
+    '''
+    # Get counts by finding (0,0):, (1,0):, (0,1):, (1,1)
+    # and
+    # Get assigned_counts by finding 0:, 1:
+    '''
+    # Find (0,0):, (1,0):, (0,1):, (1,1): and get integers after it:
+    # Initialize variable
+    counts_00 = []    # Reads not matching any isoform
+    counts_10 = []    # Reads matching to inclusion isoform
+    counts_01 = []    # Reads matching to exclusion isoform
+    counts_11 = []    # Reads matching both isoforms (exon bodies)
+    assigned_counts_0 = []    # Counts assigned to inclusion isoform.
+    assigned_counts_1 = []    # Counts assigned to exclusion isoform.
+    for jpat, jlist, jstr, jtype in \
+        zip(['0,0', '1,0', '0,1', '1,1','0', '1'], 
+            [counts_00, counts_10, counts_01, counts_11, assigned_counts_0, 
+             assigned_counts_1],
+            [counts_str]*4 + [assigned_str]*2,
+            ['c']*4 + ['ass_c']*2):
+        
+        # Create regex expression to search
+        if jtype == 'c':    # counts
+            # Search digits after (0,0):
+            reg_exprs = ''.join(['(?<=\(', jpat, '\)\:)\d+'])
+        elif jtype == 'ass_c':    # assigned_counts, 'ass_c'
+            # Search digits after 0:
+            reg_exprs = ''.join(['(?<=', jpat, '\:)\d+'])
+        else:
+            print('Expected %s to be either "c"(counts) '\
+                  'or "ass_c"(assigned_counts)')
+            sys.exit()
+        match = re.search(reg_exprs, jstr)
+        # match = re.search('(?<=\(0,0\)\:)\d+', counts_str)
+        if match:
+            try:
+                jlist.append(int(match.group(0)))
+            except ValueError:
+                ('Error: could not convert %s to int.' %match.group(0))
+        else:
+            jlist.append(0)
+    '''
+    Return first element from each jlist. I use lists instead of a variable
+    so I could loop through each. 
+    '''
+    return counts_00[0], counts_11[0], counts_01[0], counts_11[0], \
+            assigned_counts_0[0], assigned_counts_1[0]
+            
+def get_info_from_miso(psi_median_str, sample_name_str, 
+                       counts_00_str, counts_10_str, 
+                       counts_01_str, counts_11_str, 
+                       assigned_counts_0_str, 
+                       assigned_counts_1_str, 
+                       percent_accepted_str,
+                       psi_info_dic, samp, file_path):
     '''
     Checks if file exists, if exists, then add info to psi_info_dic
     '''
-    # Create filepath
-    file_path = os.path.join(main_dir, samp, chromo, fname)
     if os.path.exists(file_path):
         with open(file_path, 'rb') as readfile:
             reader = csv.reader(readfile, delimiter='\t')
-            # Skip first two rows
-            reader.next()
             '''
-            TODO: Get header information from second row.
+            First row contains percent_accepted and counts info.
+            Second row is just column names (psi_value, log_score)
+            
+            So read first row as header, but skip second row.
             '''
+            header = reader.next()
             reader.next()
+            # Get percent_accepted values
+            psi_info_dic[percent_accepted_str].append\
+                (get_percent_accepted_from_header(header))
+            # Get counts
+            counts_00, counts_10, counts_01, counts_11, assigned_counts_0, \
+                assigned_counts_1 = read_counts_from_miso_header(header)
+            
+            # Put counts into dic
+            for key, var in zip([counts_00_str, counts_10_str, 
+                                   counts_01_str, counts_11_str, 
+                                   assigned_counts_0_str, 
+                                   assigned_counts_1_str], 
+                                  [counts_00, counts_10, counts_01, counts_11, 
+                                   assigned_counts_0, assigned_counts_1]):
+                psi_info_dic[key].append(var)
+            
             psi_value_list = []
             for row in reader:
                 # First column (row[0]) is psi value,
@@ -41,7 +137,6 @@ def get_info_from_miso(psi_median_str, sample_name_str, psi_info_dic,
     print(psi_info_dic)
     raw_input()
     return psi_info_dic
-                
     
 def t_test_as_events(master_fnames_list, group_1_samplenames, 
                       group_2_samplenames, main_dir, chromo, output_dir):
@@ -60,9 +155,11 @@ def t_test_as_events(master_fnames_list, group_1_samplenames,
     counts_11_str = 'counts_11'
     assigned_counts_0_str = 'assigned_counts_0'
     assigned_counts_1_str = 'assigned_counts_1'
+    percent_accepted_str = 'percent_accepted'
     keynames = [psi_median_str, sample_name_str, counts_00_str, counts_10_str, 
                 counts_01_str, counts_11_str, 
-                assigned_counts_0_str, assigned_counts_1_str]
+                assigned_counts_0_str, assigned_counts_1_str, 
+                percent_accepted_str]
     
     for fname in master_fnames_list:
         # Get psi information from each group as dictionary
@@ -70,14 +167,16 @@ def t_test_as_events(master_fnames_list, group_1_samplenames,
         # Initialize keynames with empty list.
         for k in keynames:
             psi_info_dic[k] = []
-        
         for samp1 in group_1_samplenames:
-            file_dir = os.path.join(main_dir, samp1, chromo)
-            # Get info from file
+            file_dir = os.path.join(main_dir, samp1, chromo, fname)
+            # Get psi info from file
             psi_info_dic = get_info_from_miso(psi_median_str, sample_name_str, 
-                                              psi_info_dic, 
-                                              main_dir, samp1, 
-                                              chromo, fname)
+                                              counts_00_str, counts_10_str, 
+                                              counts_01_str, counts_11_str, 
+                                              assigned_counts_0_str, 
+                                              assigned_counts_1_str, 
+                                              percent_accepted_str,
+                                              psi_info_dic, samp1, file_dir)
     print psi_info_dic
             
     
@@ -181,7 +280,7 @@ def make_dir(path):
     if not os.path.exists(path):
         os.makedirs(path)
     return path
-    
+
 def write_combined_miso_header(sample_dir_names_list, main_dir, 
                                chromo, miso_output, csv_write_obj):
     '''
