@@ -21,20 +21,56 @@ Keep in mind:
 
 import sys
 import os
+import csv
 from group_miso_utils import get_sample_names_from_file, create_chromo_list, \
     get_all_fnames, check_if_empty_dir, get_psi_dic_across_samples, \
-    t_test_psi_info, save_dic_as_pickle, make_dir
+    t_test_psi_info, save_dic_as_pickle, make_dir, read_pickle, get_psi_dic_keynames
 
 def read_pickle_write_to_file(summary_fullpath, chr_list, fnames_dic, output_dir):
     '''
     Open a summary textfile, then individually open a pickle and write the 
     contents to file. 
     '''
+    # Get keynames found in pickle file.
+    # Each keyname will be a row written to file.
+    _, psi_median_str, log_score_str, sample_name_str, \
+        counts_00_str, counts_10_str, counts_01_str, counts_11_str, \
+        assigned_counts_0_str, assigned_counts_1_str, \
+        percent_accepted_str, group_str, pval_str, event_str \
+            = get_psi_dic_keynames(full_keynames=True)
+    
+    writecount = 0
     with open(summary_fullpath, 'wb') as writefile:
-        master_fnames_list = fnames_dic[chr_list[0]]
-        for fname in master_fnames_list:
-            pickle_path = os.path.join(output_dir, chr_list[0], fname)
-            pass
+        writer = csv.writer(writefile, delimiter='\t')
+        # Write header
+        header = [event_str, pval_str, sample_name_str, group_str, 
+                         counts_00_str, counts_10_str, counts_01_str, 
+                         counts_11_str, assigned_counts_0_str, 
+                         assigned_counts_1_str, psi_median_str, percent_accepted_str, 
+                         log_score_str]
+        writer.writerow(header)
+        
+        pickle_fullpath_list = fnames_dic[chr_list[0]]
+        for pickle_path in pickle_fullpath_list:
+            psi_info_dic = read_pickle(pickle_path)
+            row = []
+            for key in header:
+                '''
+                # Dic contains both lists and strings.
+                But we want to only have one column per
+                keyvalue. Therefore, we collapse lists 
+                into comma separated values (CSV).
+                '''
+                if isinstance(psi_info_dic[key], basestring):
+                    row.append(psi_info_dic[key])
+                else:
+                    # It is not a string, assumes it is a list
+                    # then join by comma.
+                    row.append(','.join(psi_info_dic[key]))
+                writer.writerow(row)
+                writecount += 1
+    return writecount
+                
         
 def t_test_and_pickle(fnames_dic, chromo, output_dir, group_1_samples, group_2_samples, 
                       main_dir):
@@ -46,6 +82,7 @@ def t_test_and_pickle(fnames_dic, chromo, output_dir, group_1_samples, group_2_s
     '''
     # Define constants
     pval_str = 'pval'
+    event_str = 'event'
     # Define output dic
     fnames_dic = {}
     
@@ -72,7 +109,10 @@ def t_test_and_pickle(fnames_dic, chromo, output_dir, group_1_samples, group_2_s
                                                      group_2_samples, 
                                                      main_dir, chromo, 
                                                      output_dir)
+        # Add pval and event to dic
         psi_info_dic[pval_str] = t_test_psi_info(psi_info_dic)
+        # Remove .miso from fname to get event name. 
+        psi_info_dic[event_str] = fname.split('.')[0]    
         # Save dictionary as a pickle file.
         fnames_pickled_list.append(save_dic_as_pickle(psi_info_dic, chromo, 
                                                       fname, output_dir))
@@ -118,7 +158,7 @@ def main():
     jchr = chr_list[0]    # For testing purposes.
     print jchr
     
-    fnames_dic = t_test_and_pickle(fnames_dic, chr_list, output_dir, 
+    fnames_dic = t_test_and_pickle(fnames_dic, jchr, output_dir, 
                                    group_1_samples, group_2_samples, main_dir)
     print('T-tested all events in %s' %jchr)
     
