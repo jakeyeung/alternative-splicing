@@ -21,7 +21,7 @@ Keep in mind:
 
 import sys
 from group_miso_utils import get_sample_names_from_file, create_chromo_list, \
-    get_all_fnames, check_if_empty_dir, t_test_as_events
+    get_all_fnames, check_if_empty_dir, get_psi_dic_across_samples
 
 def main():
     '''
@@ -55,8 +55,13 @@ def main():
     master_fnames_list = get_all_fnames(all_samples, main_dir, jchr)
     
     # Do t-test between the two groups. 
-    t_test_as_events(master_fnames_list, group_1_samples, 
-                      group_2_samples, main_dir, jchr, output_dir)
+    for fname in master_fnames_list:
+        # Get dictionary containing psi information for all samples.
+        psi_info_dic = get_psi_dic_across_samples(fname, group_1_samples, 
+                                                    group_2_samples, 
+                                                    main_dir, jchr, output_dir)
+        
+        
     
     
 if __name__ == '__main__':

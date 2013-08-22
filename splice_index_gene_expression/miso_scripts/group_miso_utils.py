@@ -53,6 +53,7 @@ def read_counts_from_miso_header(header,
     counts_11 = []    # Reads matching both isoforms (exon bodies)
     assigned_counts_0 = []    # Counts assigned to inclusion isoform.
     assigned_counts_1 = []    # Counts assigned to exclusion isoform.
+    
     for jpat, jlist, jstr, jtype in \
         zip(['0,0', '1,0', '0,1', '1,1','0', '1'], 
             [counts_00, counts_10, counts_01, counts_11, assigned_counts_0, 
@@ -87,7 +88,8 @@ def read_counts_from_miso_header(header,
     return counts_00[0], counts_11[0], counts_01[0], counts_11[0], \
             assigned_counts_0[0], assigned_counts_1[0]
             
-def get_info_from_miso(psi_median_str, sample_name_str, 
+def get_info_from_miso(psi_median_str, log_score_str, 
+                       sample_name_str, 
                        counts_00_str, counts_10_str, 
                        counts_01_str, counts_11_str, 
                        assigned_counts_0_str, 
@@ -125,21 +127,25 @@ def get_info_from_miso(psi_median_str, sample_name_str,
                 psi_info_dic[key].append(var)
             
             psi_value_list = []
+            log_score_list = []
             for row in reader:
                 # First column (row[0]) is psi value,
                 # Second column (row[1]) is log_score.
                 # Psi value is comma separated, split it when take
                 # the first value, which is the first isoform (inclusion ratio)
                 psi_value_list.append(float(row[0].split(',')[0]))
+                log_score_list.append(float(row[1]))
             # keynames[0] should be psi_median_str from t_test_as_events()
             psi_info_dic[psi_median_str].append(np.median(psi_value_list))
+            psi_info_dic[log_score_str].append(np.median(log_score_list))
             psi_info_dic[sample_name_str].append(samp)
     print(psi_info_dic)
     raw_input()
     return psi_info_dic
     
-def t_test_as_events(master_fnames_list, group_1_samplenames, 
-                      group_2_samplenames, main_dir, chromo, output_dir):
+def get_psi_dic_across_samples(fname, group_1_samplenames, 
+                                group_2_samplenames, main_dir, chromo, 
+                                output_dir):
     '''
     Look at each as event across all samples between the two groups, then
     do a t-test to see if they are indeed different.
@@ -148,6 +154,7 @@ def t_test_as_events(master_fnames_list, group_1_samplenames,
     '''
     # Define keyname constants
     psi_median_str = 'psi_median'
+    log_score_str = 'log_score_median'
     sample_name_str = 'sample_name'
     counts_00_str = 'counts_00'
     counts_10_str = 'counts_10'
@@ -156,28 +163,36 @@ def t_test_as_events(master_fnames_list, group_1_samplenames,
     assigned_counts_0_str = 'assigned_counts_0'
     assigned_counts_1_str = 'assigned_counts_1'
     percent_accepted_str = 'percent_accepted'
-    keynames = [psi_median_str, sample_name_str, counts_00_str, counts_10_str, 
+    group_str = 'group'
+    # Create keynames from constants
+    keynames = [psi_median_str, log_score_str, sample_name_str, counts_00_str, counts_10_str, 
                 counts_01_str, counts_11_str, 
                 assigned_counts_0_str, assigned_counts_1_str, 
-                percent_accepted_str]
-    
-    for fname in master_fnames_list:
-        # Get psi information from each group as dictionary
-        psi_info_dic = {}
-        # Initialize keynames with empty list.
-        for k in keynames:
-            psi_info_dic[k] = []
-        for samp1 in group_1_samplenames:
-            file_dir = os.path.join(main_dir, samp1, chromo, fname)
-            # Get psi info from file
-            psi_info_dic = get_info_from_miso(psi_median_str, sample_name_str, 
-                                              counts_00_str, counts_10_str, 
-                                              counts_01_str, counts_11_str, 
-                                              assigned_counts_0_str, 
-                                              assigned_counts_1_str, 
-                                              percent_accepted_str,
-                                              psi_info_dic, samp1, file_dir)
-    print psi_info_dic
+                percent_accepted_str, group_str]
+    # Get psi information from each group as dictionary
+    psi_info_dic = {}
+    # Initialize keynames with empty list.
+    for k in keynames:
+        psi_info_dic[k] = []
+    for samp in group_1_samplenames + group_2_samplenames:
+        file_dir = os.path.join(main_dir, samp, chromo, fname)
+        # Record whether sample is group1 or group2. 
+        if samp in group_1_samplenames:
+            psi_info_dic[group_str].append('1')
+        elif samp in group_2_samplenames:
+            psi_info_dic[group_str].append('2')
+        else:
+            print('Sample %s neither in group 1 or group 2.' %samp)
+        # Get psi info from file
+        psi_info_dic = get_info_from_miso(psi_median_str, log_score_str,
+                                          sample_name_str, 
+                                          counts_00_str, counts_10_str, 
+                                          counts_01_str, counts_11_str, 
+                                          assigned_counts_0_str, 
+                                          assigned_counts_1_str, 
+                                          percent_accepted_str,
+                                          psi_info_dic, samp, file_dir)
+    return psi_info_dic
             
     
     
