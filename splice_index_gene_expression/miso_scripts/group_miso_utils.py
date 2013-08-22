@@ -10,8 +10,30 @@ import sys
 import os
 import csv
 import re
+import pickle
 from scipy import stats
 import numpy as np
+
+def save_dic_as_pickle(dic, chromo, fname, output_path, protocol=-1):
+    '''
+    Saves dictionary to output path.
+    
+    Protocol -1 uses highest protocol available. 
+    If protocol = 0, uses standard protocol 0.
+    '''
+    # Define constants
+    pickle_str = '.pickle'
+    
+    # Create fullpath
+    output_fullpath = os.path.join(output_path, chromo, fname)
+    
+    # Add prefix 'pickle' to end of fullpath
+    output_fullpath = ''.join([output_fullpath, pickle_str])
+    
+    with open(output_fullpath, 'wb') as output:
+        pickle.dump(dic, output, -1)
+    print('Saved to %s' %output_fullpath)
+    return None
 
 def split_psi_medians_into_two_lists(info_list, group_list):
     '''

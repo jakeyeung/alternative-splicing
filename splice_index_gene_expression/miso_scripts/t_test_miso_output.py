@@ -20,9 +20,10 @@ Keep in mind:
 '''
 
 import sys
+import os
 from group_miso_utils import get_sample_names_from_file, create_chromo_list, \
     get_all_fnames, check_if_empty_dir, get_psi_dic_across_samples, \
-    t_test_psi_info
+    t_test_psi_info, save_dic_as_pickle, make_dir
 
 def main():
     '''
@@ -38,10 +39,11 @@ def main():
     main_dir = sys.argv[3]    # Where miso outputs results
     output_dir = sys.argv[4]
     
+    # Define constants
+    pval_str = 'pval'
     # Get sample names from textfile.
     group_1_samples = get_sample_names_from_file(group_1_samplenames_file)
     group_2_samples = get_sample_names_from_file(group_2_samplenames_file)
-    all_samples = group_1_samples + group_2_samples
     
     # Create list of chromosomes.
     chr_list = create_chromo_list(prefix='chr')
@@ -50,12 +52,19 @@ def main():
     group_1_samples = check_if_empty_dir(main_dir, group_1_samples, chr_list)
     group_2_samples = check_if_empty_dir(main_dir, group_2_samples, chr_list)
     
-    # Redefine groups1 and groups2 to remove empty dirs.
-    
     jchr = chr_list[0]    # For testing purposes.
     print jchr
     
+    # Create directory to store pickled dictionary.
+    make_dir(os.path.join(output_dir, jchr))
+    
+    '''
     # Get list of AS events that need to be t-tested.
+    # Run the function on the lists separately to ensure
+    # that each list contains at least one element.
+    # This means our master_fnames_list is guaranteed to
+    # have one sample in each group. 
+    '''
     group_1_fnames_list = get_all_fnames(group_1_samples, main_dir, jchr)
     group_2_fnames_list = get_all_fnames(group_2_samples, main_dir, jchr)
     master_fnames_list = group_1_fnames_list + group_2_fnames_list
@@ -67,9 +76,9 @@ def main():
                                                             group_2_samples, 
                                                             main_dir, jchr, 
                                                             output_dir)
-        pval = t_test_psi_info(psi_info_dic)
-        print pval
-        raw_input()
+        psi_info_dic[pval_str] = t_test_psi_info(psi_info_dic)
+        # Save dictionary as a pickle file.
+        save_dic_as_pickle(psi_info_dic, jchr, fname, output_dir)
         
 if __name__ == '__main__':
     main()
