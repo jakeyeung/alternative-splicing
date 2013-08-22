@@ -13,6 +13,59 @@ import re
 from scipy import stats
 import numpy as np
 
+def split_psi_medians_into_two_lists(info_list, group_list):
+    '''
+    Given list of info (e.g. psi medians) and corresponding group list, 
+    separate psi_medians into two separate lists. 
+    '''
+    # Check the lengths are the same for both lists
+    if len(info_list) != len(group_list):
+        print('info_list has length %s, not equal to length of '\
+              'group_list, %s' %(len(info_list), len(group_list)))
+        sys.exit()
+    # Define possible values in group_list
+    group_1_str = '1'    # means this is in group1
+    group_2_str = '2'    # means this is in group2
+    
+    # Init output lists
+    group_1_list = []
+    group_2_list = []
+    
+    for i, g in enumerate(group_list):
+        if g==group_1_str:
+            group_1_list.append(info_list[i])
+        elif g==group_2_str:
+            group_2_list.append(info_list[i])
+        else:
+            print('Cannot tell if %s is in group_1 or group_2' %g)
+            sys.exit()
+    return group_1_list, group_2_list
+    
+def t_test_psi_info(psi_info_dic, psi_median_str='psi_median', 
+                    group_str='group'):
+    '''
+    Given psi info dic which is a dictionary that 
+    contains psi_median for all samples, do a t-test between
+    group1 and group2 (group info found inside psi_info).
+    
+    Strings psi_median and group are used as keys to access
+    information in dictionary.
+    '''
+    # Get lists from dic
+    group_list = psi_info_dic[group_str]
+    psi_median_list = psi_info_dic[psi_median_str]
+    
+    # Separate the psi_median_list into two groups
+    psi_medians_group1, psi_medians_group2 = \
+        split_psi_medians_into_two_lists(psi_median_list, group_list)
+    
+    # T-test the two groups
+    if len(psi_medians_group1) > 1 and len(psi_medians_group2) > 1:
+        _, pval = stats.ttest_ind(psi_medians_group1, psi_medians_group2)
+    else:
+        pval = 'NA'
+    return pval
+    
 def get_percent_accepted_from_header(header, percent_accept_index = 5):
     '''
     Read the row, assumes it is the miso header which contains (by default):
@@ -95,11 +148,24 @@ def get_info_from_miso(psi_median_str, log_score_str,
                        assigned_counts_0_str, 
                        assigned_counts_1_str, 
                        percent_accepted_str,
-                       psi_info_dic, samp, file_path):
+                       group_str,
+                       psi_info_dic, 
+                       samp,
+                       group_1_samplenames,
+                       group_2_samplenames, 
+                       file_path):
     '''
     Checks if file exists, if exists, then add info to psi_info_dic
     '''
     if os.path.exists(file_path):
+        # Record whether sample is in group1 or group2.
+        if samp in group_1_samplenames:
+            psi_info_dic[group_str].append('1')
+        elif samp in group_2_samplenames:
+            psi_info_dic[group_str].append('2')
+        else:
+            print('Could not place %s in either group 1 or group 2.' %samp)
+        
         with open(file_path, 'rb') as readfile:
             reader = csv.reader(readfile, delimiter='\t')
             '''
@@ -139,8 +205,9 @@ def get_info_from_miso(psi_median_str, log_score_str,
             psi_info_dic[psi_median_str].append(np.median(psi_value_list))
             psi_info_dic[log_score_str].append(np.median(log_score_list))
             psi_info_dic[sample_name_str].append(samp)
-    print(psi_info_dic)
-    raw_input()
+    else:    # File doesn't exist
+        # print('%s does not exist for sample %s' %(file_path, samp))
+        pass
     return psi_info_dic
     
 def get_psi_dic_across_samples(fname, group_1_samplenames, 
@@ -165,8 +232,8 @@ def get_psi_dic_across_samples(fname, group_1_samplenames,
     percent_accepted_str = 'percent_accepted'
     group_str = 'group'
     # Create keynames from constants
-    keynames = [psi_median_str, log_score_str, sample_name_str, counts_00_str, counts_10_str, 
-                counts_01_str, counts_11_str, 
+    keynames = [psi_median_str, log_score_str, sample_name_str, counts_00_str, 
+                counts_10_str, counts_01_str, counts_11_str, 
                 assigned_counts_0_str, assigned_counts_1_str, 
                 percent_accepted_str, group_str]
     # Get psi information from each group as dictionary
@@ -176,13 +243,6 @@ def get_psi_dic_across_samples(fname, group_1_samplenames,
         psi_info_dic[k] = []
     for samp in group_1_samplenames + group_2_samplenames:
         file_dir = os.path.join(main_dir, samp, chromo, fname)
-        # Record whether sample is group1 or group2. 
-        if samp in group_1_samplenames:
-            psi_info_dic[group_str].append('1')
-        elif samp in group_2_samplenames:
-            psi_info_dic[group_str].append('2')
-        else:
-            print('Sample %s neither in group 1 or group 2.' %samp)
         # Get psi info from file
         psi_info_dic = get_info_from_miso(psi_median_str, log_score_str,
                                           sample_name_str, 
@@ -191,10 +251,13 @@ def get_psi_dic_across_samples(fname, group_1_samplenames,
                                           assigned_counts_0_str, 
                                           assigned_counts_1_str, 
                                           percent_accepted_str,
-                                          psi_info_dic, samp, file_dir)
-    return psi_info_dic
-            
-    
+                                          group_str,
+                                          psi_info_dic, 
+                                          samp, 
+                                          group_1_samplenames,
+                                          group_2_samplenames,
+                                          file_dir)
+    return psi_info_dic, keynames
     
 def get_all_fnames(sample_dir_list, main_dir, chromo):
     '''
