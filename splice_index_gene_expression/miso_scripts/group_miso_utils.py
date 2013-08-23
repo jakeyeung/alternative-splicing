@@ -19,7 +19,7 @@ def read_pickle(pickle_path):
         mydata = pickle.load(pkl_file)
     return mydata
 
-def save_dic_as_pickle(dic, chromo, fname, output_path, protocol=-1):
+def save_dic_as_pickle(dic, output_fullpath, protocol=-1):
     '''
     Saves dictionary to output path.
     
@@ -28,9 +28,6 @@ def save_dic_as_pickle(dic, chromo, fname, output_path, protocol=-1):
     '''
     # Define constants
     pickle_str = '.pickle'
-    
-    # Create fullpath
-    output_fullpath = os.path.join(output_path, chromo, fname)
     
     # Add prefix 'pickle' to end of fullpath
     output_fullpath = ''.join([output_fullpath, pickle_str])

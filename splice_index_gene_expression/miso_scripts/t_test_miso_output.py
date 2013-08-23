@@ -99,10 +99,12 @@ def t_test_and_pickle(fnames_dic, chromo, output_dir, group_1_samples, group_2_s
     group_1_fnames_list = get_all_fnames(group_1_samples, main_dir, chromo)
     group_2_fnames_list = get_all_fnames(group_2_samples, main_dir, chromo)
     master_fnames_list = group_1_fnames_list + group_2_fnames_list
-    
+    master_fnames_size = len(master_fnames_list)
     # Do t-test between the two groups. 
     fnames_pickled_list = []
+    count = 0
     for fname in master_fnames_list:
+        count += 1
         # Get dictionary containing psi information for all samples.
         psi_info_dic, _ = get_psi_dic_across_samples(fname, 
                                                      group_1_samples, 
@@ -114,8 +116,11 @@ def t_test_and_pickle(fnames_dic, chromo, output_dir, group_1_samples, group_2_s
         # Remove .miso from fname to get event name. 
         psi_info_dic[event_str] = fname.split('.')[0]    
         # Save dictionary as a pickle file.
-        fnames_pickled_list.append(save_dic_as_pickle(psi_info_dic, chromo, 
-                                                      fname, output_dir))
+        output_fullpath = os.path.join(output_dir, chromo, fname)
+        fnames_pickled_list.append(save_dic_as_pickle(psi_info_dic, 
+                                                      output_fullpath))
+        if count%100==0:
+            print('%s/%s' %(count, master_fnames_size))
     # save fnames list to output dic
     if chromo not in fnames_dic:
         fnames_dic[chromo] = fnames_pickled_list
@@ -160,10 +165,12 @@ def main():
     
     fnames_dic = t_test_and_pickle(fnames_dic, jchr, output_dir, 
                                    group_1_samples, group_2_samples, main_dir)
+    #Write fnames_dic to pickle.
+    
     print('T-tested all events in %s' %jchr)
     
     print('Writing information from pickle to textfile.')
-    read_pickle_write_to_file(summary_fullpath, jchr, fnames_dic, output_dir)
+    read_pickle_write_to_file(summary_fullpath, chr_list, fnames_dic, output_dir)
         
         
 if __name__ == '__main__':
