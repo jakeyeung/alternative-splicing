@@ -166,7 +166,8 @@ def main():
     fnames_dic = t_test_and_pickle(fnames_dic, jchr, output_dir, 
                                    group_1_samples, group_2_samples, main_dir)
     #Write fnames_dic to pickle.
-    
+    fnames_savepath = os.path.join(output_dir, 'filenames_dic.pickle')
+    save_dic_as_pickle(fnames_dic, fnames_savepath)
     print('T-tested all events in %s' %jchr)
     
     print('Writing information from pickle to textfile.')
