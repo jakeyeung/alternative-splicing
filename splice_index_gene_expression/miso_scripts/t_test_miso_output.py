@@ -184,7 +184,8 @@ def main():
     print('Completed %s jobs.' %len(chr_list))
     
     # Write fnames_dic as pickle file.
-    fnames_savepath = os.path.join(output_dir, 'filenames_dic')
+    fnames_savepath = os.path.join(output_dir, 'filenames_dic.pickle')
+    print('Saving filenames_dic.pickle to %s' %fnames_savepath)
     pickle_path = save_dic_as_pickle(fnames_dic, fnames_savepath)
     
     # Write information from pickle to textfile. 
