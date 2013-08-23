@@ -63,19 +63,20 @@ def read_pickle_write_to_file(summary_fullpath, chr_list, fnames_dic, output_dir
                     keyvalue. Therefore, we collapse lists 
                     into comma separated values (CSV).
                     '''
-                    if isinstance(psi_info_dic[key], basestring):
-                        row.append(psi_info_dic[key])
-                    else:
-                        # It is not a string, assumes it is a list
-                        # then join by comma.
+                    if len(psi_info_dic[key]) == 1:
+                        row.append(psi_info_dic[key][0])
+                    elif len(psi_info_dic[key]) > 1:
+                        # Convert each element in list to string
+                        # so we can join it by commas.
+                        psi_info_dic[key] = [str(i) for i in psi_info_dic[key]]
                         row.append(','.join(psi_info_dic[key]))
-                    writer.writerow(row)
-                    writecount += 1
+                writer.writerow(row)
+                writecount += 1
     return writecount
                 
         
 def t_test_and_pickle(fnames_dic, chromo, output_dir, group_1_samples, group_2_samples, 
-                      main_dir):
+                      main_dir, queue_obj):
     '''
     Combines several modules together into one so that the process
     can be easily multithreaded. 
@@ -114,9 +115,9 @@ def t_test_and_pickle(fnames_dic, chromo, output_dir, group_1_samples, group_2_s
                                                      main_dir, chromo, 
                                                      output_dir)
         # Add pval and event to dic
-        psi_info_dic[pval_str] = t_test_psi_info(psi_info_dic)
+        psi_info_dic[pval_str] = [t_test_psi_info(psi_info_dic)]
         # Remove .miso from fname to get event name. 
-        psi_info_dic[event_str] = fname.split('.')[0]    
+        psi_info_dic[event_str] = [fname.split('.')[0]]    
         # Save dictionary as a pickle file.
         # add .pickle to fname
         pickled_fname = ''.join([fname, '.pickle'])
@@ -129,7 +130,7 @@ def t_test_and_pickle(fnames_dic, chromo, output_dir, group_1_samples, group_2_s
     else:
         print('Warning, overwriting fnames_list in %s' %chromo)
     print('T-tested all events in %s' %chromo)
-    return fnames_dic
+    queue_obj.put(fnames_dic)    # For multithreading
     
 def main():
     '''
@@ -163,20 +164,25 @@ def main():
     fnames_dic = {}
     
     # Run on multiple threads.
-    result_queue = Queue()
+    q = Queue()
+    process_list = []
     for chromo in chr_list:
         print('Sending %s job to core...' %chromo)
-        Process(target=t_test_and_pickle,
-                args=(fnames_dic, chromo, output_dir, 
-                      group_1_samples, group_2_samples, 
-                      main_dir)).start()
+        p = Process(target=t_test_and_pickle,
+                    args=(fnames_dic, chromo, output_dir, 
+                          group_1_samples, group_2_samples, 
+                          main_dir, q))
+        process_list.append(p)
+        p.start()
+    for chromo in chr_list:
+        fnames_dic.update(q.get())
+    
     # Wait for all threads to be done before continuing.
-    result_queue.get()    
+    for p in process_list:
+        p.join()
+        
     print('Completed %s jobs.' %len(chr_list))
-    '''
-    fnames_dic = t_test_and_pickle(fnames_dic, jchr, output_dir, 
-                                   group_1_samples, group_2_samples, main_dir)
-    '''
+    
     # Write fnames_dic as pickle file.
     fnames_savepath = os.path.join(output_dir, 'filenames_dic')
     pickle_path = save_dic_as_pickle(fnames_dic, fnames_savepath)
@@ -187,6 +193,8 @@ def main():
     fnames_dic = read_pickle(pickle_path)
     # Read and write to file. 
     read_pickle_write_to_file(summary_fullpath, chr_list, fnames_dic, output_dir)
+    
+    print('Summary file saved in: %s' %summary_fullpath)
         
         
 if __name__ == '__main__':
