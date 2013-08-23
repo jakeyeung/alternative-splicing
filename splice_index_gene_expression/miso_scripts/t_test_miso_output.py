@@ -51,25 +51,26 @@ def read_pickle_write_to_file(summary_fullpath, chr_list, fnames_dic, output_dir
                          log_score_str]
         writer.writerow(header)
         
-        pickle_fullpath_list = fnames_dic[chr_list[0]]
-        for pickle_path in pickle_fullpath_list:
-            psi_info_dic = read_pickle(pickle_path)
-            row = []
-            for key in header:
-                '''
-                # Dic contains both lists and strings.
-                But we want to only have one column per
-                keyvalue. Therefore, we collapse lists 
-                into comma separated values (CSV).
-                '''
-                if isinstance(psi_info_dic[key], basestring):
-                    row.append(psi_info_dic[key])
-                else:
-                    # It is not a string, assumes it is a list
-                    # then join by comma.
-                    row.append(','.join(psi_info_dic[key]))
-                writer.writerow(row)
-                writecount += 1
+        for chromo in chr_list:
+            pickle_fullpath_list = fnames_dic[chromo]
+            for pickle_path in pickle_fullpath_list:
+                psi_info_dic = read_pickle(pickle_path)
+                row = []
+                for key in header:
+                    '''
+                    # Dic contains both lists and strings.
+                    But we want to only have one column per
+                    keyvalue. Therefore, we collapse lists 
+                    into comma separated values (CSV).
+                    '''
+                    if isinstance(psi_info_dic[key], basestring):
+                        row.append(psi_info_dic[key])
+                    else:
+                        # It is not a string, assumes it is a list
+                        # then join by comma.
+                        row.append(','.join(psi_info_dic[key]))
+                    writer.writerow(row)
+                    writecount += 1
     return writecount
                 
         
@@ -161,10 +162,6 @@ def main():
     # Init fnames dic
     fnames_dic = {}
     
-    # Select a chromo for testing
-    jchr = chr_list[0]    # For testing purposes.
-    print jchr
-    
     # Run on multiple threads.
     result_queue = Queue()
     for chromo in chr_list:
@@ -173,7 +170,8 @@ def main():
                 args=(fnames_dic, chromo, output_dir, 
                       group_1_samples, group_2_samples, 
                       main_dir)).start()
-    result_queue.get()
+    # Wait for all threads to be done before continuing.
+    result_queue.get()    
     print('Completed %s jobs.' %len(chr_list))
     '''
     fnames_dic = t_test_and_pickle(fnames_dic, jchr, output_dir, 
