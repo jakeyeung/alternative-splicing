@@ -100,7 +100,7 @@ def t_test_and_pickle(fnames_dic, chromo, output_dir, group_1_samples, group_2_s
     group_1_fnames_list = get_all_fnames(group_1_samples, main_dir, chromo)
     group_2_fnames_list = get_all_fnames(group_2_samples, main_dir, chromo)
     master_fnames_list = group_1_fnames_list + group_2_fnames_list
-    master_fnames_size = len(master_fnames_list)
+    # master_fnames_size = len(master_fnames_list)
     # Do t-test between the two groups. 
     fnames_pickled_list = []
     count = 0
@@ -122,13 +122,12 @@ def t_test_and_pickle(fnames_dic, chromo, output_dir, group_1_samples, group_2_s
         output_fullpath = os.path.join(output_dir, chromo, pickled_fname)
         fnames_pickled_list.append(save_dic_as_pickle(psi_info_dic, 
                                                       output_fullpath))
-        if count%100==0:
-            print('%s/%s' %(count, master_fnames_size))
     # save fnames list to output dic
     if chromo not in fnames_dic:
         fnames_dic[chromo] = fnames_pickled_list
     else:
         print('Warning, overwriting fnames_list in %s' %chromo)
+    print('T-tested all events in %s' %chromo)
     return fnames_dic
     
 def main():
@@ -174,7 +173,6 @@ def main():
                 args=(fnames_dic, chromo, output_dir, 
                       group_1_samples, group_2_samples, 
                       main_dir)).start()
-        print('T-tested all events in %s' %chromo)
     result_queue.get()
     print('Completed %s jobs.' %len(chr_list))
     '''
