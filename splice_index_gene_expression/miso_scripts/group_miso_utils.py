@@ -83,7 +83,14 @@ def t_test_psi_info(psi_info_dic, psi_median_str='psi_median',
         _, pval = stats.ttest_ind(psi_medians_group1, psi_medians_group2)
     else:
         pval = 'NA'
-    return str(pval)
+        
+    # Try to convert to float, if not, string it.
+    try:
+        pval = float(pval)
+    except ValueError:
+        pval = str(pval)
+        
+    return pval
     
 def get_percent_accepted_from_header(header, percent_accept_index = 5):
     '''
