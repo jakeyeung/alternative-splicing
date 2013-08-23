@@ -23,15 +23,11 @@ def save_dic_as_pickle(dic, output_fullpath, protocol=-1):
     '''
     Saves dictionary to output path.
     
+    Output path should end in some suffix like .pickle
+    
     Protocol -1 uses highest protocol available. 
     If protocol = 0, uses standard protocol 0.
     '''
-    # Define constants
-    pickle_str = '.pickle'
-    
-    # Add prefix 'pickle' to end of fullpath
-    output_fullpath = ''.join([output_fullpath, pickle_str])
-    
     with open(output_fullpath, 'wb') as output:
         pickle.dump(dic, output, -1)
     return output_fullpath

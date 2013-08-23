@@ -22,6 +22,7 @@ Keep in mind:
 import sys
 import os
 import csv
+from multiprocessing import Process, Queue
 from group_miso_utils import get_sample_names_from_file, create_chromo_list, \
     get_all_fnames, check_if_empty_dir, get_psi_dic_across_samples, \
     t_test_psi_info, save_dic_as_pickle, make_dir, read_pickle, get_psi_dic_keynames
@@ -116,7 +117,9 @@ def t_test_and_pickle(fnames_dic, chromo, output_dir, group_1_samples, group_2_s
         # Remove .miso from fname to get event name. 
         psi_info_dic[event_str] = fname.split('.')[0]    
         # Save dictionary as a pickle file.
-        output_fullpath = os.path.join(output_dir, chromo, fname)
+        # add .pickle to fname
+        pickled_fname = ''.join([fname, '.pickle'])
+        output_fullpath = os.path.join(output_dir, chromo, pickled_fname)
         fnames_pickled_list.append(save_dic_as_pickle(psi_info_dic, 
                                                       output_fullpath))
         if count%100==0:
@@ -163,14 +166,30 @@ def main():
     jchr = chr_list[0]    # For testing purposes.
     print jchr
     
+    # Run on multiple threads.
+    result_queue = Queue()
+    for chromo in chr_list:
+        print('Sending %s job to core...' %chromo)
+        Process(target=t_test_and_pickle,
+                args=(fnames_dic, chromo, output_dir, 
+                      group_1_samples, group_2_samples, 
+                      main_dir)).start()
+        print('T-tested all events in %s' %chromo)
+    result_queue.get()
+    print('Completed %s jobs.' %len(chr_list))
+    '''
     fnames_dic = t_test_and_pickle(fnames_dic, jchr, output_dir, 
                                    group_1_samples, group_2_samples, main_dir)
-    #Write fnames_dic to pickle.
-    fnames_savepath = os.path.join(output_dir, 'filenames_dic.pickle')
-    save_dic_as_pickle(fnames_dic, fnames_savepath)
-    print('T-tested all events in %s' %jchr)
+    '''
+    # Write fnames_dic as pickle file.
+    fnames_savepath = os.path.join(output_dir, 'filenames_dic')
+    pickle_path = save_dic_as_pickle(fnames_dic, fnames_savepath)
     
+    # Write information from pickle to textfile. 
     print('Writing information from pickle to textfile.')
+    # Read pickle file to get fnames_dic
+    fnames_dic = read_pickle(pickle_path)
+    # Read and write to file. 
     read_pickle_write_to_file(summary_fullpath, chr_list, fnames_dic, output_dir)
         
         
