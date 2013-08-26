@@ -321,7 +321,10 @@ def get_all_fnames(sample_dir_list, main_dir, chromo):
     master_fnames_list = []
     
     for samp_dir in sample_dir_list:
-        file_dir = os.path.join(main_dir, samp_dir, chromo)
+        try:
+            file_dir = os.path.join(main_dir, samp_dir, chromo)
+        except OSError:
+            break    # folder chrY does not exist. 
         fnames_list = os.listdir(file_dir)
         # Add files with ending .miso in list to master list.
         master_fnames_list += [f for f in fnames_list if f.endswith('.miso')]
