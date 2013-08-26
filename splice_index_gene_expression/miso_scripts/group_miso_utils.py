@@ -14,6 +14,7 @@ import pickle
 from scipy import stats
 import numpy as np
 
+    
 def read_pickle(pickle_path):
     with open(pickle_path, 'rb') as pkl_file:
         mydata = pickle.load(pkl_file)
@@ -179,19 +180,16 @@ def get_info_from_miso(psi_median_str, log_score_str,
                        samp,
                        group_1_samplenames,
                        group_2_samplenames, 
-                       file_path):
+                       file_path,
+                       min_total_counts=10):
     '''
-    Checks if file exists, if exists, then add info to psi_info_dic
+    Checks if file exists, if exists, then add info to psi_info_dic.
+    
+    But we only add info if (by default):
+    min_total_counts >= 10 (sum of 10_counts and 01_counts)
+    Threshold can be changed by changing min_total_counts
     '''
     if os.path.exists(file_path):
-        # Record whether sample is in group1 or group2.
-        if samp in group_1_samplenames:
-            psi_info_dic[group_str].append('1')
-        elif samp in group_2_samplenames:
-            psi_info_dic[group_str].append('2')
-        else:
-            print('Could not place %s in either group 1 or group 2.' %samp)
-        
         with open(file_path, 'rb') as readfile:
             reader = csv.reader(readfile, delimiter='\t')
             '''
@@ -199,6 +197,9 @@ def get_info_from_miso(psi_median_str, log_score_str,
             Second row is just column names (psi_value, log_score)
             
             So read first row as header, but skip second row.
+            
+            We will read the header then skip if the counts
+            for the events are unsatisfactory. 
             '''
             header = reader.next()
             reader.next()
@@ -209,28 +210,41 @@ def get_info_from_miso(psi_median_str, log_score_str,
             counts_00, counts_10, counts_01, counts_11, assigned_counts_0, \
                 assigned_counts_1 = read_counts_from_miso_header(header)
             
-            # Put counts into dic
-            for key, var in zip([counts_00_str, counts_10_str, 
-                                   counts_01_str, counts_11_str, 
-                                   assigned_counts_0_str, 
-                                   assigned_counts_1_str], 
-                                  [counts_00, counts_10, counts_01, counts_11, 
-                                   assigned_counts_0, assigned_counts_1]):
-                psi_info_dic[key].append(var)
+            # Counts must be above a certain threshold.
+            if int(counts_10) < 1 and int(counts_01) < 1 \
+                and int(counts_10) + int(counts_01) < 10:
+                pass    # Do not add any info to psi_info_dic
             
-            psi_value_list = []
-            log_score_list = []
-            for row in reader:
-                # First column (row[0]) is psi value,
-                # Second column (row[1]) is log_score.
-                # Psi value is comma separated, split it when take
-                # the first value, which is the first isoform (inclusion ratio)
-                psi_value_list.append(float(row[0].split(',')[0]))
-                log_score_list.append(float(row[1]))
-            # keynames[0] should be psi_median_str from t_test_as_events()
-            psi_info_dic[psi_median_str].append(np.median(psi_value_list))
-            psi_info_dic[log_score_str].append(np.median(log_score_list))
-            psi_info_dic[sample_name_str].append(samp)
+            else:
+                # Record whether sample is in group1 or group2.
+                if samp in group_1_samplenames:
+                    psi_info_dic[group_str].append('1')
+                elif samp in group_2_samplenames:
+                    psi_info_dic[group_str].append('2')
+                else:
+                    print('Could not place %s in either group 1 or group 2.' %samp)
+                # Put counts into dic
+                for key, var in zip([counts_00_str, counts_10_str, 
+                                       counts_01_str, counts_11_str, 
+                                       assigned_counts_0_str, 
+                                       assigned_counts_1_str], 
+                                      [counts_00, counts_10, counts_01, counts_11, 
+                                       assigned_counts_0, assigned_counts_1]):
+                    psi_info_dic[key].append(var)
+                
+                psi_value_list = []
+                log_score_list = []
+                for row in reader:
+                    # First column (row[0]) is psi value,
+                    # Second column (row[1]) is log_score.
+                    # Psi value is comma separated, split it when take
+                    # the first value, which is the first isoform (inclusion ratio)
+                    psi_value_list.append(float(row[0].split(',')[0]))
+                    log_score_list.append(float(row[1]))
+                # keynames[0] should be psi_median_str from t_test_as_events()
+                psi_info_dic[psi_median_str].append(np.median(psi_value_list))
+                psi_info_dic[log_score_str].append(np.median(log_score_list))
+                psi_info_dic[sample_name_str].append(samp)
     else:    # File doesn't exist
         # print('%s does not exist for sample %s' %(file_path, samp))
         pass
@@ -305,7 +319,8 @@ def get_psi_dic_across_samples(fname, group_1_samplenames,
                                           samp, 
                                           group_1_samplenames,
                                           group_2_samplenames,
-                                          file_dir)
+                                          file_dir,
+                                          min_total_counts=10)
     return psi_info_dic, keynames
     
 def get_all_fnames(sample_dir_list, main_dir, chromo):
