@@ -321,11 +321,11 @@ def get_all_fnames(sample_dir_list, main_dir, chromo):
     master_fnames_list = []
     
     for samp_dir in sample_dir_list:
+        file_dir = os.path.join(main_dir, samp_dir, chromo)
         try:
-            file_dir = os.path.join(main_dir, samp_dir, chromo)
+            fnames_list = os.listdir(file_dir)
         except OSError:
-            break    # folder chrY does not exist. 
-        fnames_list = os.listdir(file_dir)
+            break
         # Add files with ending .miso in list to master list.
         master_fnames_list += [f for f in fnames_list if f.endswith('.miso')]
         if len(fnames_list) == 0:
@@ -363,11 +363,11 @@ def check_if_empty_dir(path, directory_list, suffix_dir_list):
             filter_count += 1
         else:    # Dont go into loop unless there are actually folders
             for suf_dir in suffix_dir_list:
+                fullpath = os.path.join(path, samp_dir, suf_dir)
                 try:
-                    fullpath = os.path.join(path, samp_dir, suf_dir)
+                    files_in_fullpath = os.listdir(fullpath)
                 except OSError:
                     break    # /chrY folder does not exist.
-                files_in_fullpath = os.listdir(fullpath)
                 files_in_fullpath = \
                     [f for f in files_in_fullpath if f.endswith('.miso')]
                 if len(files_in_fullpath) == 0:
