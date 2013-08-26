@@ -33,7 +33,7 @@ def save_dic_as_pickle(dic, output_fullpath, protocol=-1):
         pickle.dump(dic, output, -1)
     return output_fullpath
 
-def split_psi_medians_into_two_lists(info_list, group_list):
+def split_info_to_two_groups(info_list, group_list):
     '''
     Given list of info (e.g. psi medians) and corresponding group list, 
     separate psi_medians into two separate lists. 
@@ -62,6 +62,8 @@ def split_psi_medians_into_two_lists(info_list, group_list):
     return group_1_list, group_2_list
     
 def t_test_psi_info(psi_info_dic, psi_median_str='psi_median', 
+                    counts_01_str='counts_01',
+                    counts_10_str='counts_10',
                     group_str='group'):
     '''
     Given psi info dic which is a dictionary that 
@@ -74,22 +76,42 @@ def t_test_psi_info(psi_info_dic, psi_median_str='psi_median',
     # Get lists from dic
     group_list = psi_info_dic[group_str]
     psi_median_list = psi_info_dic[psi_median_str]
+    counts_01_list = psi_info_dic[counts_01_str]
+    counts_10_list = psi_info_dic[counts_10_str]
     
-    # Separate the psi_median_list into two groups
-    psi_medians_group1, psi_medians_group2 = \
-        split_psi_medians_into_two_lists(psi_median_list, group_list)
-    
-    # T-test the two groups
-    if len(psi_medians_group1) > 1 and len(psi_medians_group2) > 1:
-        _, pval = stats.ttest_ind(psi_medians_group1, psi_medians_group2)
-    else:
-        pval = 'NA'
+    # Separate counts_01 and counts_10 into two groups.
+    counts_01_group1, counts_01_group2 = \
+        split_info_to_two_groups(counts_01_list, group_list)
+    counts_10_group1, counts_10_group2 = \
+        split_info_to_two_groups(counts_10_list, group_list)
         
-    # Try to convert to float, if not, string it.
-    try:
-        pval = float(pval)
-    except ValueError:
-        pval = str(pval)
+    # Check that there is at least one non-zero value within
+    # the two groups for counts_01 and counts_10
+    threshold_count = 0
+    for g1, g2 in zip([counts_01_group1, counts_10_group1],
+                      [counts_01_group2, counts_10_group2]):
+        if sum([int(i) for i in g1 + g2]) > 0:
+            threshold_count += 1
+    # Must pass both threshold counts, i.e., threshold_count == 2
+    # to be able to continue the t-test. 
+    
+    if threshold_count == 2:
+        # Separate the psi_median_list into two groups
+        psi_medians_group1, psi_medians_group2 = \
+            split_info_to_two_groups(psi_median_list, group_list)
+        
+        # T-test the two groups
+        if len(psi_medians_group1) > 1 and len(psi_medians_group2) > 1:
+            _, pval = stats.ttest_ind(psi_medians_group1, psi_medians_group2)
+        else:
+            pval = 'NA'
+        # Try to convert to float, if not, string it.
+        try:
+            pval = float(pval)
+        except ValueError:
+            pval = str(pval)
+    else:    # Counts insufficient to t-test
+        pval = 'NA'
         
     return pval
     
@@ -189,65 +211,65 @@ def get_info_from_miso(psi_median_str, log_score_str,
     min_total_counts >= 10 (sum of 10_counts and 01_counts)
     Threshold can be changed by changing min_total_counts
     '''
-    if os.path.exists(file_path):
-        with open(file_path, 'rb') as readfile:
-            reader = csv.reader(readfile, delimiter='\t')
+    with open(file_path, 'rb') as readfile:
+        reader = csv.reader(readfile, delimiter='\t')
+        '''
+        First row contains percent_accepted and counts info.
+        Second row is just column names (psi_value, log_score)
+        
+        So read first row as header, but skip second row.
+        
+        We will read the header then skip if the counts
+        for the events are unsatisfactory. 
+        '''
+        header = reader.next()
+        reader.next()
+        # Get counts
+        counts_00, counts_10, counts_01, counts_11, assigned_counts_0, \
+            assigned_counts_1 = read_counts_from_miso_header(header)
+        
+        # Counts must be above a certain threshold.
+        if int(counts_10) + int(counts_01) < 10:
             '''
-            First row contains percent_accepted and counts info.
-            Second row is just column names (psi_value, log_score)
-            
-            So read first row as header, but skip second row.
-            
-            We will read the header then skip if the counts
-            for the events are unsatisfactory. 
+            print int(counts_10)
+            print int(counts_01)
+            print(int(counts_10) + int(counts_01))
             '''
-            header = reader.next()
-            reader.next()
+            pass    # Do not add any info to psi_info_dic
+
+        else:
             # Get percent_accepted values
             psi_info_dic[percent_accepted_str].append\
                 (get_percent_accepted_from_header(header))
-            # Get counts
-            counts_00, counts_10, counts_01, counts_11, assigned_counts_0, \
-                assigned_counts_1 = read_counts_from_miso_header(header)
-            
-            # Counts must be above a certain threshold.
-            if int(counts_10) < 1 and int(counts_01) < 1 \
-                and int(counts_10) + int(counts_01) < 10:
-                pass    # Do not add any info to psi_info_dic
-            
+            # Record whether sample is in group1 or group2.
+            if samp in group_1_samplenames:
+                psi_info_dic[group_str].append('1')
+            elif samp in group_2_samplenames:
+                psi_info_dic[group_str].append('2')
             else:
-                # Record whether sample is in group1 or group2.
-                if samp in group_1_samplenames:
-                    psi_info_dic[group_str].append('1')
-                elif samp in group_2_samplenames:
-                    psi_info_dic[group_str].append('2')
-                else:
-                    print('Could not place %s in either group 1 or group 2.' %samp)
-                # Put counts into dic
-                for key, var in zip([counts_00_str, counts_10_str, 
-                                       counts_01_str, counts_11_str, 
-                                       assigned_counts_0_str, 
-                                       assigned_counts_1_str], 
-                                      [counts_00, counts_10, counts_01, counts_11, 
-                                       assigned_counts_0, assigned_counts_1]):
-                    psi_info_dic[key].append(var)
-                
-                psi_value_list = []
-                log_score_list = []
-                for row in reader:
-                    # First column (row[0]) is psi value,
-                    # Second column (row[1]) is log_score.
-                    # Psi value is comma separated, split it when take
-                    # the first value, which is the first isoform (inclusion ratio)
-                    psi_value_list.append(float(row[0].split(',')[0]))
-                    log_score_list.append(float(row[1]))
-                # keynames[0] should be psi_median_str from t_test_as_events()
-                psi_info_dic[psi_median_str].append(np.median(psi_value_list))
-                psi_info_dic[log_score_str].append(np.median(log_score_list))
-                psi_info_dic[sample_name_str].append(samp)
-    else:    # File doesn't exist
-        # print('%s does not exist for sample %s' %(file_path, samp))
-        pass
+                print('Could not place %s in either group 1 or group 2.' %samp)
+            # Put counts into dic
+            for key, var in zip([counts_00_str, counts_10_str, 
+                                   counts_01_str, counts_11_str, 
+                                   assigned_counts_0_str, 
+                                   assigned_counts_1_str], 
+                                  [counts_00, counts_10, counts_01, counts_11, 
+                                   assigned_counts_0, assigned_counts_1]):
+                psi_info_dic[key].append(var)
+            
+            psi_value_list = []
+            log_score_list = []
+            for row in reader:
+                # First column (row[0]) is psi value,
+                # Second column (row[1]) is log_score.
+                # Psi value is comma separated, split it when take
+                # the first value, which is the first isoform (inclusion ratio)
+                psi_value_list.append(float(row[0].split(',')[0]))
+                log_score_list.append(float(row[1]))
+            # keynames[0] should be psi_median_str from t_test_as_events()
+            psi_info_dic[psi_median_str].append(np.median(psi_value_list))
+            psi_info_dic[log_score_str].append(np.median(log_score_list))
+            psi_info_dic[sample_name_str].append(samp)
     return psi_info_dic
 
 def get_psi_dic_keynames(full_keynames=False):
@@ -304,23 +326,27 @@ def get_psi_dic_across_samples(fname, group_1_samplenames,
     # Initialize keynames with empty list.
     for k in keynames:
         psi_info_dic[k] = []
+    
     for samp in group_1_samplenames + group_2_samplenames:
         file_dir = os.path.join(main_dir, samp, chromo, fname)
-        # Get psi info from file
-        psi_info_dic = get_info_from_miso(psi_median_str, log_score_str,
-                                          sample_name_str, 
-                                          counts_00_str, counts_10_str, 
-                                          counts_01_str, counts_11_str, 
-                                          assigned_counts_0_str, 
-                                          assigned_counts_1_str, 
-                                          percent_accepted_str,
-                                          group_str,
-                                          psi_info_dic, 
-                                          samp, 
-                                          group_1_samplenames,
-                                          group_2_samplenames,
-                                          file_dir,
-                                          min_total_counts=10)
+        if os.path.exists(file_dir):
+            # Get psi info from file
+            psi_info_dic = get_info_from_miso(psi_median_str, log_score_str,
+                                              sample_name_str, 
+                                              counts_00_str, counts_10_str, 
+                                              counts_01_str, counts_11_str, 
+                                              assigned_counts_0_str, 
+                                              assigned_counts_1_str, 
+                                              percent_accepted_str,
+                                              group_str,
+                                              psi_info_dic, 
+                                              samp, 
+                                              group_1_samplenames,
+                                              group_2_samplenames,
+                                              file_dir,
+                                              min_total_counts=10)
+        else:
+            pass
     return psi_info_dic, keynames
     
 def get_all_fnames(sample_dir_list, main_dir, chromo):
