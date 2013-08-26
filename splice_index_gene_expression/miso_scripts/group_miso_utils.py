@@ -360,7 +360,10 @@ def check_if_empty_dir(path, directory_list, suffix_dir_list):
             filter_count += 1
         else:    # Dont go into loop unless there are actually folders
             for suf_dir in suffix_dir_list:
-                fullpath = os.path.join(path, samp_dir, suf_dir)
+                try:
+                    fullpath = os.path.join(path, samp_dir, suf_dir)
+                except OSError:
+                    break    # /chrY folder does not exist.
                 files_in_fullpath = os.listdir(fullpath)
                 files_in_fullpath = \
                     [f for f in files_in_fullpath if f.endswith('.miso')]
