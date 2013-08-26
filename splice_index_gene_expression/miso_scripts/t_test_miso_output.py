@@ -129,7 +129,7 @@ def t_test_and_pickle(fnames_dic, chromo, output_dir, group_1_samples, group_2_s
         fnames_dic[chromo] = fnames_pickled_list
     else:
         print('Warning, overwriting fnames_list in %s' %chromo)
-    print('T-tested all events in %s' %chromo)
+    print('T-tested %s events in %s' %(count, chromo))
     queue_obj.put(fnames_dic)    # For multithreading
     
 def main():
