@@ -27,7 +27,7 @@ from group_miso_utils import get_sample_names_from_file, create_chromo_list, \
     get_all_fnames, check_if_empty_dir, get_psi_dic_across_samples, \
     t_test_psi_info, save_dic_as_pickle, make_dir, read_pickle, get_psi_dic_keynames
 
-def read_pickle_write_to_file(summary_fullpath, chr_list, fnames_dic, output_dir):
+def read_pickle_write_to_file(summary_fullpath, chr_list, fnames_dic, output_dir, filter_events=False):
     '''
     Open a summary textfile, then individually open a pickle and write the 
     contents to file. 
@@ -55,6 +55,10 @@ def read_pickle_write_to_file(summary_fullpath, chr_list, fnames_dic, output_dir
             pickle_fullpath_list = fnames_dic[chromo]
             for pickle_path in pickle_fullpath_list:
                 psi_info_dic = read_pickle(pickle_path)
+                if filter_events==True:
+                    '''
+                    Filter events!
+                    '''
                 row = []
                 for key in header:
                     '''
@@ -102,6 +106,8 @@ def t_test_and_pickle(fnames_dic, chromo, output_dir, group_1_samples, group_2_s
     group_1_fnames_list = get_all_fnames(group_1_samples, main_dir, chromo)
     group_2_fnames_list = get_all_fnames(group_2_samples, main_dir, chromo)
     master_fnames_list = group_1_fnames_list + group_2_fnames_list
+    # Remove repeats
+    master_fnames_list = list(set(master_fnames_list))
     # master_fnames_size = len(master_fnames_list)
     # Do t-test between the two groups. 
     fnames_pickled_list = []
@@ -145,9 +151,10 @@ def main():
     group_2_samplenames_file = sys.argv[2]
     main_dir = sys.argv[3]    # Where miso outputs results
     output_dir = sys.argv[4]
+    output_fname = sys.argv[5]
     
     # Define constants
-    summary_fullpath = os.path.join(output_dir, 'summary_of_t_tests.txt')
+    summary_fullpath = os.path.join(output_dir, output_fname)
     
     # Get sample names from textfile.
     group_1_samples = get_sample_names_from_file(group_1_samplenames_file)
