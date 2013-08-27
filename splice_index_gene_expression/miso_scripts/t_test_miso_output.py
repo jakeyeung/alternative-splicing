@@ -50,15 +50,17 @@ def read_pickle_write_to_file(summary_fullpath, chr_list, fnames_dic, filter_eve
                          assigned_counts_1_str, psi_median_str, percent_accepted_str, 
                          log_score_str]
         writer.writerow(header)
-        
         for chromo in chr_list:
             pickle_fullpath_list = fnames_dic[chromo]
             for pickle_path in pickle_fullpath_list:
                 psi_info_dic = read_pickle(pickle_path)
                 if filter_events==True:
                     '''
-                    Filter events!
+                    Filter events. If pval == 'NA', then
+                    skip the pickle file and go to the next one.
                     '''
+                    if 'NA' in psi_info_dic[pval_str]:
+                        continue
                 row = []
                 for key in header:
                     '''
