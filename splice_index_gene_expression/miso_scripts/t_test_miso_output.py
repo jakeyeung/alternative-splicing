@@ -202,7 +202,8 @@ def main():
     # Read pickle file to get fnames_dic
     fnames_dic = read_pickle(pickle_path)
     # Read and write to file. 
-    read_pickle_write_to_file(summary_fullpath, chr_list, fnames_dic)
+    read_pickle_write_to_file(summary_fullpath, chr_list, fnames_dic, 
+                              filter_events=True)
     
     print('Summary file saved in: %s' %summary_fullpath)
         
