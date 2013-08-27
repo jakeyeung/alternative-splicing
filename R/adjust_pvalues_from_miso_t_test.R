@@ -21,6 +21,6 @@ output_df <- cbind(event=miso_summary$event, bh_adj_pval=pvals.adjusted,
 # Save df to a new filename, add .bh_adj.txt to filename.
 filename.new <- strsplit(filename, ".txt")
 filename.new <- paste0(filename.new, ".bh_adj.txt")
-write.table(output_df, file=filename.new, sep='\t')
+write.table(output_df, file=filename.new, sep='\t', row.names=FALSE)
 print(paste('Adjusted', length(pvals.adjusted), 'p-values.'))
 print(paste('BH-adjusted file saved to', filename.new))
