@@ -27,7 +27,7 @@ from group_miso_utils import get_sample_names_from_file, create_chromo_list, \
     get_all_fnames, check_if_empty_dir, get_psi_dic_across_samples, \
     t_test_psi_info, save_dic_as_pickle, make_dir, read_pickle, get_psi_dic_keynames
 
-def read_pickle_write_to_file(summary_fullpath, chr_list, fnames_dic, output_dir, filter_events=False):
+def read_pickle_write_to_file(summary_fullpath, chr_list, fnames_dic, filter_events=False):
     '''
     Open a summary textfile, then individually open a pickle and write the 
     contents to file. 
@@ -200,7 +200,7 @@ def main():
     # Read pickle file to get fnames_dic
     fnames_dic = read_pickle(pickle_path)
     # Read and write to file. 
-    read_pickle_write_to_file(summary_fullpath, chr_list, fnames_dic, output_dir)
+    read_pickle_write_to_file(summary_fullpath, chr_list, fnames_dic)
     
     print('Summary file saved in: %s' %summary_fullpath)
         
