@@ -72,6 +72,11 @@ def t_test_psi_info(psi_info_dic, psi_median_str='psi_median',
     
     Strings psi_median and group are used as keys to access
     information in dictionary.
+    
+    Befoer t-testing, this code checks to make sure that both
+    counts_01 and counts_10 has at least one non-zero value. 
+    
+    #TODO: Refactor code so checking if non-zero value is a function.
     '''
     # Get lists from dic
     group_list = psi_info_dic[group_str]
