@@ -71,7 +71,7 @@ output_df.filtered <- filter_events(output_df, bh_pval_cutoff, delta_psi_cutoff)
 
 # Save df to a new filename, add .bh_adj.txt to filename.
 filename.new <- strsplit(filename, ".txt")
-filename.new <- paste0(filename.new, ".bh_adj.txt")
+filename.new <- paste0(filename.new, ".bh_adj_delta_psi.filtered.txt")
 write.table(output_df.filtered, file=filename.new, sep='\t', row.names=FALSE)
 print(paste('Adjusted', length(pvals.adjusted), 'p-values.'))
 print(paste('BH-adjusted file saved to', filename.new))
