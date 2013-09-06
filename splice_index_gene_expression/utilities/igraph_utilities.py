@@ -26,9 +26,22 @@ class igraph_object(object):
         vertex_degree_dict = {}
         for vertexname, degree in zip(self.g.vs['name'], self.g.degree()):
             vertex_degree_dict[vertexname] = degree
-        
         return vertex_degree_dict
-        
+    
+    def get_neighbors(self, name, include_self=True):
+        '''
+        Get names of gene neighbors given a name.
+        include_self returns itself as a gene neighbor as well.
+        '''
+        neighbor_indices = self.g.neighborhood(name)
+        neighbor_genes = []
+        for i in neighbor_indices:
+            neighbor_genes.append(self.g.vs[i]['name'])
+        if include_self == False:
+            # Remove itself as neighbor_genes
+            self_index = neighbor_genes.index(name)
+            neighbor_genes.pop(self_index)
+        return neighbor_genes
 
 def pair_vertex_with_degree(network, sortlist=True):
     '''
