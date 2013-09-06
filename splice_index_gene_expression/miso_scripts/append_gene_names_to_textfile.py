@@ -13,6 +13,20 @@ import sys
 import re
 
 
+class write_obj(object):
+    '''
+    For reading and writing gene information.
+    '''
+    def __init__(self, output_path):
+        '''
+        Constructor
+        '''
+        self.writefile = open(output_path, 'wb')
+        self.writeobj = csv.writer(self.writefile, delimiter='\t')
+    
+    def close(self):
+        self.writefile.close()
+
 def create_csv_obj(opened_file, skip_header=True):
     '''
     Take opened_file like file = open(path, 'rb') and
@@ -21,7 +35,10 @@ def create_csv_obj(opened_file, skip_header=True):
     reader = csv.reader(opened_file, delimiter='\t')
     if skip_header == True:
         reader.next()
-    return reader
+        myheader = None
+    else:
+        myheader = reader.next()
+    return reader, myheader
 
 def create_regexp_from_searchstr(searchstr):
     '''
@@ -105,20 +122,29 @@ def contains_mystring(annot_row, col_index, mystring):
     '''
     return(annot_row[col_index] == mystring)
     
-def get_event_gsymbol_from_row(row, ID_str, gsymbol_str, annot_dic):
+def get_event_gsymbol_from_row_str(row, ID_str, gsymbol_str, annot_dic):
     '''
     Grabs event and genesymbol then writes to annot_dic.
+    '''
+    event = get_info_from_annot_row(row, ID_str)
+    genesymbol = get_info_from_annot_row(row, gsymbol_str)
+    annot_dic = update_dic_with_info(annot_dic, event, genesymbol)
+    return annot_dic
+
+def get_event_gsymbol_from_row_index(row, ID_index, gsymbol_index, annot_dic):
+    '''
+    Grabs event and genesymbol then writes to annot_dic using index.
     '''
     '''
     first index should return something like
     ID=chr2:9624561:9624679:+@chr2:9627585:9627676:+@chr2:9628276:9628591:+
     '''
-    event = get_info_from_annot_row(row, list_index=0)
+    event = get_info_from_annot_row(row, list_index=ID_index)
     '''
     list_index = -1 should return something like:
     gsymbol=IAH1
     '''
-    genesymbol = get_info_from_annot_row(row, list_index=-1)
+    genesymbol = get_info_from_annot_row(row, list_index=gsymbol_index)
     annot_dic = update_dic_with_info(annot_dic, event, genesymbol)
     return annot_dic
 
@@ -134,17 +160,16 @@ def get_dic_from_miso_reader(csv_readobj, only_gene=True):
     '''
     # Define constants and empty dics
     genestring_col_index = 2
+    gsymbol_index = -1
+    ID_index = 1
     gene_str = 'gene'
-    ID_str = 'ID'
-    gsymbol_str = 'gsymbol'
     annot_dic = {}
     rowcount = 0
     genecount = 0
     
     for annot_row in csv_readobj:
         if contains_mystring(annot_row, genestring_col_index, gene_str):
-            annot_dic = get_event_gsymbol_from_row(annot_row, ID_str, 
-                                                   gsymbol_str, annot_dic)
+            annot_dic = get_event_gsymbol_from_row_index(annot_row, ID_index, gsymbol_index, annot_dic)
             genecount += 1
         else:    # not 'gene', then probably doesnt contain gsymbol.
             pass
@@ -159,9 +184,68 @@ def index_miso_annots(annot_filepath):
     then runs functions to get annot_dic.
     '''
     with open(annot_filepath, 'rb') as myfile:
-        myreader = create_csv_obj(myfile, skip_header=True)
+        myreader, _ = create_csv_obj(myfile, skip_header=True)
         annot_dic = get_dic_from_miso_reader(myreader)
     return annot_dic
+
+def get_header(csv_read_obj):
+    '''
+    From csv_read_obj, read first row and store it as a header.
+    '''
+    return(csv_read_obj.next())
+
+def match_event_to_gsymbol(event, annot_dic):
+    '''
+    Match an event to the gene symbol of annot_dic (key).
+    '''
+    try:
+        gsymbol = annot_dic[event]
+    except KeyError:
+        gsymbol = None
+    return gsymbol
+
+def get_event_from_header(row, header):
+    '''
+    From row and given header, try to get event.
+    It may either be 'event' or 'event_name'.
+    No other possibilities!
+    '''
+    # define constants
+    event_str = 'event'    # A column name in input_header
+    event_str2 = 'event_name'    # Second try for event_name
+    
+    try:
+        event = row[header.index(event_str)]
+    except ValueError:
+        event = row[header.index(event_str2)]
+    return event
+
+def iterate_rows_and_write_gsymbol(reader, header, annot_dic, writer_obj):
+    '''
+    Iterate rows in input_reader (a csv_read_obj) and try to
+    find its corresponding gene name from dictionary.
+    
+    Searches for event_str in input_header, then uses that 
+    as index for its iterations to extract an event from row.
+    
+    Writes new row to writefile.
+    '''
+    # Define constants
+    original_header = header    # To preserve original index positions.
+    header.insert(1, 'gsymbol')
+    
+    # Write inserted header to file.
+    writer_obj.writerow(header)
+    
+    write_count = 0
+    # Write header
+    for row in reader:
+        event = get_event_from_header(row, original_header)
+        gsymbol = match_event_to_gsymbol(event, annot_dic)
+        row.insert(1, gsymbol)
+        writer_obj.writerow(row)
+        write_count += 1
+    return write_count
 
 def main(input_filepath, annot_filepath, output_filepath):
     '''
@@ -170,7 +254,20 @@ def main(input_filepath, annot_filepath, output_filepath):
     and append gene symbol for every event, output to new file
     called output_filepath.
     '''
-    miso_dic = index_miso_annots(annot_filepath)
+    annot_dic = index_miso_annots(annot_filepath)
+    
+    # Initialize my writefile
+    writer_obj = write_obj(output_filepath)
+    
+    with open(input_filepath, 'rb') as inputfile:
+        input_reader, input_header = create_csv_obj(inputfile, 
+                                                    skip_header=False)
+        write_count = iterate_rows_and_write_gsymbol(input_reader, 
+                                                     input_header, 
+                                                     annot_dic, 
+                                                     writer_obj.writeobj)
+    print('%s rows written to file: %s' %(write_count, output_filepath))
+    writer_obj.close()
     
 if __name__ == '__main__':
     if len(sys.argv) < 3:
