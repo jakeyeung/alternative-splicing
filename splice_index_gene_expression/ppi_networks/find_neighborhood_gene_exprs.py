@@ -94,18 +94,6 @@ def calc_abs_exprs_diff(gene, gene_exprs_dic):
         abs_diff = None
     return abs_diff
 
-def calc_abs_exprs_foldchange(gene, gene_exprs_dic):
-    '''
-    Given gene, get absolute fold change difference between the two groups.
-    '''
-    try:
-        abs_fc = abs(gene_exprs_dic[gene][1] / gene_exprs_dic[gene][0])
-    except KeyError:
-        abs_fc = None
-    except ZeroDivisionError:
-        abs_fc = None
-    return abs_fc
-    
 def main():
     if len(sys.argv) < 3:
         print('Candidate gene file, gene exprs file and PPI network must be' \
@@ -174,7 +162,7 @@ def main():
         
         for gene in gene_list:
             # Get fold change of gene of interest
-            as_fold_change = calc_abs_exprs_foldchange(gene, gene_exprs_dic)
+            as_fold_change = calc_abs_exprs_diff(gene, gene_exprs_dic)
             
             # Get its neighbors and its node degree.
             neighbor_genes = graph.get_neighbors(gene, include_self=False)
@@ -183,8 +171,8 @@ def main():
             abs_exprs_diff_list = []
             neighbor_count = 0    # init counter
             for neighbor_g in neighbor_genes:
-                abs_exprs_diff = calc_abs_exprs_foldchange(neighbor_g, 
-                                                           gene_exprs_dic)
+                abs_exprs_diff = calc_abs_exprs_diff(neighbor_g, 
+                                                gene_exprs_dic)
                 if abs_exprs_diff != None:
                     '''
                     If None, it means gene exprs could not be found for
