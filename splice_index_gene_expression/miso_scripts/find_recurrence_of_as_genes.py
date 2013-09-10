@@ -16,6 +16,8 @@ switch-AS-events:
 
 import sys
 import csv
+import re
+
 
 class events_read_obj(object):
     '''
@@ -226,7 +228,27 @@ def write_header_to_file(header, write_obj):
     Get a list of strings called header, write it as first line to write_obj.
     '''
     write_obj.writerow(['event'] + header)
-
+    
+def above_counts_threshold(counts, threshold=3):
+    '''
+    Is counts (0,1) or (1,0) above a certain threshold?
+    '''
+    try:
+        counts01 = int(re.search('(?<=\(0,1\)\:)\w+', counts).group(0))
+    except AttributeError:
+        counts01 = 0
+    try:
+        counts10 = int(re.search('(?<=\(1,0\)\:)\w+', counts).group(0))
+    except AttributeError:
+        counts10 = 0
+    count_total = counts01 + counts10
+    if count_total < threshold:
+        above_counts = False
+    else:
+        above_counts = True
+    
+    return above_counts
+    
 def write_embedded_dic_to_file(index_dic, header, write_obj):
     '''
     Take embedded key with each key as row, each subkey as column.
@@ -234,15 +256,21 @@ def write_embedded_dic_to_file(index_dic, header, write_obj):
     writecount = 0
     miss_count = 0
     for key, subdic in index_dic.iteritems():
-        wrow = []
-        wrow.append(key)    # Make event the first element in list.
-        for h in header:
-            try:
-                wrow.append(subdic[h])
-            except KeyError:
-                miss_count += 1
-        write_obj.writerow(wrow)
-        writecount += 1
+        try:
+            counts = subdic['sample_counts']
+            no_samp = False
+        except KeyError:
+            no_samp = True
+        if above_counts_threshold(counts, threshold=3) or no_samp==True:
+            wrow = []
+            wrow.append(key)    # Make event the first element in list.
+            for h in header:
+                try:
+                    wrow.append(subdic[h])
+                except KeyError:
+                    miss_count += 1
+            write_obj.writerow(wrow)
+            writecount += 1
     print('%s events missed for some reason...' %miss_count)
     return writecount
 
@@ -262,11 +290,14 @@ def write_sample_info_and_dic_to_file(index_dic, sample_info, write_path):
         # Write embedded dic tofile.
         write_count = write_embedded_dic_to_file(index_dic, out_header, jwriter)
     print('%s rows written to %s.' %(write_count, write_path))
+    return index_dic
                     
 def main(as_events_path, miso_summary_path, write_path):
     as_events_dic = index_high_conf_as_events(as_events_path)
     tup_list = get_sample_info(miso_summary_path)
-    write_sample_info_and_dic_to_file(as_events_dic, tup_list, write_path)
+    appended_dic = write_sample_info_and_dic_to_file(as_events_dic, 
+                                                     tup_list, 
+                                                     write_path)
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
