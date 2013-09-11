@@ -234,7 +234,7 @@ def get_info_from_miso(psi_median_str, log_score_str,
             assigned_counts_1 = read_counts_from_miso_header(header)
         
         # Counts must be above a certain threshold.
-        if int(counts_10) + int(counts_01) < 10:
+        if int(counts_10) + int(counts_01) < min_total_counts:
             '''
             print int(counts_10)
             print int(counts_01)
@@ -313,7 +313,7 @@ def get_psi_dic_keynames(full_keynames=False):
     
 def get_psi_dic_across_samples(fname, group_1_samplenames, 
                                 group_2_samplenames, main_dir, chromo, 
-                                output_dir):
+                                output_dir, min_counts):
     '''
     Look at each as event across all samples between the two groups, then
     do a t-test to see if they are indeed different.
@@ -349,9 +349,13 @@ def get_psi_dic_across_samples(fname, group_1_samplenames,
                                               group_1_samplenames,
                                               group_2_samplenames,
                                               file_dir,
-                                              min_total_counts=10)
+                                              min_total_counts=min_counts)
         else:
-            pass
+            # DEBUG
+            if "chr11:35211382:35211612:+@chr11:35219695:35219793:+@chr11:35236399:35236461:+.miso" == fname:
+                print file_dir
+                print('CD44!')
+                raw_input()
     return psi_info_dic, keynames
     
 def get_all_fnames(sample_dir_list, main_dir, chromo):
@@ -371,6 +375,7 @@ def get_all_fnames(sample_dir_list, main_dir, chromo):
         try:
             fnames_list = os.listdir(file_dir)
         except OSError:
+            print('OSError, couldnt do listdir on %s' %file_dir)
             break
         # Add files with ending .miso in list to master list.
         master_fnames_list += [f for f in fnames_list if f.endswith('.miso')]

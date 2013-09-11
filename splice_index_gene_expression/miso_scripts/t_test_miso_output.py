@@ -82,7 +82,7 @@ def read_pickle_write_to_file(summary_fullpath, chr_list, fnames_dic, filter_eve
                 
         
 def t_test_and_pickle(fnames_dic, chromo, output_dir, group_1_samples, group_2_samples, 
-                      main_dir, queue_obj):
+                      main_dir, queue_obj, min_counts):
     '''
     Combines several modules together into one so that the process
     can be easily multithreaded. 
@@ -93,6 +93,7 @@ def t_test_and_pickle(fnames_dic, chromo, output_dir, group_1_samples, group_2_s
     pval_str = 'pval'
     event_str = 'event'
     # Define output dic
+    # DEBUG
     fnames_dic = {}
     
     # Create directory to store pickled dictionary.
@@ -108,12 +109,14 @@ def t_test_and_pickle(fnames_dic, chromo, output_dir, group_1_samples, group_2_s
     group_1_fnames_list = get_all_fnames(group_1_samples, main_dir, chromo)
     group_2_fnames_list = get_all_fnames(group_2_samples, main_dir, chromo)
     master_fnames_list = group_1_fnames_list + group_2_fnames_list
+    
     # Remove repeats
     master_fnames_list = list(set(master_fnames_list))
     # master_fnames_size = len(master_fnames_list)
     # Do t-test between the two groups. 
     fnames_pickled_list = []
     count = 0
+    
     for fname in master_fnames_list:
         count += 1
         # Get dictionary containing psi information for all samples.
@@ -121,11 +124,8 @@ def t_test_and_pickle(fnames_dic, chromo, output_dir, group_1_samples, group_2_s
                                                      group_1_samples, 
                                                      group_2_samples, 
                                                      main_dir, chromo, 
-                                                     output_dir)
-        if fname == "chr11:35211382:35211612:+@chr11:35219695:35219793:+@chr11:35236399:35236461:+":
-            print(repr(fname))
-            print psi_info_dic
-            # raw_input()
+                                                     output_dir,
+                                                     min_counts)
         # Add pval and event to dic
         psi_info_dic[pval_str] = [t_test_psi_info(psi_info_dic)]
         # Remove .miso from fname to get event name. 
@@ -158,6 +158,7 @@ def main():
     main_dir = sys.argv[3]    # Where miso outputs results
     output_dir = sys.argv[4]
     output_fname = sys.argv[5]
+    min_counts = sys.argv[6]
     
     # Define constants
     summary_fullpath = os.path.join(output_dir, output_fname)
@@ -190,7 +191,7 @@ def main():
         p = Process(target=t_test_and_pickle,
                     args=(fnames_dic, chromo, output_dir, 
                           group_1_samples, group_2_samples, 
-                          main_dir, q))
+                          main_dir, q, min_counts))
         process_list.append(p)
         p.start()
     for chromo in chr_list:
