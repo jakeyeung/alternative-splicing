@@ -122,6 +122,10 @@ def t_test_and_pickle(fnames_dic, chromo, output_dir, group_1_samples, group_2_s
                                                      group_2_samples, 
                                                      main_dir, chromo, 
                                                      output_dir)
+        if fname == "chr11:35211382:35211612:+@chr11:35219695:35219793:+@chr11:35236399:35236461:+":
+            print(repr(fname))
+            print psi_info_dic
+            # raw_input()
         # Add pval and event to dic
         psi_info_dic[pval_str] = [t_test_psi_info(psi_info_dic)]
         # Remove .miso from fname to get event name. 
@@ -164,6 +168,7 @@ def main():
     
     # Create list of chromosomes.
     chr_list = create_chromo_list(prefix='chr')
+    # chr_list = ['chr11']
     
     # Subset list for only those that contain miso outputs.
     group_1_samples = check_if_empty_dir(main_dir, group_1_samples, chr_list)
@@ -171,6 +176,11 @@ def main():
     
     # Init fnames dic
     fnames_dic = {}
+    '''
+    q = Queue()
+    for chromo in chr_list:
+        t_test_and_pickle(fnames_dic, chromo, output_dir, group_1_samples, group_2_samples, main_dir, q)
+    '''
     
     # Run on multiple threads.
     q = Queue()
@@ -193,7 +203,8 @@ def main():
     print('Completed %s jobs.' %len(chr_list))
     
     # Write fnames_dic as pickle file.
-    fnames_savepath = os.path.join(output_dir, 'filenames_dic.pickle')
+    pickle_filename = ''.join([output_fname, '_filenames_dic.pickle'])
+    fnames_savepath = os.path.join(output_dir, pickle_filename)
     print('Saving filenames_dic.pickle to %s' %fnames_savepath)
     pickle_path = save_dic_as_pickle(fnames_dic, fnames_savepath)
     
