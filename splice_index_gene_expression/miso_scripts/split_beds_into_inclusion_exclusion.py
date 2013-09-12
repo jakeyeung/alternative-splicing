@@ -186,7 +186,7 @@ def get_psi_diff_from_psi_list(group_list, psi_medians_list):
     psi_diff = mean_g2 - mean_g1
     return psi_diff
 
-def decide_inclusion_or_exclusion_t_test(bed_row, summary_row):
+def decide_inclusion_or_exclusion_t_test(bed_row, summary_row, header):
     '''
     Input: summary_row, a row from either miso_bf or miso_t_test textfile.
         bed_row, a row from bedfile, to check if it is same event. 
@@ -195,9 +195,15 @@ def decide_inclusion_or_exclusion_t_test(bed_row, summary_row):
     '''
     output_str = ''    # init
     # Define colname strings
-    psi_median_index = 11
-    summary_event_index = 0
-    group_index = 4
+    psi_median_str = 'psi_median'
+    psi_median_index = header.index(psi_median_str)
+    event_str = 'event'
+    summary_event_index = header.index(event_str)
+    group_str = 'group'
+    group_index = header.index(group_str)
+    # psi_median_index = 11
+    # summary_event_index = 0
+    # group_index = 4
     bed_event_index = 3    # Fourth column.
     
     # Get events for miso and bed
@@ -247,7 +253,7 @@ def split_bed_by_inclusion_exclusion(bed_path, misobf_path,
     with rw_obj:
         # Get headers for bed and misobf
         bed_header = rw_obj.bedfile.readline()
-        rw_obj.misobf_reader.next()    # We wont use its header.
+        header = rw_obj.misobf_reader.next()    # Use header to get index.
         
         # Write bed header to first line of both output files.
         for append_str, writef in zip([inclusion_str, exclusion_str],
@@ -278,10 +284,12 @@ def split_bed_by_inclusion_exclusion(bed_path, misobf_path,
             '''
             if hyp_test_type=='bf':
                 incl_or_excl_str = \
-                    decide_inclusion_or_exclusion_misobf(bed_row, miso_row)
+                    decide_inclusion_or_exclusion_misobf(bed_row, miso_row, 
+                                                         header)
             elif hyp_test_type=='ttest':
                 incl_or_excl_str = \
-                    decide_inclusion_or_exclusion_t_test(bed_row, miso_row)
+                    decide_inclusion_or_exclusion_t_test(bed_row, miso_row, 
+                                                         header)
             # Decide whether to write to inclusion (writer1) or
             # exclusion (writer2).
             if incl_or_excl_str == 'inclusion':
