@@ -5,6 +5,9 @@
 # and gene expression ranges. Perhaps look into ways to modify or
 # transform the gene expression to have same dynamic range as SI.
 
+library(ggplot2)
+theme_set(theme_gray(base_size = 20))    # for ggplot2 base size
+
 # SetDirectories ----------------------------------------------------------
 
 
@@ -27,21 +30,21 @@ filename1 <- 'si_and_gene_expression_data_long_probes.txt'
 filename2 <- 'si_and_gene_expression_data_long.txt'
 
 # Output filnames
-violin_si_fname <- 'violinplot_si_gene.pdf'
-density_si_fname <- 'densityplot_si_gene.pdf'
-qqplot_si_fname <- 'qqplot_si_gene.pdf'
+violin_si_fname <- 'violinplot_si_gene2.pdf'
+density_si_fname <- 'densityplot_si_gene2.pdf'
+qqplot_si_fname <- 'qqplot_si_gene2.pdf'
 
-violin_probe_gene_fname <- 'violinplot_probe.pdf'
-density_probe_gene_fname <- 'densityplot_probe.pdf'
-qqplot_probe_fname <- 'qqplot_probe_gene.pdf'
+violin_probe_gene_fname <- 'violinplot_probe2.pdf'
+density_probe_gene_fname <- 'densityplot_probe2.pdf'
+qqplot_probe_fname <- 'qqplot_probe_gene2.pdf'
 
-violin_scaled_si_fname <- 'violinplot_scaled_si_gene.pdf'
-density_scaled_si_fname <- 'densityplot_scaled_si_gene.pdf'
-qqplot_scaled_si_fname <- 'qqplot_scaled_si_gene.pdf'
+violin_scaled_si_fname <- 'violinplot_scaled_si_gene2.pdf'
+density_scaled_si_fname <- 'densityplot_scaled_si_gene2.pdf'
+qqplot_scaled_si_fname <- 'qqplot_scaled_si_gene2.pdf'
 
-violin_scaled_probe_fname <- 'violinplot_scaled_probe.pdf'
-density_scaled_probe_fname <- 'densityplot_scaled_probe_gene.pdf'
-qqplot_scaled_probe_fname <- 'qqplot_scaled_probe_gene.pdf'
+violin_scaled_probe_fname <- 'violinplot_scaled_probe2.pdf'
+density_scaled_probe_fname <- 'densityplot_scaled_probe_gene2.pdf'
+qqplot_scaled_probe_fname <- 'qqplot_scaled_probe_gene2.pdf'
 
 
 # RunFunction -------------------------------------------------------------

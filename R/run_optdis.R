@@ -2,6 +2,7 @@
 # May 31 2013
 # run_optdis.R
 # Run OptDis with command arguments. 
+# Original code adopted (copied) from Raunak.
 
 # CommandArgs -------------------------------------------------------------
 
