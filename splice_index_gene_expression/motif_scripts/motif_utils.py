@@ -114,6 +114,16 @@ def write_pwm_obj_to_file(pwm_obj, output_file):
     print('%s rows written to file: %s' %(writecount, output_file))
     outfile.close()
     return writecount
-        
-        
-        
+
+def create_pwm_filename(motif_file_name):
+    '''
+    Take motif file name and append .pwm before the end.
+    myfile.txt -> myfile.pwm.txt
+    '''
+    pwm_str = 'pwm'
+    # Split
+    motif_file_split = motif_file_name.split('.')
+    # Insert
+    motif_file_split.insert(-1, pwm_str)
+    # Rejoin
+    return '.'.join(motif_file_split[0:-1])        

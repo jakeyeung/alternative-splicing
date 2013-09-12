@@ -9,10 +9,13 @@ PWM format, so it is insertable into CISBP-RNA database.
 
 
 import sys
-from motif_utils import motif_obj, convert_meme_to_pwm, write_pwm_obj_to_file, convert_chipmunk_to_pwm, convert_weeder_to_pwm
+from motif_utils import motif_obj, convert_meme_to_pwm, \
+    write_pwm_obj_to_file, convert_chipmunk_to_pwm, \
+    convert_weeder_to_pwm, create_pwm_filename
 
 
-def main(motif_file, pwm_file):
+def main(motif_file):
+    pwm_file = create_pwm_filename(motif_file)
     motif = motif_obj(motif_file)
     tool_used = motif.guess_motif_tool()
     if tool_used == 'Meme':
@@ -32,5 +35,4 @@ if __name__ == '__main__':
               'specified in command line.')
         sys.exit()
     motif_file = sys.argv[1]
-    pwm_file = sys.argv[2]
-    main(motif_file, pwm_file)
+    main(motif_file)
