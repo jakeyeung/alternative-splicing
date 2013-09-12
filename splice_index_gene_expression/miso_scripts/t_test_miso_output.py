@@ -158,7 +158,11 @@ def main():
     main_dir = sys.argv[3]    # Where miso outputs results
     output_dir = sys.argv[4]
     output_fname = sys.argv[5]
-    min_counts = sys.argv[6]
+    try:
+        min_counts = int(sys.argv[6])
+    except ValueError:
+        print('Min counts must be an integer.')
+        sys.exit()
     
     # Define constants
     summary_fullpath = os.path.join(output_dir, output_fname)
@@ -177,11 +181,6 @@ def main():
     
     # Init fnames dic
     fnames_dic = {}
-    '''
-    q = Queue()
-    for chromo in chr_list:
-        t_test_and_pickle(fnames_dic, chromo, output_dir, group_1_samples, group_2_samples, main_dir, q)
-    '''
     
     # Run on multiple threads.
     q = Queue()

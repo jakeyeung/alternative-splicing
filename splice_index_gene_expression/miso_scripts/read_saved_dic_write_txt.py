@@ -47,7 +47,7 @@ def main():
     
     # Read and write to file. 
     read_pickle_write_to_file(writefile_path, chr_list, fnames_dic, 
-                              filter_events=True)
+                              filter_events=False)
     print('Summary file saved in: %s' %writefile_path)
     
 if __name__ == '__main__':

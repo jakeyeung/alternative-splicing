@@ -181,6 +181,7 @@ def read_counts_from_miso_header(header,
             sys.exit()
         match = re.search(reg_exprs, jstr)
         # match = re.search('(?<=\(0,0\)\:)\d+', counts_str)
+                
         if match:
             try:
                 jlist.append(int(match.group(0)))
@@ -192,7 +193,7 @@ def read_counts_from_miso_header(header,
     Return first element from each jlist. I use lists instead of a variable
     so I could loop through each. 
     '''
-    return counts_00[0], counts_11[0], counts_01[0], counts_11[0], \
+    return counts_00[0], counts_10[0], counts_01[0], counts_11[0], \
             assigned_counts_0[0], assigned_counts_1[0]
             
 def get_info_from_miso(psi_median_str, log_score_str, 
@@ -234,12 +235,7 @@ def get_info_from_miso(psi_median_str, log_score_str,
             assigned_counts_1 = read_counts_from_miso_header(header)
         
         # Counts must be above a certain threshold.
-        if int(counts_10) + int(counts_01) < min_total_counts:
-            '''
-            print int(counts_10)
-            print int(counts_01)
-            print(int(counts_10) + int(counts_01))
-            '''
+        if (int(counts_10) + int(counts_01)) < min_total_counts:
             pass    # Do not add any info to psi_info_dic
 
         else:
@@ -351,11 +347,7 @@ def get_psi_dic_across_samples(fname, group_1_samplenames,
                                               file_dir,
                                               min_total_counts=min_counts)
         else:
-            # DEBUG
-            if "chr11:35211382:35211612:+@chr11:35219695:35219793:+@chr11:35236399:35236461:+.miso" == fname:
-                print file_dir
-                print('CD44!')
-                raw_input()
+            pass
     return psi_info_dic, keynames
     
 def get_all_fnames(sample_dir_list, main_dir, chromo):
