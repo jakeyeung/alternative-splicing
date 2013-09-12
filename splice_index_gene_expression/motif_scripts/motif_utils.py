@@ -5,7 +5,81 @@ Created on 2013-09-12
 '''
 
 import csv 
+import os
 
+class stamp_obj(object):
+    '''
+    Object to load stamp file
+    '''
+    
+    def __init__(self, stamp_file):
+        '''
+        Initialize reader
+        '''
+        self.file = open(stamp_file, 'rbU')
+        
+def remove_slash_n(name):
+    '''
+    Converts DE Meme1\n to DE Meme
+    '''
+    return name.split('\n')[0]
+        
+def create_filename_prefix(fname_prefix, name):
+    '''
+    Create a name like fname_prefix_DE_Meme1.txt
+    name -> expects something like DE Meme1\n
+    '''
+    # There is \n, split by \n grab the first element.
+    name = remove_slash_n(name)
+    name_join = '_'.join(name.split(' '))
+    filename = '.'.join([fname_prefix, name_join, 'txt'])
+    return filename
+
+def is_this_first_line(line):
+    '''
+    Expects first line to contain DE.
+    '''
+    if 'DE' in line:
+        return True
+    else:
+        return False
+    
+def is_this_last_line(line):
+    '''
+    Expects last line to contain XX
+    '''
+    if 'XX' in line:
+        return True
+    else:
+        return False
+
+def write_files(myfile, fname_prefix, mydir):
+    '''
+    For every motif, write its own separate file.
+    Make its name to be
+    '''
+    first_line = True    # intialize.
+    for line in myfile:
+        last_line = is_this_last_line(line)
+        '''
+        print line
+        print('First line:%s' %first_line)
+        print ('Last line:%s' %last_line)
+        raw_input()
+        '''
+        if first_line:
+            # First line: create file and write first row.
+            filename = create_filename_prefix(fname_prefix, line)
+            filename_path = os.path.join(mydir, filename)
+            writefile = open(filename_path, 'wb')
+            writefile.write(line)
+            first_line = False
+        elif last_line:
+            writefile.close()
+            print('File written to: %s' %filename_path)
+            first_line = True
+        else:
+            writefile.write(line)
 
 class motif_obj(object):
     '''
