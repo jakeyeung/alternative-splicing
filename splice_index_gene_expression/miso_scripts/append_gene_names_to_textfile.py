@@ -23,6 +23,7 @@ class write_obj(object):
         '''
         self.writefile = open(output_path, 'wb')
         self.writeobj = csv.writer(self.writefile, delimiter='\t')
+        self.path = output_path
     
     def close(self):
         self.writefile.close()
