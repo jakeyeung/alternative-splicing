@@ -13,6 +13,8 @@ import os
 
 def get_samples_from_file(sample_path):
     '''
+    TODO: this is already in utilities, please delete 
+    and use new tool in utilities
     From a text file of one column containing sample names, 
     iterate rows and get the samples.
     '''
