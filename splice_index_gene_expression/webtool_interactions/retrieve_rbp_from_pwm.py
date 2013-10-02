@@ -157,6 +157,18 @@ def retrieve_rbp_results(pagesource, tag, rbp_list):
         if r_stripped in rbp_list:
             rbp_results.append(r_stripped)
     return list(set(rbp_results))
+
+def write_list_to_file(list, output_filename):
+    '''
+    From a list, write to file, each list is its own row.
+    '''
+    with open(output_filename, 'wb') as myfile:
+        jwriter = csv.writer(myfile, delimiter='\t')
+        count = 0
+        for i in list:
+            jwriter.writerow([i])
+            count += 1
+    return count
             
 def probe_cisbp(pwm_textfile, rbp_annotations):
     # Use both selenium and beautifulsoup to navigate page
@@ -168,6 +180,8 @@ def probe_cisbp(pwm_textfile, rbp_annotations):
     select_option = 'Homo_sapiens'
     textbox_id = 'scanPWM'
     tag = 'a'    # <a> contains our RBP results.
+    output_filename = pwm_textfile + '.my_rbps'
+    
     # Set webdriver
     driver = webdriver.Firefox()
     
@@ -189,8 +203,11 @@ def probe_cisbp(pwm_textfile, rbp_annotations):
     
     # Use BeautifulSoup to parse html file
     my_rbps = retrieve_rbp_results(driver.page_source, tag, rbp_list)
-    print('%s RBPs found.' %len(my_rbps))
-    print my_rbps
+    
+    # Write matched RBPs to file.
+    counts = write_list_to_file(my_rbps, output_filename)
+    print('%s rows written to: %s' %(counts, output_filename))
+    
     driver.close()
     
 def main():
