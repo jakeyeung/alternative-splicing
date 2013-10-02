@@ -9,6 +9,7 @@ Requires selenium 2.0 and BeautifulSoup 4.3.1!
 # For BeautifulSoup test
 import sys
 import csv
+import os
 import urllib
 import urllib2
 import string
@@ -169,8 +170,31 @@ def write_list_to_file(list, output_filename):
             jwriter.writerow([i])
             count += 1
     return count
+
+def get_files_with_extension(folder, extension):
+    '''
+    Look in folder, get all folders with extension, (e.g. .pwm files)
+    '''
+    file_list = [f for f in os.listdir(folder) if f.endswith(extension)]
+    return file_list
+
+def query_cisrbp_get_rbp(driver, website, menuname, select_option, 
+                         textbox_id, input_lines, tag, rbp_list):
+    # Use Selenium to insert data and retrieve pagesource.
+    # go to CISBP site
+    driver.get(website)
+    # Select homo sapiens
+    select_dropdown_menu(driver, menuname, select_option)
+    # Insert pwm_path_lines to textbox
+    input_element = find_textbox(driver, textbox_id)
+    # Insert keys
+    input_element.send_keys(input_lines)
+    input_element.submit()
+    # Use BeautifulSoup to parse html file
+    my_rbps = retrieve_rbp_results(driver.page_source, tag, rbp_list)
+    return my_rbps
             
-def probe_cisbp(pwm_textfile, rbp_annotations):
+def find_rbps_matching_motifs(pwm_folder, rbp_annotations, output_path):
     # Use both selenium and beautifulsoup to navigate page
     # and also parse HTML data.
     
@@ -180,43 +204,46 @@ def probe_cisbp(pwm_textfile, rbp_annotations):
     select_option = 'Homo_sapiens'
     textbox_id = 'scanPWM'
     tag = 'a'    # <a> contains our RBP results.
-    output_filename = pwm_textfile + '.my_rbps'
+    pwm_ext = '.pwm'
     
     # Set webdriver
     driver = webdriver.Firefox()
     
-    # Read textfiles
-    rbp_list = extract_rbps_from_annotations(rbp_annotations)
-    mylines = read_textfile_as_string(pwm_textfile)
+    # Find PWM files from pwm_folder
+    pwm_file_list = get_files_with_extension(pwm_folder, pwm_ext)
+    
+    # Iterate for each pwm file:
+    all_rbps = []
+    for pwm_f in pwm_file_list:
+        # Create path
+        pwm_path = os.path.join(pwm_folder, pwm_f)
         
-    # Use Selenium to insert data and retrieve pagesource.
+        # Read textfiles
+        rbp_list = extract_rbps_from_annotations(rbp_annotations)
+        input_lines = read_textfile_as_string(pwm_path)
+        
+        my_rbps = \
+        query_cisrbp_get_rbp(driver, website, menuname, select_option, 
+                                       textbox_id, input_lines, tag, rbp_list)
+        all_rbps += my_rbps
     
-    # go to CISBP site
-    driver.get(website)
-    # Select homo sapiens
-    select_dropdown_menu(driver, menuname, select_option)
-    # Insert pwm_textfile to textbox
-    input_element = find_textbox(driver, textbox_id)
-    # Insert keys
-    input_element.send_keys(mylines)
-    input_element.submit()
-    
-    # Use BeautifulSoup to parse html file
-    my_rbps = retrieve_rbp_results(driver.page_source, tag, rbp_list)
-    
+    all_rbps = list(set(all_rbps))
     # Write matched RBPs to file.
-    counts = write_list_to_file(my_rbps, output_filename)
-    print('%s rows written to: %s' %(counts, output_filename))
+    print('RBPs found: %s.' %len(all_rbps))
+    if len(all_rbps) > 0:
+        counts = write_list_to_file(all_rbps, output_path)
+        print('%s rows written to: %s' %(counts, output_path))
     
+    # Close
     driver.close()
     
 def main():
     # beautiful_soup_test()
     # selenium_test()
-    pwm_textfile = sys.argv[1]
+    pwm_folder = sys.argv[1]
     rbp_annotations = sys.argv[2]
-    probe_cisbp(pwm_textfile, rbp_annotations)
-    
+    output_path = sys.argv[3]
+    find_rbps_matching_motifs(pwm_folder, rbp_annotations, output_path)
 
 if __name__ == '__main__':
     main()
