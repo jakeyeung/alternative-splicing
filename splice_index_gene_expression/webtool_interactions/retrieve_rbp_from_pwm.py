@@ -13,7 +13,10 @@ import os
 import urllib
 import urllib2
 import string
-from BeautifulSoup import BeautifulSoup
+try:
+    from bs4 import BeautifulSoup
+except ImportError:
+    from BeautifulSoup import BeautifulSoup
 from selenium import webdriver
 
 def selenium_test():
