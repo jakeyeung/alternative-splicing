@@ -63,14 +63,13 @@ pvals.adjusted <- p.adjust(pvals, method='BH')
 output_df <- cbind(event=miso_summary$event, bh_adj_pval=pvals.adjusted, 
                    miso_summary[,-1])
 
-# print(str(output_df))
-
-output_df.filtered <- filter_events(output_df, bh_pval_cutoff, delta_psi_cutoff)
+# Code commented if you want to filter events, whcih is not necessary.
+# output_df <- filter_events(output_df, bh_pval_cutoff, delta_psi_cutoff)
 
 
 # Filter output for BH and delta psi
 
 # Save df to a new filename
-write.table(output_df.filtered, file=output_filename, sep='\t', row.names=FALSE)
+write.table(output_df, file=output_filename, sep='\t', row.names=FALSE)
 print(paste('Adjusted', length(pvals.adjusted), 'p-values.'))
 print(paste('BH-adjusted file saved to', output_filename))
