@@ -6,7 +6,6 @@ Created on 2013-10-04
 From fasta files, submit jobs to MEME.
 '''
 
-import sys
 from optparse import OptionParser
 from selenium import webdriver
 import webtool_utilities
