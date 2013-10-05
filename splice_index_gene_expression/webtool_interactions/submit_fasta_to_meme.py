@@ -16,7 +16,13 @@ def set_output_email(driver, email):
     '''
     meme requires an email so they can send you a link to the results.
     '''
-    pass
+    # init constants
+    textbox_name = 'email'
+    # Init textbox
+    input_element = driver.find_element_by_name(textbox_name)
+    # Insert keys
+    input_element.send_keys(email)
+    input_element.submit()
 
 def submit_text_to_textbox(driver, text, textbox):
     '''
@@ -83,6 +89,7 @@ if __name__ == '__main__':
         sys.exit()
     main(options.fasta_file, options.min_width, options.max_width, 
          options.n_motifs, options.email)
+    
 
 
 
