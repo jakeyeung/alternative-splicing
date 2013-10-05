@@ -79,9 +79,6 @@ def set_meme_options(driver, dist, is_iss):
     is_iss_checkbox = driver.find_element_by_name(is_iss_checkbox_name)
     is_iss_checkbox.click()
     
-def submit_to_meme(driver):
-    pass
-
 def main(fasta_file, min_width, max_width, n_motifs, email, dist, is_iss):
     # Set constants
     website = 'http://meme.nbcr.net/meme/cgi-bin/meme.cgi'
