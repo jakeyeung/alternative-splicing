@@ -88,7 +88,7 @@ def convert_tab_to_four_spaces(long_str):
     fourspaces = '    '.join(splittabs)
     return fourspaces
 
-def read_textfile_as_string(textfile):
+def read_textfile_as_string(textfile, convert_tab_to_space=True):
     '''
     Reads textfile and returns an object that is 
     easily insertable to selenium driver.
@@ -96,8 +96,9 @@ def read_textfile_as_string(textfile):
     with open(textfile, 'rU') as myfile:
         mylines = myfile.readlines()
         mylines_join = ''.join(mylines)
-        mylines_fourspaces = convert_tab_to_four_spaces(mylines_join)
-    return mylines_fourspaces
+        if convert_tab_to_space:
+            mylines_join = convert_tab_to_four_spaces(mylines_join)
+    return mylines_join
 
 def write_list_to_file(mylist, output_filename):
     '''
