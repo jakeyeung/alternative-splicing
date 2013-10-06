@@ -6,10 +6,11 @@ Created on 2013-10-04
 From fasta files, submit jobs to MEME.
 '''
 
+import os
+import sys
 from optparse import OptionParser
 from selenium import webdriver
 import webtool_utilities
-import os
 
 
 def set_output_email(driver, email):
@@ -56,7 +57,16 @@ def set_meme_options(driver, dist, is_iss):
     is_iss: Recommend True for RNA-motifs. False for DNA.
     '''
     # Init option names
-    dist_val = 'anr'
+    if dist == 'any':
+        dist_val = 'anr'
+    elif dist == 'one':
+        dist_val = 'oops'
+    elif dist == 'zero_one':
+        dist_val = 'zoops'
+    else:
+        print('Distribution must be "any", "one", or '\
+              '"zero_one". %s found.' %dist)
+        sys.exit()
     is_iss_checkbox_name = 'posonly'
     
     # Click on radio button for distribution
@@ -129,9 +139,9 @@ if __name__ == '__main__':
                       help='Number of motifs to be discovered, default 10')
     parser.add_option('-e', '--email', dest='email',
                       help='Email to which MEME will send results.')
-    parser.add_option('--distribution', dest='dist', default='any',
+    parser.add_option('--distribution', dest='dist', default='zero_one',
                       help='Occurence of a single motif is distributed how?'\
-                      'Possible values: one, zero_one, any. Default: any')
+                      'Possible values: one, zero_one, any. Default: zero_one')
     parser.add_option('--is_single_strand', dest='is_ss', default=True,
                       help='Search given strand only? Default True.')
     (options, args) = parser.parse_args()
