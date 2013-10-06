@@ -9,6 +9,7 @@ From fasta files, submit jobs to MEME.
 from optparse import OptionParser
 from selenium import webdriver
 import webtool_utilities
+import os
 
 
 def set_output_email(driver, email):
@@ -20,19 +21,7 @@ def set_output_email(driver, email):
     confirm_emailbox = 'email_confirm'
     
     for txtbox in [emailbox, confirm_emailbox]:
-        submit_text_to_textbox(driver, email, txtbox)
-    return None
-
-def submit_text_to_textbox(driver, text, textbox, clear_defaults=False):
-    '''
-    1) Find textbox
-    2) Insert text
-    Clears defaults if set to true.
-    '''
-    input_element = driver.find_element_by_name(textbox)
-    if clear_defaults:
-        input_element.clear()
-    input_element.send_keys(text)
+        webtool_utilities.submit_text_to_textbox(driver, email, txtbox)
     return None
 
 def set_meme_parameters(driver, min_width, max_width, n_motifs):
@@ -49,7 +38,8 @@ def set_meme_parameters(driver, min_width, max_width, n_motifs):
     
     for txt, txtbox in zip([min_width, max_width, n_motifs], 
                            [minw_box, maxw_box, nmotifs_box]):
-        submit_text_to_textbox(driver, txt, txtbox, clear_defaults=True)
+        webtool_utilities.submit_text_to_textbox(driver, txt, txtbox, 
+                                                 clear_defaults=True)
     return None
 
 def set_meme_options(driver, dist, is_iss):
@@ -77,8 +67,17 @@ def set_meme_options(driver, dist, is_iss):
     # Checkbox for is_single_strand
     is_iss_checkbox = driver.find_element_by_name(is_iss_checkbox_name)
     is_iss_checkbox.click()
-    
-def main(fasta_file, min_width, max_width, n_motifs, email, dist, is_iss):
+    return None
+
+def set_meme_description(driver, descript):
+    # Set box names
+    descrip_name = 'description'
+    descrip_box = driver.find_element_by_name(descrip_name)
+    descrip_box.send_keys(descript)
+    return None
+
+def main(fasta_file, min_width, max_width, n_motifs, 
+         email, dist, is_iss):
     # Set constants
     website = 'http://meme.nbcr.net/meme/cgi-bin/meme.cgi'
     textbox_id_name = 'data'
@@ -96,6 +95,10 @@ def main(fasta_file, min_width, max_width, n_motifs, email, dist, is_iss):
     # Set email address to be submitted
     set_output_email(driver, email)
     
+    # Set description to be fasta filename.
+    descript = os.path.basename(fasta_file)
+    set_meme_description(driver, descript)
+    
     # Select meme settings
     set_meme_parameters(driver, min_width, max_width, n_motifs)
     
@@ -103,10 +106,13 @@ def main(fasta_file, min_width, max_width, n_motifs, email, dist, is_iss):
     set_meme_options(driver, dist, is_iss)
     
     # Submit fasta lines to website.
-    submit_text_to_textbox(driver, fasta_lines, textbox_id_name)
+    webtool_utilities.submit_text_to_textbox(driver, fasta_lines, 
+                                             textbox_id_name)
     
     # Submit
     driver.find_element_by_name(submit_button_name).click()
+    
+    driver.close()
     
 if __name__ == '__main__':
     
@@ -116,14 +122,14 @@ if __name__ == '__main__':
     parser.add_option('-s', '--min_width', dest='min_width', default=4,
                       help='Length of shortest motif to be discovered '\
                       '(Default 4).')
-    parser.add_option('-l', '--max_width', dest='max_width', default=22,
+    parser.add_option('-l', '--max_width', dest='max_width', default=21,
                       help='Length of longest motif to be discovered '\
                       '(Default 22).')
     parser.add_option('-N', '--n_motifs', dest='n_motifs', default=10,
                       help='Number of motifs to be discovered, default 10')
     parser.add_option('-e', '--email', dest='email',
                       help='Email to which MEME will send results.')
-    parser.add_option('-d', '--distribution', dest='dist', default='any',
+    parser.add_option('--distribution', dest='dist', default='any',
                       help='Occurence of a single motif is distributed how?'\
                       'Possible values: one, zero_one, any. Default: any')
     parser.add_option('--is_single_strand', dest='is_ss', default=True,
