@@ -118,3 +118,15 @@ def get_files_with_extension(folder, extension):
     '''
     file_list = [f for f in os.listdir(folder) if f.endswith(extension)]
     return file_list
+
+def submit_text_to_textbox(driver, text, textbox, clear_defaults=False):
+    '''
+    1) Find textbox
+    2) Insert text
+    Clears defaults if set to true.
+    '''
+    input_element = driver.find_element_by_name(textbox)
+    if clear_defaults:
+        input_element.clear()
+    input_element.send_keys(text)
+    return None
