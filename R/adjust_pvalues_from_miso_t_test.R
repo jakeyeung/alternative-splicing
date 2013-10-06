@@ -17,8 +17,10 @@ output_filename <- args[4]
 
 filter_events <- function(df, bh_cutoff, delta_psi_cutoff){
     # Filter by bh_adj val.
-    df <- subset(output_df, bh_adj_pval < bh_cutoff)
-    # Filter by delta_psi_med
+    df <- subset(df, bh_adj_pval < bh_cutoff)
+}
+
+add_psi_cols <- function(df){
     group.vec <- as.vector(df$group)
     psi_med.vec <- as.vector(df$psi_median)
     psi_mean1 <- rep('NA', length(group.vec))
@@ -63,11 +65,11 @@ pvals.adjusted <- p.adjust(pvals, method='BH')
 output_df <- cbind(event=miso_summary$event, bh_adj_pval=pvals.adjusted, 
                    miso_summary[,-1])
 
-# Code commented if you want to filter events, whcih is not necessary.
+# Code commented if you want to filter events, not always necessary
 # output_df <- filter_events(output_df, bh_pval_cutoff, delta_psi_cutoff)
 
-
-# Filter output for BH and delta psi
+# Add informative info like psi means between two groups.
+output_df <- add_psi_cols(output_df)
 
 # Save df to a new filename
 write.table(output_df, file=output_filename, sep='\t', row.names=FALSE)
