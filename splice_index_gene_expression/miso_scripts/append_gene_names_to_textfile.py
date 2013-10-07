@@ -9,8 +9,8 @@ the column th gene names found from MISO annotations v2 hg19.
 
 
 import csv
-import sys
 import re
+from optparse import OptionParser, Option
 
 
 class write_obj(object):
@@ -271,11 +271,14 @@ def main(input_filepath, annot_filepath, output_filepath):
     writer_obj.close()
     
 if __name__ == '__main__':
-    if len(sys.argv) < 3:
-        print('Textfile, miso annotations and output file must be specified '\
-              'in command line.')
-        sys.exit()
-    input_filepath = sys.argv[1]
-    annot_filepath = sys.argv[2]
-    output_filepath = sys.argv[3]
-    main(input_filepath, annot_filepath, output_filepath)
+    parser = OptionParser()
+    parser.add_option('-i', '--input_filepath', dest='input_filepath',
+                      help='Input file, likely the summary of t-test results'\
+                      ' from a previous script.')
+    parser.add_option('-a', '--annotation_filepath', dest='annot_filepath',
+                      help='File of miso annotations (.gff3 file)')
+    parser.add_option('-o', '--output_filepath', dest='output_filepath',
+                      help='Output file name')
+    (options, _) = parser.parse_args()
+    
+    main(options.input_filepath, options.annot_filepath, options.output_filepath)
