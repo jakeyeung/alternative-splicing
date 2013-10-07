@@ -21,6 +21,7 @@ import sys
 import csv
 from append_multiple_bed_files import append_multiple_bed_files
 
+
 def get_chrom_from_event(event_name):
     '''
     From event name, parse the string to get chromosome.
@@ -103,7 +104,9 @@ def create_exon_intron_bed_files(output_bed_file, bed_description, eventtype='SE
     if eventtype == 'SE':
         # Initialize list of indices
         exon_index = range(1, 4)    # 3 exons (1, 2, 3)
-        intron_index = ['1_5p', '1_3p', '2_5p', '2_3p']
+        # Because we will sort later, we need to add a and b to
+        # ensure when we sort, we will get same order as defined.
+        intron_index = ['1_a5p', '1_b3p', '2_a5p', '2_b3p']
         
         # Create keynames for exon and intron dictionaries.
         exon_keys = [''.join(['exon_', str(i)]) for i in exon_index]
@@ -364,8 +367,6 @@ def split_introns_to_5p_3p(intron_starts, intron_ends, strand, eventtype='SE'):
             3' splice site of upstream intron + 300 bp
             5' splice site of upstream intron.
     '''
-    mystarts = intron_starts
-    myends = intron_ends
     
     if eventtype=='SE':
         intron_upstrm_5p = int(intron_starts[0])
@@ -390,21 +391,12 @@ def split_introns_to_5p_3p(intron_starts, intron_ends, strand, eventtype='SE'):
                      intron_dwnstrm_5p_300bp, intron_dwnstrm_3p]
         if strand=='-':
             intron_starts = \
-                [intron_dwnstrm_3p_300bp, intron_dwnstrm_5p,
-                 intron_upstrm_3p_300bp, intron_upstrm_5p]
+                [intron_upstrm_3p_300bp, intron_upstrm_5p,
+                 intron_dwnstrm_3p_300bp, intron_dwnstrm_5p]
             intron_ends = \
-                [intron_dwnstrm_3p, intron_dwnstrm_5p_300bp,
-                 intron_upstrm_3p, intron_upstrm_5p_300bp]
+                [intron_upstrm_3p, intron_upstrm_5p_300bp,
+                 intron_dwnstrm_3p, intron_dwnstrm_5p_300bp]
         
-        '''
-        for e, s in zip(intron_ends, intron_starts):
-            if e - s < 0:
-                print e, s
-                print intron_starts, intron_ends
-                print intron_upstrm_5p, intron_dwnstrm_5p, intron_upstrm_3p, intron_dwnstrm_3p
-                print mystarts, myends
-                raw_input()
-        '''
         return intron_starts, intron_ends
 
 def extract_coordinates_from_miso_bf(miso_file, output_bed_file, 
