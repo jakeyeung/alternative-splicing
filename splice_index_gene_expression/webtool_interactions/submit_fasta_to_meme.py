@@ -145,7 +145,8 @@ if __name__ == '__main__':
                       help='Search given strand only? Default True.')
     parser.add_option('--batch_mode', dest='batch_mode', default=False,
                       help='If True: submits all fasta files in fasta_file directory to MEME.\n'\
-                      'If False (Default): only submits fasta file in arg1 to MEME.')
+                      'If False (Default): only submits fasta file in arg1 to MEME.\n'\
+                      'Note: Keep arg1 as fastas_file, rather than directory even in batch_mode')
     (options, args) = parser.parse_args()
     
     fasta_file = args[0]
@@ -154,7 +155,7 @@ if __name__ == '__main__':
     if options.batch_mode:
         fasta_dir = os.path.dirname(fasta_file)
         fasta_file_list = \
-            [''.join([fasta_dir, f]) for f in os.listdir(fasta_dir) \
+            [os.path.join(fasta_dir, f) for f in os.listdir(fasta_dir) \
                      if f.endswith('.fasta')]
     else:
         fasta_file_list = [fasta_file]
