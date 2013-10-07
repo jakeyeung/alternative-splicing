@@ -19,9 +19,9 @@ Keep in mind:
     -> parallelize by chromosome. 
 '''
 
-import sys
 import os
 import csv
+from optparse import OptionParser
 from multiprocessing import Process, Queue
 from group_miso_utils import get_sample_names_from_file, create_chromo_list, \
     get_all_fnames, check_if_empty_dir, get_psi_dic_across_samples, \
@@ -145,24 +145,29 @@ def t_test_and_pickle(fnames_dic, chromo, output_dir, group_1_samples, group_2_s
     queue_obj.put(fnames_dic)    # For multithreading
     
 def main():
-    '''
-    Requires sample_list textfile, miso directory (where psi values are),
-    and output_directory (where t-test results will be stored) 
-    '''
-    if len(sys.argv) < 3:
-        print('Requires textfile of samplenames, miso_output directory,'\
-              'and output_directory to be specified in command line.')
-        sys.exit()
-    group_1_samplenames_file = sys.argv[1]
-    group_2_samplenames_file = sys.argv[2]
-    main_dir = sys.argv[3]    # Where miso outputs results
-    output_dir = sys.argv[4]
-    output_fname = sys.argv[5]
-    try:
-        min_counts = int(sys.argv[6])
-    except ValueError:
-        print('Min counts must be an integer.')
-        sys.exit()
+    parser = OptionParser()
+    parser.add_option('-1', '--group1_file', dest='group_1_samplenames_file',
+                      help='Filename containing group 1 sample names (PCa)')
+    parser.add_option('-2', '--group2_file', dest='group_2_samplenames_file',
+                      help='Filename containing group 2 sample names (NEPC)')
+    parser.add_option('-d', '--main_directory', dest='main_dir',
+                      help='Main directory containing miso output results.')
+    parser.add_option('-o', '--output_directory', dest='output_dir',
+                      help='Output directory of t-test results.')
+    parser.add_option('-O', '--output_filename', dest='output_fname',
+                      help='Output filename of the t-test results.')
+    parser.add_option('-m', '--min_counts', type='int', dest='min_counts',
+                      help='Minimum junction read counts to be considered '\
+                      'into the t-test. Best practices says 10.')
+    # Parse options
+    (options, _) = parser.parse_args()
+    # Define constants from options
+    group_1_samplenames_file = options.group_1_samplenames_file
+    group_2_samplenames_file = options.group_2_samplenames_file
+    main_dir = options.main_dir
+    output_dir = options.output_dir
+    output_fname = options.output_fname
+    min_counts = options.min_counts
     
     # Define constants
     summary_fullpath = os.path.join(output_dir, output_fname)
