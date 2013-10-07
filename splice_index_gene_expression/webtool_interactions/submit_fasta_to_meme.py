@@ -86,7 +86,7 @@ def set_meme_description(driver, descript):
     descrip_box.send_keys(descript)
     return None
 
-def main(fasta_file, min_width, max_width, n_motifs, 
+def main(fasta_file_list, min_width, max_width, n_motifs, 
          email, dist, is_iss):
     # Set constants
     website = 'http://meme.nbcr.net/meme/cgi-bin/meme.cgi'
@@ -96,39 +96,40 @@ def main(fasta_file, min_width, max_width, n_motifs,
     # Initialize web driver
     driver = webdriver.Firefox()
     
-    # Get fasta files for input to meme
-    fasta_lines = webtool_utilities.read_textfile_as_string(fasta_file) 
-    
-    # Go to meme website
-    driver.get(website)
-    
-    # Set email address to be submitted
-    set_output_email(driver, email)
-    
-    # Set description to be fasta filename.
-    descript = os.path.basename(fasta_file)
-    set_meme_description(driver, descript)
-    
-    # Select meme settings
-    set_meme_parameters(driver, min_width, max_width, n_motifs)
-    
-    # Select meme options
-    set_meme_options(driver, dist, is_iss)
-    
-    # Submit fasta lines to website.
-    webtool_utilities.submit_text_to_textbox(driver, fasta_lines, 
-                                             textbox_id_name)
-    
-    # Submit
-    driver.find_element_by_name(submit_button_name).click()
+    for fasta_file in fasta_file_list:
+        # Get fasta files for input to meme
+        fasta_lines = webtool_utilities.read_textfile_as_string(fasta_file)
+        
+        # Go to meme website
+        driver.get(website)
+        
+        # Set email address to be submitted
+        set_output_email(driver, email)
+        
+        # Set description to be fasta filename.
+        descript = os.path.basename(fasta_file)
+        set_meme_description(driver, descript)
+        
+        # Select meme settings
+        set_meme_parameters(driver, min_width, max_width, n_motifs)
+        
+        # Select meme options
+        set_meme_options(driver, dist, is_iss)
+        
+        # Submit fasta lines to website.
+        webtool_utilities.submit_text_to_textbox(driver, fasta_lines, 
+                                                 textbox_id_name)
+        
+        # Submit
+        driver.find_element_by_name(submit_button_name).click()
     
     driver.close()
     
 if __name__ == '__main__':
     
-    parser = OptionParser()
-    parser.add_option('-f', '--file', dest='fasta_file', 
-                      help='FASTA file from which to discover motifs')
+    usage = 'usage: %prog [options] fasta_file email'
+    parser = OptionParser(usage=usage)
+    
     parser.add_option('-s', '--min_width', dest='min_width', default=4,
                       help='Length of shortest motif to be discovered '\
                       '(Default 4).')
@@ -137,16 +138,29 @@ if __name__ == '__main__':
                       '(Default 22).')
     parser.add_option('-N', '--n_motifs', dest='n_motifs', default=10,
                       help='Number of motifs to be discovered, default 10')
-    parser.add_option('-e', '--email', dest='email',
-                      help='Email to which MEME will send results.')
     parser.add_option('--distribution', dest='dist', default='zero_one',
                       help='Occurence of a single motif is distributed how?'\
                       'Possible values: one, zero_one, any. Default: zero_one')
     parser.add_option('--is_single_strand', dest='is_ss', default=True,
                       help='Search given strand only? Default True.')
+    parser.add_option('--batch_mode', dest='batch_mode', default=False,
+                      help='If True: submits all fasta files in fasta_file directory to MEME.\n'\
+                      'If False (Default): only submits fasta file in arg1 to MEME.')
     (options, args) = parser.parse_args()
-    main(options.fasta_file, options.min_width, options.max_width, 
-         options.n_motifs, options.email, options.dist, options.is_ss)
+    
+    fasta_file = args[0]
+    email = args[1]
+    
+    if options.batch_mode:
+        fasta_dir = os.path.dirname(fasta_file)
+        fasta_file_list = \
+            [''.join([fasta_dir, f]) for f in os.listdir(fasta_dir) \
+                     if f.endswith('.fasta')]
+    else:
+        fasta_file_list = [fasta_file]
+    
+    main(fasta_file_list, options.min_width, options.max_width, 
+         options.n_motifs, email, options.dist, options.is_ss)
     
 
 
