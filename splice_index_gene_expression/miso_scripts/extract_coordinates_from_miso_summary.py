@@ -90,11 +90,20 @@ def create_exon_intron_bed_files(output_bed_file, bed_description, eventtype='SE
     This allows writing of many files using loops. 
     
     Also writes bed_header to file. 
+    
+    For SE: it creates 7 files:
+    exon_1
+    exon_2
+    exon_3
+    intron_1_5p
+    intron_1_3p
+    intron_2_5p
+    intron_2_3p
     '''
     if eventtype == 'SE':
         # Initialize list of indices
         exon_index = range(1, 4)    # 3 exons (1, 2, 3)
-        intron_index = range(1, 3)    # 2 introns (1, 2)
+        intron_index = ['1_5p', '1_3p', '2_5p', '2_3p']
         
         # Create keynames for exon and intron dictionaries.
         exon_keys = [''.join(['exon_', str(i)]) for i in exon_index]
@@ -181,49 +190,81 @@ def create_intron_coords_from_exon_coords(exon_starts, exon_ends, strand, eventt
     '''
     # Define constants
     if eventtype == 'SE':
-        # Take 300 bps around skipped exon instead of full intron.
-        dist_around_se = 300    
-    
-    # Clip ends, but differently depending on strand + or strand -
-    if strand == '+':
-        exon_ends_clipped = exon_ends[:-1]    # Last exon end is 3' end
-        exon_starts_clipped = exon_starts[1:]    # First exon end is 5' start
-    elif strand == '-':
-        exon_ends_clipped = exon_ends[1:]    # First exon_end is 5' start.
-        exon_starts_clipped = exon_starts[:-1]    # Last exon_start is 3' end.
-    # Get intron starts and ends  
-    try:
-        intron_starts = [int(i) for i in exon_ends_clipped]
-        intron_ends = [int(i) for i in exon_starts_clipped]
-    except ValueError:
-        print('Could not increment integers in one or both of the lists:')
-        print(exon_ends_clipped)
-        print(exon_starts_clipped)
-        sys.exit()
-    
-    '''    
-    # For skipped exon events (SE), we will extract 300 bp around the 
-    # skipped exon for the intron area.
-    
-    Use second exon (index 1) and get upstream and downstream 300 bp.
-    
-    Use that value as new first intron start or second intron end 
-    only if it does not overlap with the upstream/downstream exon.
-    '''
-    if eventtype == 'SE':
-        # Get upstream and downstream 300 bp around SE.
-        upstrm_se = exon_starts[1] - dist_around_se
-        dwnstrm_se = exon_ends[1] + dist_around_se
+        # Clip ends, but differently depending on strand + or strand -
         if strand == '+':
-            intron_ends[1] = min(dwnstrm_se, intron_ends[1])
-            intron_starts[0] = max(upstrm_se, intron_starts[0])
+            exon_ends_clipped = exon_ends[:-1]    # Last exon end is 3' end remove it
+            exon_starts_clipped = exon_starts[1:]    # First exon end is 5' start remove it
         elif strand == '-':
-            intron_ends[0] = min(dwnstrm_se, intron_ends[0])
-            intron_starts[1] = max(upstrm_se, intron_starts[1])
-            
+            exon_ends_clipped = exon_ends[1:]    # First exon_end is 5' start remove it
+            exon_starts_clipped = exon_starts[:-1]    # Last exon_start is 3' end remove it
+        # Get intron starts and ends  
+        try:
+            intron_starts = [int(i) for i in exon_ends_clipped]
+            intron_ends = [int(i) for i in exon_starts_clipped]
+        except ValueError:
+            print('Could not increment integers in one or both of the lists:')
+            print(exon_ends_clipped)
+            print(exon_starts_clipped)
+            sys.exit()
     return intron_starts, intron_ends
 
-def write_coords_to_multi_files(output_bed_file, output_file_dic_exons, 
+def write_exon_coords_to_files(output_file_dic_exons,
+                               chrom, exon_starts, exon_ends,
+                               event, score, strand):
+    '''
+    List of exon-starts and ends, write to multiple files, one for each exon
+    '''
+    # Check lengths
+    if len(exon_starts) != len(exon_ends):
+        print('Warning, length of exons starts and ends are not equal!'\
+         '(%s vs. %s)' %(len(exon_starts), len(exon_ends)))
+        print('exon_starts: %s' %exon_starts)
+        print('exon_ends: %s' %exon_ends)
+        raw_input('Continue? (Press enter:')
+    
+    # Get the sorted exon_key for looping later...
+    exon_keys = sorted(output_file_dic_exons.keys())
+    
+    writecount = 0
+    # Write exons to exon files.
+    for start, end, k in zip(exon_starts, exon_ends, exon_keys):
+        # Create tab separated string for writing to file.
+        write_str = '\t'.join([chrom, str(start), str(end), event, 
+                               score, strand, '\n'])
+        output_file_dic_exons[k].write(write_str)
+        writecount += 1
+    return writecount
+
+def write_coords_to_files(output_file_dic,
+                         chrom, starts, ends,
+                         event, score, strand):
+    '''
+    Given list of intron start and ends, write to multiple files, one for each exon.
+    '''
+    # Check lengths
+    if len(starts) != len(ends):
+        print('Warning, length of starts list and ends list are not equal!'\
+         '(%s vs. %s)' %(len(starts), len(ends)))
+        print('intron_starts: %s' %starts)
+        print('intron_ends: %s' %ends)
+        raw_input('Continue? (Press enter:')
+    
+    # Get sorted key for looping later...
+    jkeys = sorted(output_file_dic.keys())
+    
+    writecount = 0
+    # Write start-ends to files.
+    for start, end, k in zip(starts, ends, jkeys):
+        # Create tab separated string for writing to file.
+        write_str = '\t'.join([chrom, str(start), str(end), event,
+                               score, strand, '\n'])
+        output_file_dic[k].write(write_str)
+        writecount += 1
+    return writecount
+    
+    
+
+def write_coords_to_multi_files(output_file_dic_exons, 
                                 output_file_dic_introns,
                                 chrom, exon_starts, exon_ends, 
                                 intron_starts, intron_ends, event,
@@ -240,41 +281,9 @@ def write_coords_to_multi_files(output_bed_file, output_file_dic_exons,
         print('exon_ends: %s' %exon_ends)
         raw_input('Continue? (Press enter:')
     
-    '''
-    # Create corresponding intron start and ends.
-    intron_starts, intron_ends = \
-        create_intron_coords_from_exon_coords(exon_starts, exon_ends)
-    '''
-    
     # Get the sorted exon_key and intron_keys for looping later...
     exon_keys = sorted(output_file_dic_exons.keys())
     intron_keys = sorted(output_file_dic_introns.keys())
-    
-    '''
-    # Initialize list of indices
-    exon_index = range(0, len(exon_starts))
-    intron_index = range(0, len(exon_starts) - 1)
-    
-    # Create keynames for exon and intron dictionaries.
-    exon_keys = [''.join(['exon_', str(i)]) for i in exon_index]
-    intron_keys = [''.join(['intron_', str(i)]) for i in intron_index]
-    
-    # Create dic to store output write objects to write exon coords
-    output_file_dic_exons = {}
-    for i, k in zip(exon_index, exon_keys):
-        # Append output_bed_file suffix
-        output_bed_file_suffixed = \
-            ''.join([output_bed_file, '_exon', str(i), '.bed'])
-        output_file_dic_exons[k] = open(output_bed_file_suffixed, 'wb')
-    
-    # Create dic to store write objects to write intron coords
-    output_file_dic_introns = {}
-    for i, k in zip(intron_index, intron_keys):
-        # Append output_bed_file suffix
-        output_bed_file_suffixed = \
-            ''.join([output_bed_file, '_intron', str(i), '.bed'])
-        output_file_dic_introns[k] = open(output_bed_file_suffixed, 'wb')
-    '''
     
     writecount = 0
     # Write exons to exon files.
@@ -303,6 +312,100 @@ def write_coords_to_multi_files(output_bed_file, output_file_dic_exons,
         writecount += 1
         
     return writecount
+
+def check_intron_lengths_assign_300bp(intron_5p, intron_3p):
+    '''
+    Check length of intron, and assign 300 bp upstream or downstream
+    accordingly. We need to check intron because for short introns, 300bp
+    would cause overlap into the next exon.
+    '''
+    intron_len = abs(intron_5p - intron_3p)
+    if intron_len > 300:
+        intron_5p_300bp = intron_5p + 300
+        intron_3p_300bp = intron_3p - 300
+    elif intron_len <= 300:
+        intron_5p_300bp = intron_3p
+        intron_3p_300bp = intron_5p
+    return intron_5p_300bp, intron_3p_300bp
+        
+def split_introns_to_5p_3p(intron_starts, intron_ends, strand, eventtype='SE'):
+    '''
+    Input:
+        intron_starts: a list of start of each intron (end of respective exon)
+        intron_ends: list of end of each intron (start of next exon)
+        Four skipped events: expects two intron starts, two intron ends.
+        
+        Note start and end is based on UCSC notation, meaning reading from +
+        strand, i.e., start < end, always.
+        
+        Therefore, when we submit our intron starts and ends in neg strand,
+        we have to go opposite of positive strand.
+    
+    Output:
+    Upstream and downstream notation is relative to UCSC-style notation (+ strand)
+    that is why for negative strand, it looks "backwards".
+    
+        intron_starts: list containing (for SE events and + strand):
+            5' splice site of upstream intron
+            3' splice site of upstream intron - 300 bp
+            5' splice site of downstream intron 
+            3' splice site of downstream intron - 300 bp
+        intron_ends:
+            5' splice site of upstream intron + 300 bp
+            3' splice site of upstream intron
+            5' splice site of downstream intron + 300 bp
+            3' splice site of downstream intron
+        Order should match intron_keys from earlier code
+        
+        For - strand:
+        intron_starts:
+            3' splice site of downstream intron + 300 bp
+            5' splice site of downstream intron
+            3' splice site of upstream intron + 300 bp
+            5' splice site of upstream intron.
+    '''
+    mystarts = intron_starts
+    myends = intron_ends
+    
+    if eventtype=='SE':
+        intron_upstrm_5p = int(intron_starts[0])
+        intron_dwnstrm_5p = int(intron_starts[1])
+        intron_upstrm_3p = int(intron_ends[0])
+        intron_dwnstrm_3p = int(intron_ends[1])
+        
+        # Get 300 bp distances from intron 5' and 3' sites.
+        intron_upstrm_5p_300bp, intron_upstrm_3p_300bp = \
+            check_intron_lengths_assign_300bp(intron_upstrm_5p, 
+                                              intron_upstrm_3p)
+        intron_dwnstrm_5p_300bp, intron_dwnstrm_3p_300bp = \
+            check_intron_lengths_assign_300bp(intron_dwnstrm_5p,
+                                              intron_dwnstrm_3p)
+        # Recreate intron_starts in proper order.
+        if strand=='+':
+                intron_starts = \
+                    [intron_upstrm_5p, intron_upstrm_3p_300bp, 
+                     intron_dwnstrm_5p, intron_dwnstrm_3p_300bp]
+                intron_ends = \
+                    [intron_upstrm_5p_300bp, intron_upstrm_3p, 
+                     intron_dwnstrm_5p_300bp, intron_dwnstrm_3p]
+        if strand=='-':
+            intron_starts = \
+                [intron_dwnstrm_3p_300bp, intron_dwnstrm_5p,
+                 intron_upstrm_3p_300bp, intron_upstrm_5p]
+            intron_ends = \
+                [intron_dwnstrm_3p, intron_dwnstrm_5p_300bp,
+                 intron_upstrm_3p, intron_upstrm_5p_300bp]
+        
+        '''
+        for e, s in zip(intron_ends, intron_starts):
+            if e - s < 0:
+                print e, s
+                print intron_starts, intron_ends
+                print intron_upstrm_5p, intron_dwnstrm_5p, intron_upstrm_3p, intron_dwnstrm_3p
+                print mystarts, myends
+                raw_input()
+        '''
+        return intron_starts, intron_ends
 
 def extract_coordinates_from_miso_bf(miso_file, output_bed_file, 
                                      bed_description, eventtype='SE'):
@@ -339,13 +442,15 @@ def extract_coordinates_from_miso_bf(miso_file, output_bed_file,
         # Create open file objects.
         if eventtype == 'SE':
             '''
-            Create three exon bed files and two intron files,
+            Create three exon bed files and FOUR intron files,
             corresponding to:
                 upstream exon
                 skipped exon
                 downstream exon
-                upstream from skipped intron
-                downstream from skipped intron
+                5' upstream from skipped intron
+                3' upstream from skipped intron
+                5' downstream from skipped intron
+                3' downstream from skipped intron
             '''
             output_file_dic_exons, output_file_dic_introns , full_outpaths = \
                 create_exon_intron_bed_files(output_bed_file, 
@@ -373,21 +478,29 @@ def extract_coordinates_from_miso_bf(miso_file, output_bed_file,
                 create_exon_coords(event_name)        
             intron_starts, intron_ends = \
                 create_intron_coords_from_exon_coords(exon_starts, exon_ends, strand)
+            # Split intron start ends to 5' and 3'ends, 300 bp each.
+            intron_starts, intron_ends = \
+                split_introns_to_5p_3p(intron_starts, intron_ends, strand)
             
-            writecount = \
-                write_coords_to_multi_files(output_bed_file, 
-                                            output_file_dic_exons, 
-                                            output_file_dic_introns,
-                                            chrom, exon_starts, exon_ends, 
-                                            intron_starts, intron_ends,
+            # Write exons then introns to files.
+            wcount += write_coords_to_files(output_file_dic_exons, 
+                                            chrom, 
+                                            exon_starts, 
+                                            exon_ends, 
+                                            event_name, 
+                                            score, 
+                                            strand)
+            wcount += write_coords_to_files(output_file_dic_introns,
+                                            chrom,
+                                            intron_starts,
+                                            intron_ends,
                                             event_name,
-                                            score, strand)
-            wcount += writecount
+                                            score,
+                                            strand)
         # Close exon and intron files.
         for writeobj in (output_file_dic_exons.values() + 
                          output_file_dic_introns.values()):
             writeobj.close()
-             
         return wcount, full_outpaths
 
 def main():
