@@ -19,6 +19,7 @@ their sequences obtained via UCSC browser to be sent for motif search.
 
 import sys
 import csv
+from optparse import OptionParser
 from append_multiple_bed_files import append_multiple_bed_files
 
 
@@ -496,31 +497,37 @@ def extract_coordinates_from_miso_bf(miso_file, output_bed_file,
         return wcount, full_outpaths
 
 def main():
-    if len(sys.argv) < 3:
-        print('Miso_bf file (or bh_adj t-test summary file)'\
-              ' and output_bed_file '\
-              'must be specified in command line..')
-        sys.exit()
-    miso_file = sys.argv[1]
-    output_bed_file = sys.argv[2]
-    appended_bed_file_path = sys.argv[3]
-    bed_description = sys.argv[4]
     
+    parser = OptionParser()
+    parser.add_option('-f', '--file', dest='miso_file',
+                      help='Miso summary results or '\
+                      'bh_adj t-test summary file.')
+    parser.add_option('-o', '--output_prefix', dest='output_bed_file',
+                      help='Output bed file path, e.g.:'\
+                      '~/mincounts_10.bed. A suffix will be appended to this.')
+    parser.add_option('-O', '--appended_output_name', 
+                      dest='appended_bed_file_path',
+                      help='Appended output bed file path, e.g.:'\
+                      '~/mincounts_10_appended.bed. '\
+                      'This will be the file you load to UCSC.')
+    parser.add_option('-d', '--descrip', dest='bed_description',
+                      help='Description of your bed files: e.g. mincount_10')
+    (options, _) = parser.parse_args()
     '''
     If user inputted output_bed_file with a .* ending, we will remove it
     because we want to append more strings to end of filename before 
     tagging the .bed ending. 
     '''
-    output_bed_file = '.'.join(output_bed_file.split('.')[:-1])
-    wcount, outpaths = extract_coordinates_from_miso_bf(miso_file, 
-                                                        output_bed_file, 
-                                                        bed_description)
-    append_multiple_bed_files(outpaths, appended_bed_file_path)
+    options.output_bed_file = '.'.join(options.output_bed_file.split('.')[:-1])
+    wcount, outpaths = extract_coordinates_from_miso_bf(options.miso_file, 
+                                                        options.output_bed_file, 
+                                                        options.bed_description)
+    append_multiple_bed_files(outpaths, options.appended_bed_file_path)
     print('Done. %s total coordinates extracted.' %wcount)
     print('Bed files written to:')
     for f in outpaths:
         print(f)
-    print('Appended bed file written to:\n%s' %appended_bed_file_path)
+    print('Appended bed file written to:\n%s' %options.appended_bed_file_path)
 
 if __name__ == '__main__':
     main()
