@@ -159,7 +159,6 @@ if __name__ == '__main__':
     email = args[1]
     
     if options.batch_mode==True:
-        print 'hello world'
         fasta_dir = os.path.dirname(fasta_file)
         fasta_file_list = \
             [os.path.join(fasta_dir, f) for f in os.listdir(fasta_dir) \
