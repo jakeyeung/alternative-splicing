@@ -271,7 +271,9 @@ def main(input_filepath, annot_filepath, output_filepath):
     writer_obj.close()
     
 if __name__ == '__main__':
-    parser = OptionParser()
+    usage = 'usage: %prog input_filepath annotation_filepath output_filepath'
+    parser = OptionParser(usage=usage)
+    '''
     parser.add_option('-i', '--input_filepath', dest='input_filepath',
                       help='Input file, likely the summary of t-test results'\
                       ' from a previous script.')
@@ -279,6 +281,10 @@ if __name__ == '__main__':
                       help='File of miso annotations (.gff3 file)')
     parser.add_option('-o', '--output_filepath', dest='output_filepath',
                       help='Output file name')
-    (options, _) = parser.parse_args()
+    '''
+    (options, args) = parser.parse_args()
+    input_filepath = args[0]
+    annot_filepath = args[1]
+    output_filepath = args[2]
     
-    main(options.input_filepath, options.annot_filepath, options.output_filepath)
+    main(input_filepath, annot_filepath, output_filepath)
