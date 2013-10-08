@@ -45,7 +45,7 @@ add_psi_cols <- function(df){
     abs_delta_psi <- abs(delta_psi)
     df <- cbind(df, delta_psi)
     df <- cbind(df, abs_delta_psi)
-    df <- subset(df, abs_delta_psi > delta_psi_cutoff)
+    # df <- subset(df, abs_delta_psi > delta_psi_cutoff)
     return(df)
 }
 
