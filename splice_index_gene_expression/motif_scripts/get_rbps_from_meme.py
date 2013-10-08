@@ -10,6 +10,8 @@ Returns all the RBPs that match!
 Requires selenium and beautifulsoup!
 '''
 
+import sys
+import os
 from optparse import OptionParser
 from selenium import webdriver
 from webtool_interactions.webtool_utilities import write_list_to_file
@@ -66,68 +68,106 @@ def end_of_prob_matrix(myline):
     else:
         return False
 
-def main(meme_file, out_file, rbp_annotations):
+def main(meme_file_list, output_file_list, rbp_annotations):
     '''
     Parse meme file, grab probability matrix, submit to CISBP.
     '''
-    # Init my objs
-    meme_parser = file_parser(meme_file)
+    # Init driver
     driver = webdriver.Firefox()
-    matched_rbps = []
     
-    # Get list of known RBPs from database, useful for matching
-    # with CISBP Results.
-    rbp_list = extract_rbps_from_annotations(rbp_annotations)
-    
-    # Parse my file
-    with meme_parser:
-        # Iterate
-        while True:
-            myline = meme_parser.read_next_line()
-            if myline == '':
-                print('%s rows iterated.' %meme_parser.readcount)
-                break
-            if start_of_prob_matrix(myline):
-                '''
-                Row is header for matrix we want.
-                Iterate each row to collect values until
-                end of matrix.
-                '''
-                motif_name = myline
-                # Skip two lines, first line are dashes, second is header.
-                meme_parser.read_next_line()
-                meme_parser.read_next_line()
-                # Get first row in matrix.
+    # Begin loop
+    for meme_file, out_file in zip(meme_file_list, output_file_list):
+        print 'Matching motifs to CISBP for file: %s' %meme_file
+        # Init my objs
+        meme_parser = file_parser(meme_file)
+        matched_rbps = []
+        
+        # Get list of known RBPs from database, useful for matching
+        # with CISBP Results.
+        rbp_list = extract_rbps_from_annotations(rbp_annotations)
+        
+        # Parse my file
+        with meme_parser:
+            # Iterate
+            while True:
                 myline = meme_parser.read_next_line()
-                # Iterate until end of matrix.
-                nucleotide_prob_list = []
-                while not end_of_prob_matrix(myline):
-                    nucleotide_prob_list.append(myline)
+                if myline == '':
+                    print('%s rows iterated.' %meme_parser.readcount)
+                    break
+                if start_of_prob_matrix(myline):
+                    '''
+                    Row is header for matrix we want.
+                    Iterate each row to collect values until
+                    end of matrix.
+                    '''
+                    motif_name = myline
+                    # Skip two lines, first line are dashes, second is header.
+                    meme_parser.read_next_line()
+                    meme_parser.read_next_line()
+                    # Get first row in matrix.
                     myline = meme_parser.read_next_line()
-                # Join the list of strings into one string, adding ACGU prefix.
-                cisbp_input = ''.join([' A  C  G  U\n'] + nucleotide_prob_list)
-                print 'Matching RBPs for motif: %s' %motif_name
-                matched_rbps += query_cisrbp_get_rbp(driver, cisbp_input, rbp_list)
-    matched_rbps = list(set(matched_rbps))
-    # Write matched RBPs to file.
-    print('RBPs found: %s.' %len(matched_rbps))
-    if len(matched_rbps) > 0:
-        counts = write_list_to_file(matched_rbps, out_file)
-        print('%s rows written to: %s' %(counts, out_file))
+                    # Iterate until end of matrix.
+                    nucleotide_prob_list = []
+                    while not end_of_prob_matrix(myline):
+                        nucleotide_prob_list.append(myline)
+                        myline = meme_parser.read_next_line()
+                    # Join the list of strings into one string, adding ACGU prefix.
+                    cisbp_input = ''.join([' A  C  G  U\n'] + nucleotide_prob_list)
+                    print 'Matching RBPs for motif: %s' %motif_name
+                    matched_rbps += query_cisrbp_get_rbp(driver, cisbp_input, rbp_list)
+        matched_rbps = list(set(matched_rbps))
+        # Write matched RBPs to file.
+        print('RBPs found: %s.' %len(matched_rbps))
+        if len(matched_rbps) > 0:
+            counts = write_list_to_file(matched_rbps, out_file)
+            print('%s rows written to: %s' %(counts, out_file))
     
     # Close
     driver.close()
-    
             
 if __name__ == '__main__':
-    parser = OptionParser()
-    parser.add_option('-f', '--infile', dest='meme_file', 
-                      help='Txt file from meme output from which to parse.')
-    parser.add_option('-r', '--rbpfile', dest='rbp_file',
-                      help='Txt file from CISBP containing RBP information.')
-    parser.add_option('-o', '--outfile', dest='out_file',
-                      help='Filename to be saved as output.')
-    parser.add_option('-a', '--annotationfile', dest='rbp_annotations',
-                      help='File containing RBP annotations from CISBP database')
+    usage = 'usage: %prog [options] infile outfile rbp_annotation_file'
+    parser = OptionParser(usage=usage)
+    parser.add_option('-b', '--batch_mode', dest='batch_mode',
+                      default=False,
+                      help='Batch mode: grabs all files in same directory as '\
+                      'infile and loop through each file in directory.')
     (options, args) = parser.parse_args()
-    main(options.meme_file, options.out_file, options.rbp_annotations)
+    meme_file = args[0]
+    out_file = args[1]
+    rbp_annotations = args[2]
+    
+    if options.batch_mode=='True':
+        # Get dir
+        meme_dir = os.path.dirname(meme_file)
+        # Get list of filenames in dir
+        meme_filename_list = os.listdir(meme_dir)
+        # Split extensions from filenames
+        meme_file_noext = [os.path.splitext(i)[0] for i in meme_filename_list]
+        # Add new extensions to filenames (will be our output)
+        output_filename_list = [''.join([i, '.rbps']) for i in meme_file_noext]
+        # Append back directory back to filenames
+        meme_file_list = \
+            [os.path.join(meme_dir, f) for f in meme_filename_list]
+        output_file_list = \
+            [os.path.join(meme_dir, o) for o in output_filename_list]
+    elif options.batch_mode=='False':
+        meme_file_list = [meme_file]
+        output_file_list = [out_file]
+    else:
+        print('--batch_mode option must be True '\
+              'or False. %s' %options.batch_mode)
+        sys.exit()
+    main(meme_file_list, output_file_list, rbp_annotations)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
