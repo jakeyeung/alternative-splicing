@@ -4,9 +4,16 @@ Created on 2013-10-05
 @author: jyeung
 Parse meme output to retrieve position-specific probability matrix 
 of each motif.
+
+Requires selenium and beautifulsoup!
 '''
 
 from optparse import OptionParser
+from selenium import webdriver
+from webtool_interactions.webtool_utilities import write_list_to_file
+from webtool_interactions.retrieve_rbp_from_pwm import \
+    query_cisrbp_get_rbp, extract_rbps_from_annotations
+
 
 class file_parser(object):
     '''
@@ -57,12 +64,18 @@ def end_of_prob_matrix(myline):
     else:
         return False
 
-def main(meme_file, out_file):
+def main(meme_file, out_file, rbp_annotations):
     '''
     Parse meme file, grab probability matrix, submit to CISBP.
     '''
-    # Init my obj
+    # Init my objs
     meme_parser = file_parser(meme_file)
+    driver = webdriver.Firefox()
+    matched_rbps = []
+    
+    # Get list of known RBPs from database, useful for matching
+    # with CISBP Results.
+    rbp_list = extract_rbps_from_annotations(rbp_annotations)
     
     # Parse my file
     with meme_parser:
@@ -91,8 +104,18 @@ def main(meme_file, out_file):
                     myline = meme_parser.read_next_line()
                 # Join the list of strings into one string, adding ACGU prefix.
                 cisbp_input = ''.join([' A  C  G  U\n'] + nucleotide_prob_list)
-                print cisbp_input
-             
+                print 'Matching RBPs for motif: %s' %motif_name
+                matched_rbps += query_cisrbp_get_rbp(driver, cisbp_input, rbp_list)
+    matched_rbps = list(set(matched_rbps))
+    # Write matched RBPs to file.
+    print('RBPs found: %s.' %len(matched_rbps))
+    if len(matched_rbps) > 0:
+        counts = write_list_to_file(matched_rbps, out_file)
+        print('%s rows written to: %s' %(counts, out_file))
+    
+    # Close
+    driver.close()
+    
             
 if __name__ == '__main__':
     parser = OptionParser()
@@ -102,5 +125,7 @@ if __name__ == '__main__':
                       help='Txt file from CISBP containing RBP information.')
     parser.add_option('-o', '--outfile', dest='out_file',
                       help='Filename to be saved as output.')
+    parser.add_option('-a', '--annotationfile', dest='rbp_annotations',
+                      help='File containing RBP annotations from CISBP database')
     (options, args) = parser.parse_args()
-    main(options.meme_file, options.out_file)
+    main(options.meme_file, options.out_file, options.rbp_annotations)

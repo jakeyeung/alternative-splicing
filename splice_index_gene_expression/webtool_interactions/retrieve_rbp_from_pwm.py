@@ -50,7 +50,7 @@ def remove_spaces_from_results(result):
         pass
     return result
 
-def retrieve_rbp_results(pagesource, tag, rbp_list):
+def retrieve_rbp_results(pagesource, rbp_list):
     '''
     Parse a page source, looking for a particular tag
     (e.g. for CISRBP, rbp names are in tag 'a').
@@ -63,6 +63,10 @@ def retrieve_rbp_results(pagesource, tag, rbp_list):
     
     I just set the results, not elegant, but it's ok.
     '''
+    
+    # Def constants
+    tag = 'a'    # <a> contains our RBP results.
+    
     # Use BeautifulSoup to parse html file
     results_source = BeautifulSoup(pagesource)
     all_results = results_source.findAll(tag)
@@ -76,10 +80,23 @@ def retrieve_rbp_results(pagesource, tag, rbp_list):
             pass
         if r_stripped in rbp_list:
             rbp_results.append(r_stripped)
-    return list(set(rbp_results))
+    rbp_results = list(set(rbp_results))
+    print('%s RBPs matched.' %len(rbp_results))
+    return rbp_results
 
-def query_cisrbp_get_rbp(driver, website, menuname, select_option, 
-                         textbox_id, input_lines, tag, rbp_list):
+def query_cisrbp_get_rbp(driver, input_lines, rbp_list):
+    '''
+    Inputs:
+        Driver: firefox preferably.
+        Input lines: PWM matrix containing A C G U header.
+        rbp_list, list containing known RBPs for matching.
+    '''
+    # Set constants
+    website = 'http://cisbp-rna.ccbr.utoronto.ca/TFTools.php'
+    menuname = 'scanMotifSpec'
+    select_option = 'Homo_sapiens'
+    textbox_id = 'scanPWM'
+    
     # Use Selenium to insert data and retrieve pagesource.
     # go to CISBP site
     driver.get(website)
@@ -91,7 +108,7 @@ def query_cisrbp_get_rbp(driver, website, menuname, select_option,
     input_element.send_keys(input_lines)
     input_element.submit()
     # Use BeautifulSoup to parse html file
-    my_rbps = retrieve_rbp_results(driver.page_source, tag, rbp_list)
+    my_rbps = retrieve_rbp_results(driver.page_source, rbp_list)
     return my_rbps
             
 def find_rbps_matching_motifs(pwm_folder, rbp_annotations, output_path):
