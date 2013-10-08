@@ -11,6 +11,7 @@ that we should split
 import sys
 import csv
 import re
+from optparse import OptionParser
 
 
 class read_bed_misobf(object):
@@ -310,15 +311,28 @@ def split_bed_by_inclusion_exclusion(bed_path, misobf_path,
                 sys.exit()
 
 def main():
-    if len(sys.argv) < 5:
-        print('bed_path (no appended/exon/intron suffix), misobf_path must be '\
-              'specified in command line.')
-    bed_path = sys.argv[1]
-    misobf_path = sys.argv[2]
-    suffix_list_csv = sys.argv[3]    # _exon1,exon2,_exon3,_intron1,_intron2
-    hyp_test_type = sys.argv[4]    # "bf" or "ttest"
-    # inclusion_bed_path = sys.argv[3]    # Relative to NEPC
-    # exclusion_bed_path = sys.argv[4]    # Relative to NEPC
+    default_suffix = '_exon1,_exon2,_exon3,_intron1_a5p,'\
+        '_intron1_b3p,_intron2_a5p,_intron2_b3p'
+    
+    usage = 'usage: %prog [options] bedfile_prefix misosummary_file'
+    parser = OptionParser(usage=usage)
+    
+    parser.add_option('-s', '--suffix_csv', dest='suffix_list_csv', 
+                      default=default_suffix,
+                      help='Suffix of bed file names.\n'\
+                      'default: %s' %default_suffix)
+    parser.add_option('-t', '--test_type', dest='hyp_test_type',
+                      default='ttest',
+                      help='The hypothesis test used to generate your '\
+                      'miso summary file.\nOnly "bf" or "ttest" accepted.'\
+                      'Default is "ttest"')
+    
+    (options, args) = parser.parse_args()
+    
+    bed_path = args[0]
+    misobf_path = args[1]
+    suffix_list_csv = options.suffix_list_csv
+    hyp_test_type = options.hyp_test_type
     
     # Create list of read bed paths:
     suffix_list = suffix_list_csv.split(',')
