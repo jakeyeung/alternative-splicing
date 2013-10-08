@@ -8,9 +8,7 @@
 
 args <- commandArgs(trailingOnly=TRUE)
 filename <- args[1]
-bh_pval_cutoff <- as.numeric(args[2])
-delta_psi_cutoff <- as.numeric(args[3])
-output_filename <- args[4]
+output_filename <- args[2]
 
 
 # Functions ---------------------------------------------------------------
