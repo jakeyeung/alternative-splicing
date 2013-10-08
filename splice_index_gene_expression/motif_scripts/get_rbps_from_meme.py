@@ -5,6 +5,8 @@ Created on 2013-10-05
 Parse meme output to retrieve position-specific probability matrix 
 of each motif.
 
+Returns all the RBPs that match!
+
 Requires selenium and beautifulsoup!
 '''
 
