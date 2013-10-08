@@ -99,7 +99,13 @@ def main(fasta_file_list, min_width, max_width, n_motifs,
     for fasta_file in fasta_file_list:
         # Get fasta files for input to meme
         fasta_lines = webtool_utilities.read_textfile_as_string(fasta_file)
-        
+        print 'Number of characters: %s' %len(fasta_lines)
+        if len(fasta_lines) > 70000:
+            print('Fasta file: %s possibly too large.\n'\
+                  'Warning: number of characters (%s) may be too large for meme to '\
+                  'handle.\nDouble check that the fasta file '\
+                  'was actually submitted to meme.' %(fasta_file, 
+                                                      len(fasta_lines)))
         # Go to meme website
         driver.get(website)
         
@@ -152,7 +158,8 @@ if __name__ == '__main__':
     fasta_file = args[0]
     email = args[1]
     
-    if options.batch_mode:
+    if options.batch_mode==True:
+        print 'hello world'
         fasta_dir = os.path.dirname(fasta_file)
         fasta_file_list = \
             [os.path.join(fasta_dir, f) for f in os.listdir(fasta_dir) \
