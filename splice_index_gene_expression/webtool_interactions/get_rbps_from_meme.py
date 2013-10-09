@@ -14,8 +14,8 @@ import sys
 import os
 from optparse import OptionParser
 from selenium import webdriver
-from webtool_interactions.webtool_utilities import write_list_to_file
-from webtool_interactions.retrieve_rbp_from_pwm import \
+from webtool_utilities import write_list_to_file
+from retrieve_rbp_from_pwm import \
     query_cisrbp_get_rbp, extract_rbps_from_annotations
 
 
