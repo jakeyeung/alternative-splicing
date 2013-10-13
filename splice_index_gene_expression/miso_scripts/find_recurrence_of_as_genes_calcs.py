@@ -5,6 +5,8 @@ Created on 2013-09-09
 
 After running find_recurrence_of_as_genes.py, open its output file
 and do some analytics and maybe make a pretty graph.
+
+What kind of analytics? psi_avg distances
 '''
 
 
@@ -12,7 +14,13 @@ import sys
 import csv
 
 def write_meds_to_file(inclusion_list, exclusion_list, output_path):
+    '''
+    Given inclusion and exclusion list, calculate
+    the distance with respect to PCa (g1) and 
+    write it to file.
+    '''
     writecount = 0
+    distance_list = []
     with open(output_path, 'wb') as writefile:
         writer = csv.writer(writefile, delimiter='\t')
         header = ['psi', 'group', 'inclusion_or_exclusion']
@@ -23,34 +31,27 @@ def write_meds_to_file(inclusion_list, exclusion_list, output_path):
             g1 = tup[0]
             g2 = tup[2]
             
-            '''
-            print i_or_e
-            print tup[1]
-            print g1
-            print g2
-            print s_interpolated
-            raw_input()
-            '''
-            
             if i_or_e == 'inclusion':
                 g1_row = ['0', 'PC', i_or_e]
                 g2_row = ['1', 'NEPC', i_or_e]
                 s_interpolated = (tup[1] - g1) / (g2 - g1)
+                # Calculate distance from PC or group 1
+                distance_list.append(float(s_interpolated) - 0)
                 samp_row = [str(s_interpolated), 'sample', i_or_e]
             else:
                 g1_row = ['1', 'PC', i_or_e]
                 g2_row = ['0', 'NEPC', i_or_e]
                 s_interpolated = (tup[1] - g2) / (g1 - g2)
+                # Calculate distance from PC or group 1
+                distance_list.append(1 - float(s_interpolated))
                 samp_row = [str(s_interpolated), 'sample', i_or_e]
-            '''
-            g1_row = [tup[0], 'g1', i_or_e]
-            g2_row = [tup[2], 'g2', i_or_e]
-            samp_row = [tup[1], 's', i_or_e]
-            '''
             for row in [g1_row, g2_row, samp_row]:
                 writer.writerow(row)
                 writecount += 1
+        # Calculate mean of distance values.
+        dist_mean = float(sum(distance_list)) / len(distance_list)
     print('%s rows written to file: %s' %(writecount, output_path))
+    return dist_mean
 
 def get_group_psi_med(group, psi_med_list):
     '''
@@ -68,6 +69,18 @@ def get_group_psi_med(group, psi_med_list):
     return group1_psi_avg, group2_psi_avg
 
 def get_subtype_inclusion_or_exclusion(samp_psi_tup_list):
+    '''
+    From a tuple list of form:
+    (group1_psi_avg(PCa), sample_psi, group2_psi_avg(NEPC)),
+    determine if the sample_psi belongs to inclusion or exclusion.
+    
+    We assume that:
+    g1: PCa
+    g2: NEPC
+    
+    If g2 - g1 > 0, it is INCLUSION with respect to g2 (NEPC)
+    If g2 - g1 < 0, it is EXCLUSION with respect to g2 (NEPC)
+    '''
     group1 = [i[0] for i in samp_psi_tup_list]
     samp = [i[1] for i in samp_psi_tup_list]
     group2 = [i[2] for i in samp_psi_tup_list]
@@ -78,50 +91,30 @@ def get_subtype_inclusion_or_exclusion(samp_psi_tup_list):
         if g2 - g1 > 0:    # inclusion in g2
             inclusion_list.append((g1, s, g2))
         if g2 - g1 < 0:
-            exclusion_list.append((g1, s, g2))
-    print inclusion_list
-    print exclusion_list
-    
-    g1_exclusion = []
-    g2_inclusion = []
-    g2_exclusion = []
-    g1_inclusion = []
-    samp_in_g1 = []
-    samp_in_g2 = []
-    for g1, s, g2 in zip(group1, samp, group2):
-        if g2 - g1 > 0:    # inclusion in g2
-            g1_exclusion.append(g1)
-            g2_inclusion.append(g2)
-            if g2 - s < s - g1:    # Then it is closer to g2
-                samp_in_g2.append(samp)
-            elif g2 - s > s - g1:    # closer to g1
-                samp_in_g1.append(samp)
-            else:
-                print('They are equal? g1: %s, g2: %s, samp: %s' %(g1, g2, s))
-                sys.exit()
-        elif g2 - g1 < 0:    # exclusion in g2
-            g1_inclusion.append(g1)
-            g2_exclusion.append(g2)
-            if g1 - s < s - g2:    # Then it is closer to g1
-                samp_in_g1.append(samp)
-            elif g1 - s > s - g2:    # closer to g2.
-                samp_in_g2.append(samp)
-    print g1_exclusion, g1_inclusion
-    print g2_exclusion, g2_inclusion
-    print len(samp_in_g1), len(samp_in_g2)
-    
+            exclusion_list.append((g1, s, g2))    
     return inclusion_list, exclusion_list
-    '''
-    dist_to_g1 = 0
-    dist_to_g2 = 0
-    for g1, g2, s in zip(group1, group2, samp):
-        dist_to_g1 += abs(g1 - s)
-        dist_to_g2 += abs(g2 - s)
-    print dist_to_g1
-    print dist_to_g2
-    '''
 
 def read_info(input_path):
+    '''
+    From miso summary of a particular sample (containing DS events of
+    interest (obtained from find_recurrence_of_as_genes.py.
+    
+    First, loops through each row, creating a tuple list of form:
+    (group1_psi_avg(PCa), sample_psi, group2_psi_avg(NEPC)
+    
+    Then separate the list to whether it is inclusion or exclusion
+    with respect to NEPC.
+    
+    Outputs:
+    inclusion_list:
+        A list containing tuples of the form:
+        (group1_psi_avg(PCa), sample_psi, group2_psi_avg(NEPC)
+        where group2_psi_avg - group1_psi_avg > 0
+    exclusion_list:
+        Tuple list of form:
+        (group1_psi_avg(PCa), sample_psi, group2_psi_avg(NEPC)
+        where group2_psi_avg - group1_psi-avg < 0
+    '''
     with open(input_path, 'rb') as readfile:
         reader = csv.reader(readfile, delimiter='\t')
         header = reader.next()
@@ -131,8 +124,6 @@ def read_info(input_path):
                 sample_psi = float(row[header.index('sample_psi_mean')])
             except IndexError:
                 continue
-            event = row[header.index('event')]
-            gsymbol = row[header.index('gsymbol')]
             group = row[header.index('group')].split(',')
             psi_meds = row[header.index('psi_median')].split(',')
             group1_psi_avg, group2_psi_avg = get_group_psi_med(group, psi_meds)
@@ -142,10 +133,19 @@ def read_info(input_path):
             get_subtype_inclusion_or_exclusion(samp_psi_tup_list)
         return inclusion_list, exclusion_list
         
+def write_dist_mean_to_file(dist_mean, write_path):
+    with open(write_path, 'wb') as writefile:
+        mywriter = csv.writer(writefile, delimiter='\t')
+        mywriter.writerow([dist_mean, write_path])
+    print 'Dist mean written to file: %s' %write_path
 
-def main(input_path, out_path):
+def main(input_path, out_path, dist_mean_path):
+    # Grab inclusion and exclusion list
     inclusion_list, exclusion_list = read_info(input_path)
-    write_meds_to_file(inclusion_list, exclusion_list, out_path)
+    dist_mean = write_meds_to_file(inclusion_list, exclusion_list, out_path)
+    write_dist_mean_to_file(dist_mean, dist_mean_path)
+    print '%s mean distance for %s' %(dist_mean, input_path)
+    
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         print('input file containing recurrence of genes must be specified'\
@@ -153,4 +153,5 @@ if __name__ == '__main__':
         sys.exit()
     input_path = sys.argv[1]
     out_path = sys.argv[2]
-    main(input_path, out_path)
+    dist_mean_path = sys.argv[3]
+    main(input_path, out_path, dist_mean_path)
