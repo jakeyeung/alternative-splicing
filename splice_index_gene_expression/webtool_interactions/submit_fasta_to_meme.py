@@ -106,6 +106,7 @@ def main(fasta_file_list, min_width, max_width, n_motifs,
                   'handle.\nDouble check that the fasta file '\
                   'was actually submitted to meme.' %(fasta_file, 
                                                       len(fasta_lines)))
+            print('Try to get the character length to less than 70000.')
         # Go to meme website
         driver.get(website)
         
@@ -158,13 +159,16 @@ if __name__ == '__main__':
     fasta_file = args[0]
     email = args[1]
     
-    if options.batch_mode==True:
+    if options.batch_mode=='True':
         fasta_dir = os.path.dirname(fasta_file)
         fasta_file_list = \
             [os.path.join(fasta_dir, f) for f in os.listdir(fasta_dir) \
                      if f.endswith('.fasta')]
-    else:
+    elif options.batch_mode=='False':
         fasta_file_list = [fasta_file]
+    else:
+        print('Batch mode must be either True or False. %s' %options.batch_mode)
+        sys.exit()
     
     main(fasta_file_list, options.min_width, options.max_width, 
          options.n_motifs, email, options.dist, options.is_ss)
