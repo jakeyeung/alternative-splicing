@@ -87,6 +87,17 @@ def above_min_psi_diff(row, header, psi_diff_thres=0.4):
         above_threshold = True
     return above_threshold
 
+def matches_list(row, header, mylist):
+    '''
+    Check if row matches mylist (gene names)
+    '''
+    genename_index = get_col_index('gsymbol', header)
+    genename = row[genename_index]
+    if genename in mylist:
+        return True
+    else:
+        return False
+
 def get_header_strings():
     '''
     Get some predefined colnames used as 
@@ -175,6 +186,25 @@ def index_high_conf_as_events(as_events_path, min_psi_diff=0.4):
         indexed_events = iterate_filter_events(events_obj)
     return indexed_events
 
+def index_as_events(as_events_path, as_genes):
+    '''
+    Take as_events, match with as_genes, return a dictionary
+    containing indexed_events.
+    '''
+    events_dic = {}
+    rowcount = 0
+    
+    events_obj = events_read_obj(as_events_path)
+    with(events_obj):
+        for row in events_obj.reader:
+            if matches_list(row, events_obj.header, as_genes) and \
+            above_avg_min_counts(row, events_obj.header, avg_min_counts_thres=1) and \
+            above_min_psi_diff(row, events_obj.header, psi_diff_thres=0.4):
+                write_event_to_dic(row, events_obj.header, events_dic)
+                rowcount += 1
+    print ('%s events indexed into dictionary.' %rowcount)
+    return events_dic
+    
 def get_sample_info(miso_summary_path):
     '''
     Read miso_summary file, return a list of tuples containing
@@ -260,8 +290,9 @@ def write_embedded_dic_to_file(index_dic, header, write_obj):
             counts = subdic['sample_counts']
             no_samp = False
         except KeyError:
+            counts='(0,0):0,(0,1):0,(1,0):0,(1,1):0'
             no_samp = True
-        if above_counts_threshold(counts, threshold=3) or no_samp==True:
+        if above_counts_threshold(counts, threshold=3) and no_samp==False:
             wrow = []
             wrow.append(key)    # Make event the first element in list.
             for h in header:
@@ -271,7 +302,7 @@ def write_embedded_dic_to_file(index_dic, header, write_obj):
                     miss_count += 1
             write_obj.writerow(wrow)
             writecount += 1
-    print('%s events missed for some reason...' %miss_count)
+    print('%s events missed due to KeyError in searching subdic' %miss_count)
     return writecount
 
 def write_sample_info_and_dic_to_file(index_dic, sample_info, write_path):
@@ -291,11 +322,26 @@ def write_sample_info_and_dic_to_file(index_dic, sample_info, write_path):
         write_count = write_embedded_dic_to_file(index_dic, out_header, jwriter)
     print('%s rows written to %s.' %(write_count, write_path))
     return index_dic
+
+def read_list_from_file(myfile):
+    '''
+    Read file, assumes contains one column, returns the values 
+    in column 1 as a list.
+    '''
+    mylist = []
+    with open(myfile, 'rb') as readfile:
+        myreader = csv.reader(readfile, delimiter='\t')
+        for row in myreader:
+            mylist += row
+    return mylist
                     
-def main(as_events_path, miso_summary_path, write_path):
-    as_events_dic = index_high_conf_as_events(as_events_path)
+def main(as_events_path, miso_summary_path, driver_genes_path, write_path):
+    as_genes = read_list_from_file(driver_genes_path)
+    print '%s driver genes supplied...' %len(as_genes)
+    as_events_dic = index_as_events(as_events_path, as_genes)
+    # as_events_dic = index_high_conf_as_events(as_events_path)
     tup_list = get_sample_info(miso_summary_path)
-    appended_dic = write_sample_info_and_dic_to_file(as_events_dic, 
+    _ = write_sample_info_and_dic_to_file(as_events_dic, 
                                                      tup_list, 
                                                      write_path)
 
@@ -306,5 +352,6 @@ if __name__ == '__main__':
         sys.exit()
     as_events_path = sys.argv[1]
     miso_summary_path = sys.argv[2]
-    write_path = sys.argv[3]
-    main(as_events_path, miso_summary_path, write_path)
+    driver_genes_path = sys.argv[3]
+    write_path = sys.argv[4]
+    main(as_events_path, miso_summary_path, driver_genes_path, write_path)
