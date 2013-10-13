@@ -1,0 +1,48 @@
+rm(list=ls())
+
+# Plot dist calcs
+
+library(ggplot2)
+library(plyr)
+
+
+# Functions ---------------------------------------------------------------
+
+stderr <- function(x){
+    return(sqrt(var(x)/length(x)))
+}
+
+
+# Main --------------------------------------------------------------------
+
+
+mydf <- read.table('G:/jyeung/projects/alternative_splicing/output/miso_outputs/mark_rubin/comparison_all_samples/hitndrive/distcalcs_summary2.txt', 
+                   header=TRUE, sep='\t')
+str(mydf)
+
+# Summarize distance means.
+# mydfm <- ddply(mydf, .(genelist, phenotype), summarise, avg_dist=mean(dist_mean))
+mydfm <- ddply(mydf, .(genelist, phenotype), summarise, avg_dist=mean(dist_mean), 
+               sd=sd(dist_mean), n=length(dist_mean))
+se <- with(mydfm, sd / sqrt(n))
+mydfm <- cbind(mydfm, se)
+
+# Rename all_aberrant -> "All Differentially Spliced Genes" and drivers -> "Driver Spliced Genes".
+levels(mydfm$genelist)[levels(mydfm$genelist) == 'all_aberrant'] <- 'All Spliced Genes'
+levels(mydfm$genelist)[levels(mydfm$genelist) == 'drivers'] <- 'Driver Spliced Genes'
+# NEPC_mixed -> NEPC Mixed
+levels(mydfm$phenotype)[levels(mydfm$phenotype) == 'NEPC_mixed'] <- 'NEPC Mixed'
+
+
+# ggplot(mydfm, aes(x=genelist, y=avg_dist)) + 
+#     geom_bar(aes(fill=phenotype), position=position_dodge(), stat="identity") + 
+#     theme_bw(30) + ylab('Average Distance from PCa') + xlab('Gene Lists')
+
+ggplot(mydfm, aes(x=genelist, y=avg_dist, fill=phenotype)) +
+    geom_bar(position=position_dodge(), stat='identity') + 
+    geom_errorbar(aes(ymin=avg_dist-se, ymax=avg_dist+se),
+                  position=position_dodge(0.9), width=0.1,size=0.3) +
+    theme_bw(30) +
+    ylab('Average Distance from PCa') +
+    xlab('Gene Lists')
+    
