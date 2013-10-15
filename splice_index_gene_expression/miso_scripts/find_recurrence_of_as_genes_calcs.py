@@ -35,14 +35,14 @@ def write_meds_to_file(inclusion_list, exclusion_list, output_path):
                 g1_row = ['0', 'PC', i_or_e]
                 g2_row = ['1', 'NEPC', i_or_e]
                 s_interpolated = (tup[1] - g1) / (g2 - g1)
-                # Calculate distance from PC or group 1
+                # Calculate distance from PC or group 1. PC == 0.
                 distance_list.append(float(s_interpolated) - 0)
                 samp_row = [str(s_interpolated), 'sample', i_or_e]
             else:
                 g1_row = ['1', 'PC', i_or_e]
                 g2_row = ['0', 'NEPC', i_or_e]
                 s_interpolated = (tup[1] - g2) / (g1 - g2)
-                # Calculate distance from PC or group 1
+                # Calculate distance from PC or group 1. PC == 1.
                 distance_list.append(1 - float(s_interpolated))
                 samp_row = [str(s_interpolated), 'sample', i_or_e]
             for row in [g1_row, g2_row, samp_row]:
