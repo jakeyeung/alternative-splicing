@@ -26,12 +26,15 @@ mydfm <- ddply(mydf, .(genelist, phenotype), summarise, avg_dist=mean(dist_mean)
                sd=sd(dist_mean), n=length(dist_mean))
 se <- with(mydfm, sd / sqrt(n))
 mydfm <- cbind(mydfm, se)
+# Remove BPH because it's not going to be in the paper.
+mydfm <- subset(mydfm, phenotype != 'BPH')
+
 
 # Rename all_aberrant -> "All Differentially Spliced Genes" and drivers -> "Driver Spliced Genes".
 levels(mydfm$genelist)[levels(mydfm$genelist) == 'all_aberrant'] <- 'All Spliced Genes'
 levels(mydfm$genelist)[levels(mydfm$genelist) == 'drivers'] <- 'Driver Spliced Genes'
-# NEPC_mixed -> NEPC Mixed
-levels(mydfm$phenotype)[levels(mydfm$phenotype) == 'NEPC_mixed'] <- 'NEPC Mixed'
+# Change NEPC_mixed to NEPC Mixed
+levels(mydfm$phenotype)[levels(mydfm$phenotype) == 'NEPC_mixed'] <- 'NEPC-PCa Hybrid'
 
 
 # ggplot(mydfm, aes(x=genelist, y=avg_dist)) + 
