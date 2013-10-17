@@ -37,15 +37,10 @@ levels(mydfm$genelist)[levels(mydfm$genelist) == 'drivers'] <- 'Driver Spliced G
 levels(mydfm$phenotype)[levels(mydfm$phenotype) == 'NEPC_mixed'] <- 'NEPC-PCa Hybrid'
 
 
-# ggplot(mydfm, aes(x=genelist, y=avg_dist)) + 
-#     geom_bar(aes(fill=phenotype), position=position_dodge(), stat="identity") + 
-#     theme_bw(30) + ylab('Average Distance from PCa') + xlab('Gene Lists')
-
-ggplot(mydfm, aes(x=genelist, y=avg_dist, fill=phenotype)) +
+ggplot(mydfm, aes(x=phenotype, y=avg_dist, fill=genelist)) +
     geom_bar(position=position_dodge(), stat='identity') + 
     geom_errorbar(aes(ymin=avg_dist-se, ymax=avg_dist+se),
                   position=position_dodge(0.9), width=0.1,size=0.3) +
     theme_bw(30) +
-    ylab('Average Distance from PCa') +
-    xlab('Gene Lists')
-    
+    labs(x='Phenotype', y='Distance from PCa', fill='Gene List') +
+    opts(legend.direction = "horizontal", legend.position = "bottom")
