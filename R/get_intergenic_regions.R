@@ -59,14 +59,6 @@ get_random_intergenic_coordinate <- function(ordered_bm_output,
     return(c(random_region_start, random_region_end))
 }
 
-# Define Constants --------------------------------------------------------
-
-# n_per_chr <- 100    # Choose 100 regions in each chromosome.
-# n_rows_to_choose <- 50    # Pick how many intergenic regions
-# output_fname <- paste0("G:/jyeung/projects/alternative_splicing/output/",
-#     "miso_outputs/mark_rubin_hg19_v2_rl_insertdist/SE.hg19.gff3/",
-#     "t_test_results/bed_files/intergenic_regions.bed")
-
 # Define Chromosomes ------------------------------------------------------
 
 chromosomes <- as.vector(c(seq(1, 22), 'X', 'Y'))
@@ -76,11 +68,11 @@ strand <- as.vector(c('1'))
 # Get all protein coding genes.
 genes <- getBM(attributes=c('chromosome_name', 
                             'start_position', 
-                            'end_position'), 
+                            'end_position',
+                            'hgnc_symbol'), 
                filters=c('chromosome_name', 'strand'),
                values=list(chromosomes, strand),
                mart=mart)
-str(genes)
 
 
 # Find complement of protein coding genes ---------------------------------
@@ -108,7 +100,6 @@ for(jchr in chromosomes){
         intergenic_df[count, ] <- chr_start_end_vec
     }
 }
-str(intergenic_df)
 
 
 # Pick random rows from intergenic df -------------------------------------
@@ -117,10 +108,9 @@ rand_rows <- sample(1:nrow(intergenic_df), n_rows_to_choose)
 
 intergenic_df.rand_subset <- intergenic_df[rand_rows, ]
 
-str(intergenic_df.rand_subset)
-
-
 # Write to File -----------------------------------------------------------
 
 write.table(intergenic_df.rand_subset, output_fname, quote=FALSE, 
             row.names=FALSE, sep='\t')
+
+print(paste(nrow(intergenic_df.rand_subset), 'rows written to file:', output_fname))
