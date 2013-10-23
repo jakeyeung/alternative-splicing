@@ -75,9 +75,15 @@ def main(meme_file_list, output_file_list, rbp_annotations):
     # Init driver
     driver = webdriver.Firefox()
     
+    # Init log file
+    output_dir = os.path.dirname(output_file_list[0])
+    logfile = open(os.path.join(output_dir, 'run_log.log'), 'wb')
+    
     # Begin loop
     for meme_file, out_file in zip(meme_file_list, output_file_list):
-        print 'Matching motifs to CISBP for file: %s' %meme_file
+        printstr = 'Matching motifs to CISBP for file: %s\n' %meme_file
+        print printstr
+        logfile.write(printstr)
         # Init my objs
         meme_parser = file_parser(meme_file)
         matched_rbps = []
@@ -113,20 +119,33 @@ def main(meme_file_list, output_file_list, rbp_annotations):
                         myline = meme_parser.read_next_line()
                     # Join the list of strings into one string, adding ACGU prefix.
                     cisbp_input = ''.join([' A  C  G  U\n'] + nucleotide_prob_list)
-                    print 'Matching RBPs for motif: %s' %motif_name
-                    matched_rbps += query_cisrbp_get_rbp(driver, cisbp_input, rbp_list)
+                    printstr = 'Matching RBPs for motif: %s\n' %motif_name
+                    print printstr
+                    logfile.write(printstr)
+                    rbp_results = query_cisrbp_get_rbp(driver, 
+                                                       cisbp_input, 
+                                                       rbp_list) 
+                    printstr = '%s RBPs matched.\n' %len(rbp_results) 
+                    print(printstr)
+                    logfile.write(printstr)
+                    
+                    matched_rbps += rbp_results
         matched_rbps = list(set(matched_rbps))
         # Write matched RBPs to file.
-        print('RBPs found: %s.' %len(matched_rbps))
+        printstr = 'RBPs found: %s.\n' %len(matched_rbps)
+        print(printstr)
+        logfile.write(printstr)
         if len(matched_rbps) > 0:
             counts = write_list_to_file(matched_rbps, out_file)
-            print('%s rows written to: %s' %(counts, out_file))
+            printstr = '%s rows written to: %s.\n' %(counts, out_file)
+            print(printstr)
+            logfile.write(printstr)
     
     # Close
     driver.close()
             
 if __name__ == '__main__':
-    usage = 'usage: %prog [options] infile outfile rbp_annotation_file'
+    usage = 'usage: %prog [options] infile.out outfile rbp_annotation_file'
     parser = OptionParser(usage=usage)
     parser.add_option('-b', '--batch_mode', dest='batch_mode',
                       default=False,
@@ -141,7 +160,8 @@ if __name__ == '__main__':
         # Get dir
         meme_dir = os.path.dirname(meme_file)
         # Get list of filenames in dir
-        meme_filename_list = os.listdir(meme_dir)
+        meme_filename_list = \
+            [f for f in os.listdir(meme_dir) if f.endswith('.out')]
         # Split extensions from filenames
         meme_file_noext = [os.path.splitext(i)[0] for i in meme_filename_list]
         # Add new extensions to filenames (will be our output)
@@ -158,6 +178,11 @@ if __name__ == '__main__':
         print('--batch_mode option must be True '\
               'or False. %s' %options.batch_mode)
         sys.exit()
+    # Remove any log files from filelist
+    try:
+        output_file_list.pop(output_file_list.index('run_log.log'))
+    except ValueError:
+        pass
     main(meme_file_list, output_file_list, rbp_annotations)
     
     

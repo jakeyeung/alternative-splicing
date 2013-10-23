@@ -81,7 +81,6 @@ def retrieve_rbp_results(pagesource, rbp_list):
         if r_stripped in rbp_list:
             rbp_results.append(r_stripped)
     rbp_results = list(set(rbp_results))
-    print('%s RBPs matched.' %len(rbp_results))
     return rbp_results
 
 def query_cisrbp_get_rbp(driver, input_lines, rbp_list):
