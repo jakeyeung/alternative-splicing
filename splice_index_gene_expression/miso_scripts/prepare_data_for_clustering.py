@@ -80,6 +80,18 @@ def write_row_dic_to_file(row_dic, writeheader, mywriter):
     mywriter.writerow(ordered_values)
     return None
 
+def check_not_duplicate(jstr, jstr_list):
+    '''
+    Check string to see if string is in list.
+    The number of times it matches, is how many +'s we add to
+    its name.
+    '''
+    if jstr in jstr_list:
+        counts = jstr_list.count(jstr)
+        # add number of + equal to count matches.
+        jstr = ''.join([jstr] + ['+']*counts) 
+    return jstr
+
 def main():
     # Get parse options.
     usage = 'usage: %prog [options] t_test_file samp1_file samp2_file write_output_file'
@@ -125,6 +137,7 @@ def main():
         myreader = csv.reader(readfile, delimiter='\t')
         header = myreader.next()
         writecount = 0
+        gsymbol_list = []    # keep track of genes, avoid duplicates.
         for row in myreader:
             '''
             For each row, grab sample names and their PSI median values.
@@ -141,13 +154,18 @@ def main():
             
             # Get gsymbol, row samps (as list), psi meds (as list)
             gsymbol = get_row_info(row, header, gsymbol_str, csv=False)
+            if gsymbol == 'NA':
+                gsymbol = 'no_name'
+            # Check if gsymbol is already in gsymbol list, modify genename if so.
+            gsymbol_checked = check_not_duplicate(gsymbol, gsymbol_list)
+            gsymbol_list.append(gsymbol)
             row_samps = get_row_info(row, header, sample_name_str, csv=True)
             row_psi_meds = get_row_info(row, header, psi_median_str, csv=True)
 
             # Fill in rowsamps, psimeds, gsymbol into our initialized row_dic
             row_dic = fill_dic(row_dic, 
                                row_samps + [gsymbol_str], 
-                               row_psi_meds + [gsymbol])
+                               row_psi_meds + [gsymbol_checked])
             
             # Write row_dic and gsymbol to file.
             write_row_dic_to_file(row_dic, 
