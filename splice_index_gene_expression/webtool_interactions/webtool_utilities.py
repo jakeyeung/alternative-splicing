@@ -14,7 +14,17 @@ try:
 except ImportError:
     from BeautifulSoup import BeautifulSoup    # windows
 
-
+def str_to_bool(true_false_str):
+    '''
+    Try to convert str to boolean. Works if string looks like True or False.
+    '''
+    if true_false_str in ['True', 'TRUE',' true', 't', 'T']:
+        return True
+    elif true_false_str in ['False', 'FALSE', 'false', 'f', 'F']:
+        return False
+    else:
+        print('Option must be True or False: %s found.' %true_false_str)
+        return None
 
 def selenium_test():
     # Firefox Webdriver

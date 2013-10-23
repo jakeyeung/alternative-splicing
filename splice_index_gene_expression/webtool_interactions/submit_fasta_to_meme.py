@@ -43,7 +43,7 @@ def set_meme_parameters(driver, min_width, max_width, n_motifs):
                                                  clear_defaults=True)
     return None
 
-def set_meme_options(driver, dist, is_iss):
+def set_meme_options(driver, dist, is_iss, shuffle_mode):
     '''
     Set distribution and whether to it is single stranded or not.
     
@@ -68,15 +68,34 @@ def set_meme_options(driver, dist, is_iss):
               '"zero_one". %s found.' %dist)
         sys.exit()
     is_iss_checkbox_name = 'posonly'
+    shuffle_mode_checkbox_name = 'shuffle'
     
     # Click on radio button for distribution
     dist_radio_butt = \
         driver.find_element_by_xpath('//input[@value="%s"]' %dist_val)
     dist_radio_butt.click()
     
-    # Checkbox for is_single_strand
-    is_iss_checkbox = driver.find_element_by_name(is_iss_checkbox_name)
-    is_iss_checkbox.click()
+    # Checkbox for is_single_strand only if is_iss == True.
+    if is_iss == True:
+        is_iss_checkbox = driver.find_element_by_name(is_iss_checkbox_name)
+        is_iss_checkbox.click()
+    elif is_iss == False:
+        pass
+    else:
+        print('Single strange mode must be True or False. %s found.' %is_iss)
+        sys.exit()
+        
+    # Checkbox for shuffle_mode
+    if shuffle_mode == True:
+        shuffle_mode_checkbox = \
+            driver.find_element_by_name(shuffle_mode_checkbox_name)
+        shuffle_mode_checkbox.click()
+    elif shuffle_mode == False:
+        pass
+    else:
+        print('Shuffle mode must be True or False. %s found.' %shuffle_mode)
+        sys.exit()
+        
     return None
 
 def set_meme_description(driver, descript):
@@ -87,7 +106,7 @@ def set_meme_description(driver, descript):
     return None
 
 def main(fasta_file_list, min_width, max_width, n_motifs, 
-         email, dist, is_iss):
+         email, dist, is_iss, shuffle_mode):
     # Set constants
     website = 'http://meme.nbcr.net/meme/cgi-bin/meme.cgi'
     textbox_id_name = 'data'
@@ -121,7 +140,7 @@ def main(fasta_file_list, min_width, max_width, n_motifs,
         set_meme_parameters(driver, min_width, max_width, n_motifs)
         
         # Select meme options
-        set_meme_options(driver, dist, is_iss)
+        set_meme_options(driver, dist, is_iss, shuffle_mode)
         
         # Submit fasta lines to website.
         webtool_utilities.submit_text_to_textbox(driver, fasta_lines, 
@@ -148,30 +167,39 @@ if __name__ == '__main__':
     parser.add_option('--distribution', dest='dist', default='zero_one',
                       help='Occurence of a single motif is distributed how?'\
                       'Possible values: one, zero_one, any. Default: zero_one')
-    parser.add_option('--is_single_strand', dest='is_ss', default=True,
+    parser.add_option('--is_single_strand', dest='is_ss', default='True',
                       help='Search given strand only? Default True.')
-    parser.add_option('--batch_mode', dest='batch_mode', default=False,
+    parser.add_option('--batch_mode', dest='batch_mode', default='False',
                       help='If True: submits all fasta files in fasta_file directory to MEME.\n'\
                       'If False (Default): only submits fasta file in arg1 to MEME.\n'\
                       'Note: Keep arg1 as fastas_file, rather than directory even in batch_mode')
+    parser.add_option('--shuffle_mode', dest='shuffle_mode', default='False',
+                      help='If True, shuffles sequences, to determine a null hypothesis.')
+    parser.add_option('--description')
     (options, args) = parser.parse_args()
     
     fasta_file = args[0]
     email = args[1]
     
-    if options.batch_mode=='True':
+    # Parse True/False statements into boolean.
+    options.is_ss = webtool_utilities.str_to_bool(options.is_ss)
+    options.batch_mode = webtool_utilities.str_to_bool(options.batch_mode)
+    options.shuffle_mode = webtool_utilities.str_to_bool(options.shuffle_mode)
+    
+    if options.batch_mode==True:
         fasta_dir = os.path.dirname(fasta_file)
         fasta_file_list = \
             [os.path.join(fasta_dir, f) for f in os.listdir(fasta_dir) \
                      if f.endswith('.fasta')]
-    elif options.batch_mode=='False':
+    elif options.batch_mode==False:
         fasta_file_list = [fasta_file]
     else:
         print('Batch mode must be either True or False. %s' %options.batch_mode)
         sys.exit()
     
     main(fasta_file_list, options.min_width, options.max_width, 
-         options.n_motifs, email, options.dist, options.is_ss)
+         options.n_motifs, email, options.dist, options.is_ss, 
+         options.shuffle_mode)
     
 
 
