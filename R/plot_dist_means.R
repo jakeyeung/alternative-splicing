@@ -1,5 +1,3 @@
-rm(list=ls())
-
 # Plot dist calcs
 
 library(ggplot2)
@@ -34,13 +32,13 @@ mydfm <- subset(mydfm, phenotype != 'BPH')
 levels(mydfm$genelist)[levels(mydfm$genelist) == 'all_aberrant'] <- 'All Spliced Genes'
 levels(mydfm$genelist)[levels(mydfm$genelist) == 'drivers'] <- 'Driver Spliced Genes'
 # Change NEPC_mixed to NEPC Mixed
-levels(mydfm$phenotype)[levels(mydfm$phenotype) == 'NEPC_mixed'] <- 'NEPC-PCa Hybrid'
+levels(mydfm$phenotype)[levels(mydfm$phenotype) == 'NEPC_mixed'] <- 'NEPC-PCa Mixed'
 
-
+gg_summary <- 
 ggplot(mydfm, aes(x=phenotype, y=avg_dist, fill=genelist)) +
     geom_bar(position=position_dodge(), stat='identity') + 
     geom_errorbar(aes(ymin=avg_dist-se, ymax=avg_dist+se),
                   position=position_dodge(0.9), width=0.1,size=0.3) +
-    theme_bw(30) +
+    theme_bw() +
     labs(x='Phenotype', y='Distance from PCa', fill='Gene List') +
     opts(legend.direction = "horizontal", legend.position = "bottom")
