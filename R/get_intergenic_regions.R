@@ -21,7 +21,16 @@ mart <- useMart(biomart="ensembl", dataset="hsapiens_gene_ensembl")
 args <- commandArgs(trailingOnly=TRUE)
 output_fname <- args[1]
 n_rows_to_choose <- args[2]
+ensembl_or_ucsc <- args[3]
 n_per_chr <- 100
+ucsc_pos_str_genes <- paste0('/Data/jyeung/projects/alternative_splicing/input',
+    '/ucsc_protein_coding_genes/all_pos_strand_genes.txt')
+if (ensembl_or_ucsc == 'ensembl' | ensembl_or_ucsc == 'ucsc'){
+    print(paste('Found type:', ensembl_or_ucsc))
+} else{
+    print(paste('Third argument must be either "ensembl" or "ucsc".', 
+                ensembl_or_ucsc, 'found.'))
+}
 
 # My Functions ------------------------------------------------------------
 
@@ -62,27 +71,54 @@ get_random_intergenic_coordinate <- function(ordered_bm_output,
 # Define Chromosomes ------------------------------------------------------
 
 chromosomes <- as.vector(c(seq(1, 22), 'X', 'Y'))
+# Add chr prefix to chromosome names
+ensembl_or_ucsc='ucsc'
+if (ensembl_or_ucsc=='ucsc'){
+    i <- 1
+    for (mychr in chromosomes){
+        chromosomes[i] <- paste0('chr', mychr)
+        i <- i + 1
+    }
+}
+
+
+# Define Strand -----------------------------------------------------------
+
 strand <- as.vector(c('1'))
 
-# Query biomart -----------------------------------------------------------
-# Get all protein coding genes.
-genes <- getBM(attributes=c('chromosome_name', 
-                            'start_position', 
-                            'end_position',
-                            'hgnc_symbol'), 
-               filters=c('chromosome_name', 'strand'),
-               values=list(chromosomes, strand),
-               mart=mart)
+# Query biomart or UCSC -----------------------------------------------------------
 
+ucsc_pos_str_genes <- paste0('G:/jyeung/projects/alternative_splicing/input',
+                            '/ucsc_protein_coding_genes/all_pos_strand_genes.txt')
+
+# Get all protein coding genes from ENSEMBL
+if (ensembl_or_ucsc=='ensembl'){
+    strand <- as.vector(c('1'))
+    genes <- getBM(attributes=c('chromosome_name', 
+                                'start_position', 
+                                'end_position',
+                                'hgnc_symbol'), 
+                   filters=c('chromosome_name', 'strand'),
+                   values=list(chromosomes, strand),
+                   mart=mart)
+} else if (ensembl_or_ucsc=='ucsc'){
+    # Get all protein coding genes from UCSC
+    genes <- read.table(ucsc_pos_str_genes, header=FALSE, sep='\t', skip=0, 
+                        col.names=c('chromosome_name', 
+                                    'start_position', 'end_position'))
+    # Remove rows that do not have standard chromosome names.
+    genes <- subset(genes, chromosome_name %in% chromosomes)
+}
 
 # Find complement of protein coding genes ---------------------------------
 
 intergenic_df <- data.frame(matrix(NA, nrow=n_per_chr, ncol=6))
 colnames(intergenic_df) <- c('track name=intergenic_regions description="intergenic_regions"',
-                             '', '', '', '', '')
+                             rep('', 5)
 count <- 0
 
-# Loop through chromosomes
+# Loop through chromosomes: necessary only for Ensembl, but do it for UCSC for modularity
+chromosomes <- c('chr7')
 for(jchr in chromosomes){
     df.subset <- subset(genes, chromosome_name == jchr)
     # Order by start, then by end.
@@ -94,8 +130,15 @@ for(jchr in chromosomes){
     # Get intergenic region
     for (i in 1:n_per_chr){
         start_end_vec <- get_random_intergenic_coordinate(df.subset.sort)
-        chr_start_end_vec <- c(paste0('chr',jchr), start_end_vec, 
-                               'intergene', 0, '+')
+        # Add chr prefix only if dealing with ENSEMBL.
+        # But either case, add chromosome, start, end, name, score, strand.
+        if (ensembl_or_ucsc=='ensembl'){
+            chr_start_end_vec <- c(paste0('chr',jchr), start_end_vec, 
+                                   'intergene', 0, '+')   
+        } else if (ensembl_or_ucsc == 'ucsc'){
+            chr_start_end_vec <- c(jchr, start_end_vec, 
+                                   'intergene', 0, '+')
+        }
         count <- count + 1
         intergenic_df[count, ] <- chr_start_end_vec
     }
