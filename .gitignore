@@ -6,7 +6,6 @@
 *.pyc
 *.pydevproject
 *.project
-*.sh
 *.txt
 *.args
 *.out
