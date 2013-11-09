@@ -9,6 +9,7 @@ Read the TomTom outputs matching RBP IDs and (after filtering) return RBP names.
 import sys
 import csv
 from optparse import OptionParser
+from utilities import writing_utils
 
 def update_dic_with_rbp_info(mydic, rbp_row):
     '''
@@ -35,7 +36,7 @@ def update_dic_with_rbp_info(mydic, rbp_row):
     family_name_index = 9
     rbd_index = 10
     # Columns containing my key (DBID)
-    dbid_index = 11
+    dbid_index = 13
     
     # Add DBID as key.
     if rbp_row[dbid_index] not in mydic:
@@ -62,26 +63,125 @@ def index_rbp_file(rbp_db_path):
             rbp_index_dic = update_dic_with_rbp_info(rbp_index_dic, row)
     return rbp_index_dic
 
+def passes_orientation(row, header, filter_strand):
+    '''
+    If filter_strand is True:
+        Given row, checks if row orientation is + (boolean)
+    Otherwise, returns True no matter what.
+    '''
+    # Def colname
+    orientation_colname = 'Orientation'
+    if filter_strand:
+        return row[header.index(orientation_colname)] == '+'
+    else:
+        return True
+
+def passes_qval_cutoff(row, header, filter_qval):
+    '''
+    Given row, checks if qvalue is less than or equal to
+    filter_qval.
+    '''
+    # def colname
+    qval_colname = 'q-value'
+    qval = float(row[header.index(qval_colname)])
+    return qval <= filter_qval
+
+def get_rbp_info(llists, row, header, rbp_index_dic):
+    '''
+    Get relevant RBP information appending it as a list to
+    llist (making a list of lists).
+    
+    First: get info from row.
+    Second: get info from rbp_index_dic
+    '''
+    # Def colnames
+    # TomTom colnames 
+    targetid_colname = 'Target ID'
+    qval_colname = 'q-value'
+    overlap_colname = 'Overlap'
+    query_colname = 'Query consensus'
+    target_colname = 'Target consensus'
+    
+    # Begin getting info from RBP dictionary.
+    rbp_info = []
+    rbp_id_key = row[header.index(targetid_colname)]
+    try:
+        rbp_info += rbp_index_dic[rbp_id_key]
+        # Begin getting info from row.
+        for col in [targetid_colname, qval_colname, overlap_colname, 
+                    query_colname, target_colname]:
+            rbp_info.append(row[header.index(col)])
+        llists.append(rbp_info)
+    except KeyError:
+        # print '%s not in human RBP database.' %rbp_id_key
+        pass
+    return llists
+
+def extract_rbps_from_tomtom(tomtom_path, rbp_index_dic, 
+                             filter_qval=1, 
+                             filter_strand=True):
+    '''
+    Reads tomtom path, matches TargetID from TomTom to rbp dictionary.
+    Extract:
+        1) TargetID
+        2) Q value
+    From RBP ID extract values corresponding to TargetID.
+    Options:
+        filter_qval: only looks at hits with qval less
+             than or equal to filter_qval
+        filter_strand: if true: only look at positive strand orientations.        
+    '''
+    rbp_matches = []    # list of lists.
+    with open(tomtom_path, 'rb') as tomtom_file:
+        tomtom_reader = csv.reader(tomtom_file, delimiter='\t')
+        tomtom_header = tomtom_reader.next()
+        for row in tomtom_reader:
+            if passes_orientation(row, tomtom_header, filter_strand) and \
+                passes_qval_cutoff(row, tomtom_header, filter_qval):
+                # Get info from TomTom file and indexed dictionary.
+                rbp_matches = get_rbp_info(rbp_matches, row, tomtom_header, 
+                                           rbp_index_dic)
+    return rbp_matches
+
 def main():
     usage = 'usage: %prog tomtom_file.txt rbp_database.txt output_file.txt'
     parser = OptionParser(usage=usage)
-    (_, args) = parser.parse_args()
+    parser.add_option('-q', '--q_cutoff', dest='qval_cutoff', default=0.15,
+                      help='Specify Q-value cutoff, default 0.15.')
+    parser.add_option('-s', '--filter_strand', dest='filter_strand', 
+                      default='True',
+                      help='Specify whether to filter strand (True->"+" only)')
+    (options, args) = parser.parse_args()
     if len(args) < 3:
         print('Three positional arguments required to '\
               'be specified in command line:\n'
               '1) TomTom output file, containing RBP IDs.\n'
               '2) RBP Database file, containing RBP information.\n'
-              '3)Output file.')
+              '3) Output file.')
         sys.exit()
     tomtom_path = args[0]
     rbp_db_path = args[1]
     output_path = args[2]
-    
+    qval_cutoff = float(options.qval_cutoff)
+    if options.filter_strand in ['True', 'true', 'TRUE', 'T', 't']:
+        filter_strand = True
+    elif options.filter_strand in ['False', 'false', 'FALSE', 'F', 'f']:
+        filter_strand = False
+    else:
+        print 'Filter strand must be True or False. %s found.' \
+        %options.filter_strand
+        sys.exit()
+     
     # Index RBP DB file.
     rbp_index_dic = index_rbp_file(rbp_db_path)
     
-    # 
-    
+    # Read TomTom file, extract relevant RBPs.
+    matched_rbps = extract_rbps_from_tomtom(tomtom_path, 
+                                            rbp_index_dic,
+                                            filter_qval=qval_cutoff,
+                                            filter_strand=filter_strand)
+    # Write TomTom file to output.
+    writing_utils.write_list_of_lists_to_file(matched_rbps, output_path)
 
 if __name__ == '__main__':
     main()
