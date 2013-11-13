@@ -54,7 +54,7 @@ set_params_plot_heatmap3 <- function(psi_matrix, plot_title){
               labRow='',
               labCol='',
               xlab='Patients',
-              density.info = 'histogram',
+              density.info = 'density',
               main=main_title)
     legend('topright', legend=c('Adenocarcinoma', 'Neuroendocrine'), 
            fill=c('red', 'blue'), 
@@ -88,13 +88,6 @@ lapply(list(c(matrix_file.SE, se_plot_title), c(matrix_file.MXE, mxe_plot_title)
         mymat <- prepare_t_test_matrix(mymat)
         set_params_plot_heatmap3(mymat, x[2])
 })
-# psi_matrix.SE <- as.matrix(read.table(matrix_file, row.names=1, header=TRUE, sep='\t'))
-# psi_matrix.SE <- prepare_t_test_matrix(psi_matrix)
-# set_params_plot_heatmap3(psi_matrix)
-# 
-# psi_matrix.MXE <- as.matrix(read.table(matrix_file, row.names=1, header=TRUE, sep='\t'))
-# psi_matrix.MXE <- prepare_t_test_matrix(psi_matrix)
-# set_params_plot_heatmap3(psi_matrix)
 
 
 
