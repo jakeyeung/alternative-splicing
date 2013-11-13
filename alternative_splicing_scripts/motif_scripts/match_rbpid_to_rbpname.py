@@ -11,6 +11,56 @@ import csv
 from optparse import OptionParser
 from utilities import writing_utils
 
+def get_colname_and_index_lists():
+    '''
+    Get column names and index names used to 
+    identify columns in RBP_Information_all_motifs.txt (RBP DB file)
+    
+    The list contains info OTHER than the DBID name, the DBID
+    is not obtained here, since it is considered slightly different.
+    '''
+    # Define my column name indices.
+    # Columns containing my values.
+    ensembl_index = 5
+    ensembl_str = 'ensembl'
+    rbp_name_index = 6
+    rbp_name_str = 'rbp_name'
+    rbp_species_index = 7
+    rbp_species_str = 'rbp_species'
+    rbp_status_index = 8
+    rbp_status_str = 'rbp_status'
+    family_name_index = 9
+    family_name_str = 'family_name'
+    rbd_index = 10
+    rbd_str = 'RBD'
+
+    # Create list of colnames
+    colname_list = [ensembl_str, rbp_name_str, rbp_species_str, 
+                    rbp_status_str, family_name_str, rbd_str]
+    # Create list of indices, minus dbid_index.
+    index_list = [ensembl_index, rbp_name_index, 
+                  rbp_species_index, rbp_status_index, 
+                  family_name_index, rbd_index]
+    return colname_list, index_list
+
+def get_tomtom_output_colnames():
+    '''
+    Retrieves the relevant set of TomTom output names, specifically:
+    Target ID
+    q-value
+    Overlap
+    Query consensus
+    Target consensus
+    '''
+    # TomTom colnames 
+    targetid_colname = 'Target ID'
+    qval_colname = 'q-value'
+    overlap_colname = 'Overlap'
+    query_colname = 'Query consensus'
+    target_colname = 'Target consensus'
+    return [targetid_colname, qval_colname, overlap_colname, 
+            query_colname, target_colname]
+
 def update_dic_with_rbp_info(mydic, rbp_row):
     '''
     Given a row in RBP_Information_all_motifs.txt (RBP DB file),
@@ -27,25 +77,19 @@ def update_dic_with_rbp_info(mydic, rbp_row):
     Justification for hard coding indexes rather than column names:
         There are duplicate column names, namingly DBID shows up twice.
     '''
-    # Define my column name indices.
-    # Columns containing my values.
-    ensembl_index = 5
-    rbp_name_index = 6
-    rbp_species_index = 7
-    rbp_status_index = 8
-    family_name_index = 9
-    rbd_index = 10
+    # Get column and index list for my values.
+    colname_list, index_list = get_colname_and_index_lists()
     # Columns containing my key (DBID)
     dbid_index = 13
-    
     # Add DBID as key.
     if rbp_row[dbid_index] not in mydic:
-        mydic[rbp_row[dbid_index]] = []    # create empty list.
-    
+        mydic[rbp_row[dbid_index]] = {}    # init a subdic...
+        # Create key:value, with key as colname, with empty list as value.
+        for subkey in colname_list:
+            mydic[rbp_row[dbid_index]][subkey] = []  # create empty list.
     # Append values to list.
-    for i in [ensembl_index, rbp_name_index, rbp_species_index, 
-              rbp_status_index, family_name_index, rbd_index]:
-        mydic[rbp_row[dbid_index]].append(rbp_row[i])
+    for subkey, i in zip(colname_list, index_list):
+        mydic[rbp_row[dbid_index]][subkey].append(rbp_row[i])
     return mydic
 
 def index_rbp_file(rbp_db_path):
@@ -102,19 +146,20 @@ def get_rbp_info(llists, row, header, rbp_index_dic):
     query_colname = 'Query consensus'
     target_colname = 'Target consensus'
     
-    # Begin getting info from RBP dictionary.
+    # prepare getting info from DIC and from ROW.
     rbp_info = []
     rbp_id_key = row[header.index(targetid_colname)]
-    try:
-        rbp_info += rbp_index_dic[rbp_id_key]
+    
+    if rbp_id_key in rbp_index_dic:
+        # Get info from RBP dic.
+        for subkey in rbp_index_dic[rbp_id_key].keys():
+            # Collapse list into CSV...
+            rbp_info.append(','.join(rbp_index_dic[rbp_id_key][subkey]))
         # Begin getting info from row.
         for col in [targetid_colname, qval_colname, overlap_colname, 
                     query_colname, target_colname]:
             rbp_info.append(row[header.index(col)])
         llists.append(rbp_info)
-    except KeyError:
-        # print '%s not in human RBP database.' %rbp_id_key
-        pass
     return llists
 
 def extract_rbps_from_tomtom(tomtom_path, rbp_index_dic, 
@@ -150,7 +195,8 @@ def main():
                       help='Specify Q-value cutoff, default 0.15.')
     parser.add_option('-s', '--filter_strand', dest='filter_strand', 
                       default='True',
-                      help='Specify whether to filter strand (True->"+" only)')
+                      help='Specify whether to filter strand (True searches '
+                      '"+" only, False searches "+" and "-")')
     (options, args) = parser.parse_args()
     if len(args) < 3:
         print('Three positional arguments required to '\
@@ -181,7 +227,12 @@ def main():
                                             filter_qval=qval_cutoff,
                                             filter_strand=filter_strand)
     # Write TomTom file to output.
-    writing_utils.write_list_of_lists_to_file(matched_rbps, output_path)
+    rbp_db_colnames, _ = get_colname_and_index_lists()
+    tomtom_colnames = get_tomtom_output_colnames()
+    writeheader = rbp_db_colnames + tomtom_colnames
+    writing_utils.write_list_of_lists_to_file(matched_rbps, 
+                                              output_path, 
+                                              header=writeheader)
 
 if __name__ == '__main__':
     main()
