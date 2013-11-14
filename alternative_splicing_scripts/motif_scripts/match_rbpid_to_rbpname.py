@@ -130,13 +130,9 @@ def passes_qval_cutoff(row, header, filter_qval):
     qval = float(row[header.index(qval_colname)])
     return qval <= filter_qval
 
-def get_rbp_info(llists, row, header, rbp_index_dic):
+def get_row_info(row, header, rbp_info):
     '''
-    Get relevant RBP information appending it as a list to
-    llist (making a list of lists).
-    
-    First: get info from row.
-    Second: get info from rbp_index_dic
+    Get row information, upt it into rbp_info (a list)
     '''
     # Def colnames
     # TomTom colnames 
@@ -145,6 +141,22 @@ def get_rbp_info(llists, row, header, rbp_index_dic):
     overlap_colname = 'Overlap'
     query_colname = 'Query consensus'
     target_colname = 'Target consensus'
+    # Begin getting info from row.
+    for col in [targetid_colname, qval_colname, overlap_colname, 
+                query_colname, target_colname]:
+        rbp_info.append(row[header.index(col)])
+    return rbp_info
+
+def get_rbp_info(llists, row, header, rbp_index_dic):
+    '''
+    Get relevant RBP information appending it as a list to
+    llist (making a list of lists).
+    
+    First: get info from row.
+    Second: get info from rbp_index_dic
+    '''
+    # Def colname
+    targetid_colname = 'Target ID'
     
     # prepare getting info from DIC and from ROW.
     rbp_info = []
@@ -155,11 +167,15 @@ def get_rbp_info(llists, row, header, rbp_index_dic):
         for subkey in rbp_index_dic[rbp_id_key].keys():
             # Collapse list into CSV...
             rbp_info.append(','.join(rbp_index_dic[rbp_id_key][subkey]))
-        # Begin getting info from row.
-        for col in [targetid_colname, qval_colname, overlap_colname, 
-                    query_colname, target_colname]:
-            rbp_info.append(row[header.index(col)])
-        llists.append(rbp_info)
+    else:
+        # If it did not match dic, write info anyways
+        # Match some colnames, fill with NA...
+        colnames, _ = get_colname_and_index_lists()
+        for _ in colnames:
+            rbp_info.append('NA')
+    # Grab row information...
+    rbp_info = get_row_info(row, header, rbp_info)
+    llists.append(rbp_info)
     return llists
 
 def extract_rbps_from_tomtom(tomtom_path, rbp_index_dic, 
