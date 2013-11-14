@@ -126,6 +126,7 @@ def main():
         print 'Overwriting file: %s' %output_file
         
     # init write file
+    fcount = 0
     with open(output_file, 'wb') as outfile:
         write_meme_headers(outfile)
         # Loop input files, reading their motifs and adding it to 
@@ -133,7 +134,8 @@ def main():
             motifname = os.path.basename(f)
             motifs = read_motifs_from_file(f)
             write_motif_to_file(outfile, motifs, motifname)
-            
+            fcount += 1
+    print '%s motif files crafted into: %s' %(fcount, output_file)
     
 if __name__ == '__main__':
     main()
