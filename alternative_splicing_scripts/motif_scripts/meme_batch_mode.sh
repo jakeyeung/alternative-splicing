@@ -107,6 +107,7 @@ echo "Distribution of motifs: $mod"
 echo "Number of motifs to discover: $nmotifs"
 echo "Minimum width of motifs: $minw"
 echo "Maximum width of motifs: $maxw"
+echo "E-value threshold for MEME: $evt"
 echo "Q value threshold for TomTom motif comparison: $thresh"
 echo "Database used for TomTom motif comparison: $db"
 
