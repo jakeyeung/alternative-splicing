@@ -7,7 +7,8 @@ Created on 2013-11-08
 import csv
 
 def write_motif_to_file(outfile, motif, motifname, 
-                         alength=4, nsites=500, evalue=0):
+                        alength=4, nsites=500, evalue=0,
+                        end_line='\n'):
     '''
     After reading motif from an input file,
     write the list of motif, with motifname as header
@@ -15,6 +16,9 @@ def write_motif_to_file(outfile, motif, motifname,
     alength: number of letters, 4 since it's nucleotides.
     nsites: number of sites from which motif was enriched
     eval: E value of motif that was enriched.
+    
+    end_line: end each motif with carriage return. Can respecify
+    to be \n\n if it works better.
     '''
     # Write motifname
     outfile.write('MOTIF %s\n' %motifname)
@@ -26,7 +30,7 @@ def write_motif_to_file(outfile, motif, motifname,
     for lett_freq in motif:
         outfile.write('%s' %lett_freq)
     # Add extra space at the end...
-    outfile.write('\n\n')
+    outfile.write(end_line)
     return None
 
 def write_meme_version(writefile, meme_version):
