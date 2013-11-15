@@ -15,29 +15,6 @@ import os
 from optparse import OptionParser
 from utilities import writing_utils, reading_utils
 
-def write_motif_to_file(outfile, motif, motifname, 
-                         alength=4, nsites=500, evalue=0):
-    '''
-    After reading motif from an input file,
-    write the list of motif, with motifname as header
-    Default options:
-    alength: number of letters, 4 since it's nucleotides.
-    nsites: number of sites from which motif was enriched
-    eval: E value of motif that was enriched.
-    '''
-    # Write motifname
-    outfile.write('MOTIF %s\n' %motifname)
-    # Write motif stats
-    width = len(motif)
-    outfile.write('letter-probability matrix: alength= %s w= %s '\
-                  'nsites= %s E= %s\n' %(alength, width, nsites, evalue))
-    # Write motif
-    for lett_freq in motif:
-        outfile.write('%s' %lett_freq)
-    # Add extra space at the end...
-    outfile.write('\n\n')
-    return None
-
 def main():
     usage = 'usage: %prog inputfile1 inputfile2 ... inputfileN outputfile'
     parser = OptionParser(usage=usage)
@@ -66,7 +43,7 @@ def main():
         for f in input_file_list:
             motifname = os.path.basename(f)
             motifs = reading_utils.read_motifs_from_file(f)
-            write_motif_to_file(outfile, motifs, motifname)
+            writing_utils.write_motif_to_file(outfile, motifs, motifname)
             fcount += 1
     print '%s motif files crafted into: %s' %(fcount, output_file)
     

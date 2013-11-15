@@ -6,6 +6,29 @@ Created on 2013-11-08
 
 import csv
 
+def write_motif_to_file(outfile, motif, motifname, 
+                         alength=4, nsites=500, evalue=0):
+    '''
+    After reading motif from an input file,
+    write the list of motif, with motifname as header
+    Default options:
+    alength: number of letters, 4 since it's nucleotides.
+    nsites: number of sites from which motif was enriched
+    eval: E value of motif that was enriched.
+    '''
+    # Write motifname
+    outfile.write('MOTIF %s\n' %motifname)
+    # Write motif stats
+    width = len(motif)
+    outfile.write('letter-probability matrix: alength= %s w= %s '\
+                  'nsites= %s E= %s\n' %(alength, width, nsites, evalue))
+    # Write motif
+    for lett_freq in motif:
+        outfile.write('%s' %lett_freq)
+    # Add extra space at the end...
+    outfile.write('\n\n')
+    return None
+
 def write_meme_version(writefile, meme_version):
     '''
     Writes meme version to file.
