@@ -13,22 +13,7 @@ something bad happens and it gets overwritten.
 import sys
 import os
 from optparse import OptionParser
-from utilities import writing_utils
-
-def read_motifs_from_file(myfile, skipheader=True):
-    '''
-    Given a motif file (format is A C G U followed by
-    a position-weighted matrix (PWM)),
-    extract the fractions as a list, then return it.
-    '''
-    mymotifs = []
-    with open(myfile, 'rb') as readfile:
-        # Skip header, contains A C G U, we know that alrdy.
-        if skipheader == True:
-            readfile.readline()
-        for l in readfile:
-            mymotifs.append(l)
-    return mymotifs
+from utilities import writing_utils, reading_utils
 
 def write_motif_to_file(outfile, motif, motifname, 
                          alength=4, nsites=500, evalue=0):
@@ -80,7 +65,7 @@ def main():
         # Loop input files, reading their motifs and adding it to 
         for f in input_file_list:
             motifname = os.path.basename(f)
-            motifs = read_motifs_from_file(f)
+            motifs = reading_utils.read_motifs_from_file(f)
             write_motif_to_file(outfile, motifs, motifname)
             fcount += 1
     print '%s motif files crafted into: %s' %(fcount, output_file)

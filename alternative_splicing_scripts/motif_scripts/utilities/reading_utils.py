@@ -4,7 +4,6 @@ Created on 2013-11-14
 @author: jyeung
 '''
 
-import sys
 import csv
 
 def store_textfile_as_list(textfile, collapse_list=True):
@@ -27,3 +26,18 @@ def store_textfile_as_list(textfile, collapse_list=True):
     else:
         print 'Collapse_list must be either True or False (boolean)'
     return mylist
+
+def read_motifs_from_file(myfile, skipheader=True):
+    '''
+    Given a motif file (format is A C G U followed by
+    a position-weighted matrix (PWM)),
+    extract the fractions as a list, then return it.
+    '''
+    mymotifs = []
+    with open(myfile, 'rb') as readfile:
+        # Skip header, contains A C G U, we know that alrdy.
+        if skipheader == True:
+            readfile.readline()
+        for l in readfile:
+            mymotifs.append(l)
+    return mymotifs
