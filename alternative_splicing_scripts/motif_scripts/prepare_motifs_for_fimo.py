@@ -13,60 +13,7 @@ something bad happens and it gets overwritten.
 import sys
 import os
 from optparse import OptionParser
-
-def write_meme_version(writefile, meme_version):
-    '''
-    Writes meme version to file.
-    Adds double carriage return afterwards...
-    '''
-    writefile.write('MEME Version %s\n\n' %meme_version)
-    return None
-
-def write_alphabet(writefile, alphabet):
-    '''
-    Write alphabet parameters to file.
-    Adds double carriage return.
-    '''
-    writefile.write('ALPHABET= %s\n\n' %alphabet)
-    return None
-
-def write_strand(writefile, strand):
-    '''
-    write strand and double carraige return
-    '''
-    writefile.write('strands: %s\n\n' %strand)
-    return None
-
-def write_bckgrd_letter_freqs(writefile, bckgrd_freqs):
-    '''
-    bckgrd freqs is a list, in the order of ACGT.
-    Parse this and write to file.
-    '''
-    writefile.write('Background letter frequencies\nA %s C %s G %s T %s\n\n' \
-                    %(bckgrd_freqs[0], bckgrd_freqs[1], 
-                      bckgrd_freqs[2], bckgrd_freqs[3]))
-    return None
-
-def write_meme_headers(writefile, 
-                       meme_version=4, 
-                       alphabet='ACGT', 
-                       strands='+', 
-                       bckgrd_freqs=[0.25, 0.25, 0.25, 0.25]):
-    '''
-    Take an opened outfile (using open() function)
-    and write necessary headers.
-    Default options:
-    meme_version = 4
-    alphabet = ACGT (nucleotide)
-    strands = + (can be + - if you please)
-    bckgrd_freqs = frequencies of ACGT, respectively. Default 0.25 across all.
-    '''
-    # Write necessary information for header...
-    write_meme_version(writefile, meme_version)
-    write_alphabet(writefile, alphabet)
-    write_strand(writefile, strands)
-    write_bckgrd_letter_freqs(writefile, bckgrd_freqs)
-    return None
+from utilities import writing_utils
 
 def read_motifs_from_file(myfile):
     '''
@@ -128,7 +75,7 @@ def main():
     # init write file
     fcount = 0
     with open(output_file, 'wb') as outfile:
-        write_meme_headers(outfile)
+        writing_utils.write_meme_headers(outfile)
         # Loop input files, reading their motifs and adding it to 
         for f in input_file_list:
             motifname = os.path.basename(f)
