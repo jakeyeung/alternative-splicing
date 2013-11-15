@@ -18,7 +18,10 @@ from utilities import writing_utils, reading_utils
 def main():
     usage = 'usage: %prog inputfile1 inputfile2 ... inputfileN outputfile'
     parser = OptionParser(usage=usage)
-    (_, args) = parser.parse_args()
+    parser.add_option('-n', '--genename', dest='genename',
+                      help='Name of gene, prefix added to motifname.',
+                      default='')
+    (options, args) = parser.parse_args()
     if len(args) < 3:
         print('Two args must be specified in commandline: \n'\
               'One or more input files\n'\
@@ -26,6 +29,7 @@ def main():
         sys.exit()
     input_file_list = args[0:-1]
     output_file = args[-1]
+    genename = options.genename
     
     # Check output file does NOT exist
     if os.path.isfile(output_file):
@@ -42,8 +46,12 @@ def main():
         # Loop input files, reading their motifs and adding it to 
         for f in input_file_list:
             motifname = os.path.basename(f)
+            # remove .txt from motifname
+            motifname = ''.join(motifname.split('.')[:-1])
+            motifname = ','.join([genename, motifname, 'D'])
             motifs = reading_utils.read_motifs_from_file(f)
-            writing_utils.write_motif_to_file(outfile, motifs, motifname)
+            writing_utils.write_motif_to_file(outfile, motifs, motifname,
+                                              end_line='\n\n')
             fcount += 1
     print '%s motif files crafted into: %s' %(fcount, output_file)
     
