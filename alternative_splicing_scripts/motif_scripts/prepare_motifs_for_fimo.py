@@ -15,7 +15,7 @@ import os
 from optparse import OptionParser
 from utilities import writing_utils
 
-def read_motifs_from_file(myfile):
+def read_motifs_from_file(myfile, skipheader=True):
     '''
     Given a motif file (format is A C G U followed by
     a position-weighted matrix (PWM)),
@@ -24,7 +24,8 @@ def read_motifs_from_file(myfile):
     mymotifs = []
     with open(myfile, 'rb') as readfile:
         # Skip header, contains A C G U, we know that alrdy.
-        readfile.readline()
+        if skipheader == True:
+            readfile.readline()
         for l in readfile:
             mymotifs.append(l)
     return mymotifs
