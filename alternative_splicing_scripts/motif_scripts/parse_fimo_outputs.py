@@ -89,14 +89,14 @@ def add_info_for_dic(fimo_info_dic, region, incl_or_excl):
     '''
     pass
 
-def get_region_from_dirname(dir):
+def get_region_from_dirname(mydir):
     '''
     Parse name of the directory and try to get
     the region (exon_1, incl_2_3p...)
     '''
     pass
 
-def get_incl_or_excl_from_dirname(dir):
+def get_incl_or_excl_from_dirname(mydir):
     '''
     Parse name of the directory and try to get
     whether it is inclusion or exclusion...
