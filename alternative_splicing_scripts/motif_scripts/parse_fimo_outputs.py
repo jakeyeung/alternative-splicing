@@ -31,22 +31,19 @@ def get_fimo_subkeys():
     '''
     Get fimo subkeys to store into subdictionary.
     Subkeys:
-    q-value
     rbp_name
-    n_motif_occurences
     exon_intron_region
     inclusion_or_exclusion
     
+    Does not include q-value...
     Return as a list.
     '''
-    qval = 'q-value'
     rbpname = 'rbp_name'
-    n_occurs = 'n_motif_occurences'
     region = 'exon_intron_region'
     incl_excl = 'inclusion_or_exclusion'
-    return [qval, rbpname, n_occurs, region, incl_excl]
+    return [rbpname, region, incl_excl]
     
-def get_qvals_from_fimo(fimo_path, writeobj):
+def get_info_from_fimo_output(fimo_path, writeobj):
     '''
     Read fimo output, it's not ordered in any sane way, so we will do it 
     with no shortcuts.
@@ -57,7 +54,8 @@ def get_qvals_from_fimo(fimo_path, writeobj):
     # Def colname constants
     pattern_name_colname = '#pattern name'
     qval_colname = 'q-value'
-    qval_med_colname = 'median_q-value'
+    qval_med_subkey = 'median_q-value'
+    n_occurs_subkey = 'n_motif_occurences'
     
     fimo_dic = {}
     with open(fimo_path, 'rb') as readfile:
@@ -77,8 +75,19 @@ def get_qvals_from_fimo(fimo_path, writeobj):
     for pat_name, qval_list in fimo_dic.iteritems():
         # Get median qvalue
         med_qval = stats_functions.median(qval_list)
-        fimo_dic[pat_name][qval_med_colname] = med_qval
+        fimo_dic[pat_name][qval_med_subkey] = med_qval
+        fimo_dic[pat_name][n_occurs_subkey] = len(qval_list)
     return fimo_dic
+
+def get_rbp_name_from_pat_name(pat_name):
+    '''
+    From a pat name of expected CSV form: rbp,motifid,D_or_I
+    extract rbp.
+    '''
+    pat_name_split = pat_name.split(',')
+    # Get first element, rejoin...
+    rbp = ','.join(pat_name_split[0])
+    return rbp
 
 def add_info_for_dic(fimo_info_dic, region, incl_or_excl):
     '''
@@ -87,21 +96,39 @@ def add_info_for_dic(fimo_info_dic, region, incl_or_excl):
     region: exon_intron region, like exon_1 or intron_2_3p
     incl_or_excl: inclusion or exclusion.
     '''
-    pass
+    for pat_name in fimo_info_dic.keys():
+        rbp_name = get_rbp_name_from_pat_name(pat_name)
+        subkeys = get_fimo_subkeys()
+        for subk, subval in zip(subkeys, [rbp_name, region, incl_or_excl]):
+            fimo_info_dic[pat_name][subk] = subval
 
 def get_region_from_dirname(mydir):
     '''
     Parse name of the directory and try to get
     the region (exon_1, incl_2_3p...)
+    
+    Expecting mydir to be of form
+    ExonOrIntron_1or2or3_InclusionOrExclusion
     '''
-    pass
+    mydir_split = mydir.split('_')
+    # Remove last element, keep the first two elements, rejoin.
+    mydir = '_'.join(mydir_split[:-1])
+    return mydir
 
 def get_incl_or_excl_from_dirname(mydir):
     '''
     Parse name of the directory and try to get
     whether it is inclusion or exclusion...
     '''
-    pass
+    mydir_split = mydir.split('_')
+    # keep last element only, rejoin.
+    incl_or_excl = '_'.join(mydir_split[-1])
+    if incl_or_excl == 'inclusion' or incl_or_excl == 'exclusion':
+        return mydir
+    else:
+        print 'Expected incl_or_excl to be "inclusion" or "exclusion". '
+        '%s found.' %incl_or_excl
+        sys.exit()
 
 def main():
     usage = 'usage: %prog fimo_out_dir output_file.txtfile\n'\
@@ -136,7 +163,7 @@ def main():
             incl_or_excl = get_incl_or_excl_from_dirname(d)
             
             fimo_path = os.path.join(fimo_dir, d, fimo_filename)
-            fimo_info_dic = get_qvals_from_fimo(fimo_path, mywriter)
+            fimo_info_dic = get_info_from_fimo_output(fimo_path, mywriter)
             fimo_info_dic = add_info_for_dic(fimo_info_dic, region, 
                                              incl_or_excl)
         
