@@ -19,10 +19,10 @@ def get_output_colnames():
     '''
     # def constants
     pattern_name_str = 'pattern_name'
-    gene_name_str = 'gene_name'
+    gene_name_str = 'rbp_name'
     region_str = 'exon_intron_region'
     occurences_str = 'n_motif_occurences'
-    med_qval_str = 'median_q_val'
+    med_qval_str = 'median_q_value'
     incl_excl_str = 'inclusion_or_exclusion'
     return [pattern_name_str, gene_name_str, region_str, 
             occurences_str, med_qval_str, incl_excl_str]
@@ -43,21 +43,26 @@ def get_fimo_subkeys():
     incl_excl = 'inclusion_or_exclusion'
     return [rbpname, region, incl_excl]
     
-def get_info_from_fimo_output(fimo_path, writeobj):
+def get_info_from_fimo_output(fimo_path, writeobj, fimo_dic):
     '''
     Read fimo output, it's not ordered in any sane way, so we will do it 
     with no shortcuts.
     
     Create a dictionary, keys will be pattern name,
     values will be list of qvalues,
+    
+    Store into dictionary the following:
+        pattern name (easier to retrieve later)
+        median qvalue
+        n_occurences
     '''
     # Def colname constants
     pattern_name_colname = '#pattern name'
     qval_colname = 'q-value'
-    qval_med_subkey = 'median_q-value'
+    pattern_name_subkey = 'pattern_name'
+    qval_med_subkey = 'median_q_value'
     n_occurs_subkey = 'n_motif_occurences'
     
-    fimo_dic = {}
     with open(fimo_path, 'rb') as readfile:
         myreader = csv.reader(readfile, delimiter='\t')
         header = myreader.next()
@@ -71,11 +76,16 @@ def get_info_from_fimo_output(fimo_path, writeobj):
                 fimo_dic[pattern_name][qval_colname] = []
             # Append empty list with qvalues from each row...
             fimo_dic[pattern_name][qval_colname].append(qval)
-    # Get median q-value for each list...
-    for pat_name, qval_list in fimo_dic.iteritems():
-        # Get median qvalue
+    # Get median q-value, n_motif_occurences and pattern name to dictionary.
+    for pat_name, qval_dic in fimo_dic.iteritems():
+        # Get pattern name into dictionary info
+        fimo_dic[pat_name][pattern_name_subkey] = pat_name
+        # calculate med qval
+        qval_list = [float(i) for i in qval_dic[qval_colname]]
         med_qval = stats_functions.median(qval_list)
+        # Store med qval to dic
         fimo_dic[pat_name][qval_med_subkey] = med_qval
+        # Get n_occurences
         fimo_dic[pat_name][n_occurs_subkey] = len(qval_list)
     return fimo_dic
 
@@ -86,7 +96,7 @@ def get_rbp_name_from_pat_name(pat_name):
     '''
     pat_name_split = pat_name.split(',')
     # Get first element, rejoin...
-    rbp = ','.join(pat_name_split[0])
+    rbp = pat_name_split[0]
     return rbp
 
 def add_info_for_dic(fimo_info_dic, region, incl_or_excl):
@@ -95,12 +105,14 @@ def add_info_for_dic(fimo_info_dic, region, incl_or_excl):
     fimo_info_dic: dic containing keys of rbp pattern name and med qval.
     region: exon_intron region, like exon_1 or intron_2_3p
     incl_or_excl: inclusion or exclusion.
+    Add rbp_name, region and incl_or_excl to the dictionary.
     '''
     for pat_name in fimo_info_dic.keys():
         rbp_name = get_rbp_name_from_pat_name(pat_name)
         subkeys = get_fimo_subkeys()
         for subk, subval in zip(subkeys, [rbp_name, region, incl_or_excl]):
             fimo_info_dic[pat_name][subk] = subval
+    return fimo_info_dic
 
 def get_region_from_dirname(mydir):
     '''
@@ -122,20 +134,50 @@ def get_incl_or_excl_from_dirname(mydir):
     '''
     mydir_split = mydir.split('_')
     # keep last element only, rejoin.
-    incl_or_excl = '_'.join(mydir_split[-1])
+    incl_or_excl = mydir_split[-1]
     if incl_or_excl == 'inclusion' or incl_or_excl == 'exclusion':
-        return mydir
+        return incl_or_excl
     else:
-        print 'Expected incl_or_excl to be "inclusion" or "exclusion". '
+        print 'Expected incl_or_excl to be "inclusion" or "exclusion". '\
         '%s found.' %incl_or_excl
         sys.exit()
+        
+def write_fimo_dic_to_file(mydic, mywriter):
+    '''
+    After reading FIMO output into a dictionary for
+    a single region (e.g. exon_1, let's write what we have
+    to the output file.)
+    We want column order to be (from left to right) the same as 
+    get_output_colnames(), see that function for current order of
+    columns.
+    
+    As of 20-11-2013, the colnames are:
+    pattern_name_str = 'pattern_name'
+    gene_name_str = 'rbp_name'
+    region_str = 'exon_intron_region'
+    occurences_str = 'n_motif_occurences'
+    med_qval_str = 'median_q_val'
+    incl_excl_str = 'inclusion_or_exclusion'
+    '''
+    colnames = get_output_colnames()
+    writecount = 0
+    for pattern_name in mydic.keys():
+        writerow = []    # init
+        # Get information according to colnames. 
+        # Colnames should match subkeys in dic
+        for subkey in colnames:
+            # Assumes values in subkey are not lists...
+            writerow.append(mydic[pattern_name][subkey])
+        mywriter.writerow(writerow)
+        writecount += 1
+    return writecount
 
 def main():
     usage = 'usage: %prog fimo_out_dir output_file.txtfile\n'\
         'Two args must be specified in commandline: \n'\
-        'directory containing exon/intron-region directories, '\
+        '1) directory containing exon/intron-region directories, '\
         'inside which contains fimo outputfiles.\n'\
-        'Output file.\n'
+        '2) Output file.\n'
     parser = OptionParser(usage=usage)
     parser.add_option('-f', '--fimo_filename', dest='fimo_filename',
                       help='Name of fimo output filename. Default fimo.txt',
@@ -149,9 +191,13 @@ def main():
     fimo_filename = options.fimo_filename
     
     # Get list of exon-intron directories (exon1, exon2... intron2_3p)
-    dirs = os.listdir(fimo_dir)
+    # I only want directories, so check that it is a directory, not a file.
+    dirs = \
+        [d for d in os.listdir(fimo_dir) if \
+            os.path.isdir(os.path.join(fimo_dir, d))]
     
     # Initialize writefile
+    writecount = 0
     with open(out_path, 'wb') as writefile:
         mywriter = csv.writer(writefile, delimiter='\t')
         # Write header
@@ -159,14 +205,19 @@ def main():
         mywriter.writerow(header)
         # Loop through directories
         for d in dirs:
+            fimo_info_dic = {}
             region = get_region_from_dirname(d)
             incl_or_excl = get_incl_or_excl_from_dirname(d)
             
             fimo_path = os.path.join(fimo_dir, d, fimo_filename)
-            fimo_info_dic = get_info_from_fimo_output(fimo_path, mywriter)
+            fimo_info_dic = get_info_from_fimo_output(fimo_path, 
+                                                      mywriter, 
+                                                      fimo_info_dic)
             fimo_info_dic = add_info_for_dic(fimo_info_dic, region, 
                                              incl_or_excl)
-        
+            # Write dic to file..
+            writecount += write_fimo_dic_to_file(fimo_info_dic, mywriter)
+    print '%s rows written to file: %s' %(writecount, out_path)
 
 if __name__ == '__main__':
     main()
