@@ -13,9 +13,11 @@ import csv
 from optparse import OptionParser
 from utilities import stats_functions
 
-def get_output_colnames():
+def get_output_colnames(collapsed=False):
     '''
     Get column names... simple as that.
+    
+    Collapsed version is reduced (no pattern name)
     '''
     # def constants
     pattern_name_str = 'pattern_name'
@@ -24,8 +26,15 @@ def get_output_colnames():
     occurences_str = 'n_motif_occurences'
     med_qval_str = 'median_q_value'
     incl_excl_str = 'inclusion_or_exclusion'
-    return [pattern_name_str, gene_name_str, region_str, 
-            occurences_str, med_qval_str, incl_excl_str]
+    if collapsed == False:
+        return [pattern_name_str, gene_name_str, region_str, 
+                occurences_str, med_qval_str, incl_excl_str]
+    elif collapsed == True:
+        return [gene_name_str, region_str, 
+                occurences_str, med_qval_str, incl_excl_str]
+    else:
+        print 'Collapsed should be True or False. %s found.' %collapsed
+        sys.exit()
     
 def get_fimo_subkeys():
     '''
@@ -43,7 +52,8 @@ def get_fimo_subkeys():
     incl_excl = 'inclusion_or_exclusion'
     return [rbpname, region, incl_excl]
     
-def get_info_from_fimo_output(fimo_path, writeobj, fimo_dic):
+def get_info_from_fimo_output(fimo_path, writeobj, fimo_dic, 
+                              remove_repeats=False):
     '''
     Read fimo output, it's not ordered in any sane way, so we will do it 
     with no shortcuts.
@@ -55,10 +65,14 @@ def get_info_from_fimo_output(fimo_path, writeobj, fimo_dic):
         pattern name (easier to retrieve later)
         median qvalue
         n_occurences
+    
+    Remove repeats: True by default. It will not count rows
+    of same pattern name and same sequence name as previous row.
     '''
     # Def colname constants
     pattern_name_colname = '#pattern name'
     qval_colname = 'q-value'
+    seq_name_colname = 'sequence name'
     pattern_name_subkey = 'pattern_name'
     qval_med_subkey = 'median_q_value'
     n_occurs_subkey = 'n_motif_occurences'
@@ -67,6 +81,12 @@ def get_info_from_fimo_output(fimo_path, writeobj, fimo_dic):
         myreader = csv.reader(readfile, delimiter='\t')
         header = myreader.next()
         for row in myreader:
+            '''
+            Check every row to make sure seq name and pattern name
+            are different. If both are the same, then we don't want to
+            include it in our analysis (too many RBPs)
+            '''
+            seq_name = row[header.index(seq_name_colname)]
             pattern_name = row[header.index(pattern_name_colname)]
             qval = row[header.index(qval_colname)]
             # Create new key for pattern name if it doesnt exist in dic
@@ -74,8 +94,14 @@ def get_info_from_fimo_output(fimo_path, writeobj, fimo_dic):
             if pattern_name not in fimo_dic:
                 fimo_dic[pattern_name] = {}
                 fimo_dic[pattern_name][qval_colname] = []
+                fimo_dic[pattern_name][seq_name_colname] = []
+            # Check that seq name does not already exist in our dic.
+            # if it is already in our dic, then move to next row.
+            if seq_name in fimo_dic[pattern_name][seq_name_colname]:
+                continue
             # Append empty list with qvalues from each row...
             fimo_dic[pattern_name][qval_colname].append(qval)
+            fimo_dic[pattern_name][seq_name_colname].append(seq_name)
     # Get median q-value, n_motif_occurences and pattern name to dictionary.
     for pat_name, qval_dic in fimo_dic.iteritems():
         # Get pattern name into dictionary info
@@ -142,7 +168,7 @@ def get_incl_or_excl_from_dirname(mydir):
         '%s found.' %incl_or_excl
         sys.exit()
         
-def write_fimo_dic_to_file(mydic, mywriter):
+def write_fimo_dic_to_file(mydic, mywriter, collapsed):
     '''
     After reading FIMO output into a dictionary for
     a single region (e.g. exon_1, let's write what we have
@@ -159,7 +185,7 @@ def write_fimo_dic_to_file(mydic, mywriter):
     med_qval_str = 'median_q_val'
     incl_excl_str = 'inclusion_or_exclusion'
     '''
-    colnames = get_output_colnames()
+    colnames = get_output_colnames(collapsed=collapsed)
     writecount = 0
     for pattern_name in mydic.keys():
         writerow = []    # init
@@ -172,6 +198,36 @@ def write_fimo_dic_to_file(mydic, mywriter):
         writecount += 1
     return writecount
 
+def reduce_dic_rbps_only(fimo_info_dic):
+    '''
+    Reduce dic to have ONE rbp per dic.
+    n_motif_occurences will then be the sum of all the rbp_names.
+    '''
+    reduced_dic = {}
+    n_motif_subkey = 'n_motif_occurences'
+    incl_excl_subkey = 'inclusion_or_exclusion'
+    exon_intron_subkey = 'exon_intron_region'
+    med_q_subkey = 'median_q_value'
+    rbp_name_subkey = 'rbp_name'
+    for pat_name in fimo_info_dic.keys():
+        rbp_name = fimo_info_dic[pat_name][rbp_name_subkey]
+        if rbp_name not in reduced_dic:
+            '''
+            # Init values for n motif subkey
+            # incl/excl, exon/intron, do not change, so define them once 
+            (by defining them within this if)
+            Median q values are not too useful, just put them as med_q_subkey, 
+            but I wouldnt take them to heart.
+            '''
+            reduced_dic[rbp_name] = {}
+            reduced_dic[rbp_name][n_motif_subkey] = 0
+            for k in [incl_excl_subkey, exon_intron_subkey, 
+                      med_q_subkey, rbp_name_subkey]:
+                reduced_dic[rbp_name][k] = fimo_info_dic[pat_name][k]
+        reduced_dic[rbp_name][n_motif_subkey] += \
+            fimo_info_dic[pat_name][n_motif_subkey]
+    return reduced_dic
+
 def main():
     usage = 'usage: %prog fimo_out_dir output_file.txtfile\n'\
         'Two args must be specified in commandline: \n'\
@@ -182,6 +238,9 @@ def main():
     parser.add_option('-f', '--fimo_filename', dest='fimo_filename',
                       help='Name of fimo output filename. Default fimo.txt',
                       default='fimo.txt')
+    parser.add_option('-c', '--collapse_rbps', dest='collapse_rbps',
+                      help='Collapse all motifs for one rbp into one line. Default True',
+                      default='True')
     (options, args) = parser.parse_args()
     if len(args) < 2:
         print(usage)
@@ -189,6 +248,14 @@ def main():
     fimo_dir = args[0]
     out_path = args[1]
     fimo_filename = options.fimo_filename
+    if options.collapse_rbps in ['True', 'TRUE', 'true', 't', 'T']:
+        collapse_rbps = True
+    elif options.collapse_rbps in ['False', 'FALSE', 'false', 'f' , 'F']:
+        collapse_rbps = False
+    else:
+        print 'Expected collapse_rbps to be True or False. %s found.' \
+            %collapse_rbps
+        sys.exit() 
     
     # Get list of exon-intron directories (exon1, exon2... intron2_3p)
     # I only want directories, so check that it is a directory, not a file.
@@ -201,7 +268,7 @@ def main():
     with open(out_path, 'wb') as writefile:
         mywriter = csv.writer(writefile, delimiter='\t')
         # Write header
-        header = get_output_colnames()
+        header = get_output_colnames(collapsed=collapse_rbps)
         mywriter.writerow(header)
         # Loop through directories
         for d in dirs:
@@ -215,8 +282,24 @@ def main():
                                                       fimo_info_dic)
             fimo_info_dic = add_info_for_dic(fimo_info_dic, region, 
                                              incl_or_excl)
+            '''
+            Loop through keys and do a double check that there are no sequence names duplicated.
+            '''
+            for k in fimo_info_dic.keys():
+                if len(fimo_info_dic[k]['sequence name']) != \
+                    len(list(set(fimo_info_dic[k]['sequence name']))):
+                    print 'Warning: %s has duplicate sequence names. '\
+                    'Please double check.' %k
+                    raw_input('Press enter to continue...')
+            '''
+            Reduce dic to include only RBP (collapse different motifs 
+            from same RBP into one)
+            '''
+            if collapse_rbps:
+                fimo_info_dic = reduce_dic_rbps_only(fimo_info_dic)
             # Write dic to file..
-            writecount += write_fimo_dic_to_file(fimo_info_dic, mywriter)
+            writecount += write_fimo_dic_to_file(fimo_info_dic, mywriter, 
+                                                 collapsed=collapse_rbps)
     print '%s rows written to file: %s' %(writecount, out_path)
 
 if __name__ == '__main__':
