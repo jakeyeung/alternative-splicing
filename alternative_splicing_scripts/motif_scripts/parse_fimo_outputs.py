@@ -161,7 +161,8 @@ def get_incl_or_excl_from_dirname(mydir):
     mydir_split = mydir.split('_')
     # keep last element only, rejoin.
     incl_or_excl = mydir_split[-1]
-    if incl_or_excl == 'inclusion' or incl_or_excl == 'exclusion':
+    if incl_or_excl in ['inclusion', 'exclusion', 
+                        'inclusion.shuffled', 'exclusion.shuffled']:
         return incl_or_excl
     else:
         print 'Expected incl_or_excl to be "inclusion" or "exclusion". '\
