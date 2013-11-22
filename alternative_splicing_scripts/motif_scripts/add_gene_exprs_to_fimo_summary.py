@@ -20,6 +20,7 @@ def index_t_test_results(t_test_output_path):
     {gene: {group1:[], group2:[], pval:0.2}}
     '''
     # Expected colnames:
+    gene_colname = 'gene'
     group1_colname = 'group1'
     group2_colname = 'group2'
     pval_colname = 'pval'
@@ -30,12 +31,16 @@ def index_t_test_results(t_test_output_path):
         myreader = csv.reader(readfile, delimiter='\t')
         header = myreader.next()
         for row in myreader:
+            # Init key with gene name
+            gene = row[header.index(gene_colname)]
+            t_test_dic[gene] = {}
             for colname in [group1_colname, group2_colname]:
                 # Try to split by comma, because group1 and group2 are 
                 # CSVs
-                t_test_dic[colname] = row(header.index(colname.split(',')))
+                t_test_dic[gene][colname] = \
+                    row[header.index(colname)].split(',')
             # Pvalue is not a CSV, so no need to split
-            t_test_dic[pval_colname] = row(header.index(pval_colname)) 
+            t_test_dic[gene][pval_colname] = row[header.index(pval_colname)]
     return t_test_dic
 
 def get_gene_exprs_direction(t_test_dic, mygene):
@@ -51,8 +56,8 @@ def get_gene_exprs_direction(t_test_dic, mygene):
     group1_colname = 'group1'
     group2_colname = 'group2'
     
-    group1_gene_exprs = t_test_dic[mygene][group1_colname]
-    group2_gene_exprs = t_test_dic[mygene][group2_colname]
+    group1_gene_exprs = [float(i) for i in t_test_dic[mygene][group1_colname]]
+    group2_gene_exprs = [float(i) for i in t_test_dic[mygene][group2_colname]]
     
     # Get average of both
     group1_gene_exprs_avg = \
@@ -103,7 +108,7 @@ def add_info_to_fimo_summary(t_test_dic, fimo_summary_path,
         mywriter.writerow(header + [pval_colname, dir_colname])
         # Iterate rows, grabbing pval and direction of gene exprs difference
         for row in myreader:
-            mygene = row(header.index(rbp_name_colname))
+            mygene = row[header.index(rbp_name_colname)]
             # Get pval
             mypval = t_test_dic[mygene][pval_colname]
             # Get dictionary of differential gene expression
@@ -124,7 +129,7 @@ def main():
         '3) Output file for appended fimo summary.\n'
     parser = OptionParser(usage=usage)
     (_, args) = parser.parse_args()
-    if len(args) < 4:
+    if len(args) < 3:
         print(usage)
         sys.exit()
     t_test_output_path = args[0]
