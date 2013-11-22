@@ -149,7 +149,6 @@ def main():
     
     # Index RBP DB: {ensemblID: {RBP_Name:[], Motif_ID:[], RBP_Status:[]}}
     rbp_db_dic = index_rbpdb_motifids(rbp_db_path)
-    print rbp_db_dic
     
     # init write file
     with open(output_path, 'wb') as writefile:
