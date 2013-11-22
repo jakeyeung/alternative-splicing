@@ -143,7 +143,10 @@ def main():
     parser = OptionParser(usage=usage)
     parser.add_option('-l', '--gene_list', dest='gene_list_file',
                       default=None,
-                      help='Gene list, with second column as gene names.')
+                      help='Gene list, no headers.')
+    parser.add_option('-c', '--col_index', dest='col_index',
+                      default=1,
+                      help='Column index where gene names are. 0 is first column.')
     (opts, args) = parser.parse_args()
     
     if len(args) < 4:
@@ -156,12 +159,14 @@ def main():
     group_2_samps_fname = args[2]
     output_fname = args[3]
     gene_list_fname = opts.gene_list_file
+    if gene_list_fname != None:
+        col_index = int(opts.col_index)
     
     # If gene_list is specified, use that to get gene_list, otherwise
     # use the entire gene_exprs_fname to get gene_list.
     if gene_list_fname != None:
         gene_list = extract_column_from_table(gene_list_fname,
-                                        column_index_to_extract=1,
+                                        column_index_to_extract=col_index,
                                         header=False)
     else:
         gene_list = extract_column_from_table(gene_exprs_fname, 
