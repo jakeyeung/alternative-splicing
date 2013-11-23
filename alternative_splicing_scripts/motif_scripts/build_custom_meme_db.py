@@ -151,8 +151,8 @@ def main():
     rbp_db_path = os.path.join(rbp_db_dir, rbp_filename)
     
     # Read list of RBPs, store as a list.
-    rbps_list = reading_utils.store_textfile_as_list(input_rbps_path, 
-                                                     collapse_list=True)
+    rbps_list = reading_utils.extract_column_from_textfile(input_rbps_path, 
+                                                           col_to_extract=0)
     
     # Index RBP DB: {ensemblID: {RBP_Name:[], Motif_ID:[], RBP_Status:[]}}
     rbp_db_dic = index_rbpdb_motifids(rbp_db_path)

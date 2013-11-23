@@ -6,6 +6,18 @@ Created on 2013-11-14
 
 import csv
 
+def extract_column_from_textfile(textfile, col_to_extract):
+    '''
+    Extract a column from textfile.
+    Return as a list.
+    '''
+    mylist = []
+    with open(textfile, 'rb') as myfile:
+        myreader = csv.reader(myfile, delimiter='\t')
+        for row in myreader:
+            mylist.append(row[col_to_extract])
+    return mylist
+
 def store_textfile_as_list(textfile, collapse_list=True):
     '''
     Given a textfile, take each row as an element, append it to a list. 
