@@ -140,6 +140,13 @@ def main():
     rbp_filename = options.rbp_filename
     pwm_dir = options.pwm_dir
     
+    # Check that writefile does not already exist.
+    # if it does, then do not overwrite and just exit
+    if os.path.isfile(output_path):
+        print '%s already exists. Aborting custom MEME db creation.' \
+            %output_path
+        sys.exit() 
+    
     # Get rbp_db_path
     rbp_db_path = os.path.join(rbp_db_dir, rbp_filename)
     
