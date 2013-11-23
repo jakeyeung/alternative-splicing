@@ -258,6 +258,12 @@ def main():
             %collapse_rbps
         sys.exit() 
     
+    # Check that outpath does not already exist. If it does, then abort.
+    if os.path.isfile(out_path):
+        print '%s already exists. Aborting FIMO output parsing.' \
+            %out_path
+        sys.exit() 
+    
     # Get list of exon-intron directories (exon1, exon2... intron2_3p)
     # I only want directories, so check that it is a directory, not a file.
     dirs = \
