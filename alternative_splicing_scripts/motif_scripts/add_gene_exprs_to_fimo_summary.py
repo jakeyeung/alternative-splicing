@@ -40,7 +40,12 @@ def index_t_test_results(t_test_output_path):
                 t_test_dic[gene][colname] = \
                     row[header.index(colname)].split(',')
             # Pvalue is not a CSV, so no need to split
-            t_test_dic[gene][pval_colname] = row[header.index(pval_colname)]
+            # If Pval is empty (no gene exprs data, write as NA)
+            pval = row[header.index(pval_colname)]
+            if pval == '':
+                t_test_dic[gene][pval_colname] = 1
+            else:
+                t_test_dic[gene][pval_colname] = pval
     return t_test_dic
 
 def get_gene_exprs_direction(t_test_dic, mygene):
@@ -56,8 +61,13 @@ def get_gene_exprs_direction(t_test_dic, mygene):
     group1_colname = 'group1'
     group2_colname = 'group2'
     
-    group1_gene_exprs = [float(i) for i in t_test_dic[mygene][group1_colname]]
-    group2_gene_exprs = [float(i) for i in t_test_dic[mygene][group2_colname]]
+    try:
+        group1_gene_exprs = \
+            [float(i) for i in t_test_dic[mygene][group1_colname]]
+        group2_gene_exprs = \
+            [float(i) for i in t_test_dic[mygene][group2_colname]]
+    except ValueError:
+        return 0    # neither up or down since no gene exprs values
     
     # Get average of both
     group1_gene_exprs_avg = \
