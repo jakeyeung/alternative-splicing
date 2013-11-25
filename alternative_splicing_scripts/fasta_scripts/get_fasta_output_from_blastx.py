@@ -35,7 +35,7 @@ def index_blastx_output(blastx_output_path, qseqid_index,
                 blastx_dic[qseqid] = qseq
     return blastx_dic
 
-def write_fasta_sequence(seqid, seq, writefile):
+def write_fasta_sequence(seqid, seq, writefile, max_length=70):
     '''
     Write to writefile (not csv obj) the seqid and seq in
     fasta format.
@@ -52,11 +52,10 @@ def write_fasta_sequence(seqid, seq, writefile):
     for s in seq:
         current_seq.append(s)
         letter_count += 1
-        if letter_count % 70 == 0:
+        if letter_count % max_length == 0:
             # 70 letters collected, write as a line.
             writefile.write(''.join(current_seq + ['\n']))
             # Reset my counters
-            letter_count = 0
             current_seq = []
     # Finished looping sequence, write remaining sequences
     # but first check current_seq is not empty.
