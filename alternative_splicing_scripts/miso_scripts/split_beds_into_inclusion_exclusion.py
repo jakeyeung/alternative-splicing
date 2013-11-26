@@ -285,8 +285,7 @@ def split_bed_by_inclusion_exclusion(bed_path, misobf_path,
             '''
             if hyp_test_type=='bf':
                 incl_or_excl_str = \
-                    decide_inclusion_or_exclusion_misobf(bed_row, miso_row, 
-                                                         header)
+                    decide_inclusion_or_exclusion_misobf(bed_row, miso_row)
             elif hyp_test_type=='ttest':
                 incl_or_excl_str = \
                     decide_inclusion_or_exclusion_t_test(bed_row, miso_row, 
@@ -333,6 +332,10 @@ def main():
     misobf_path = args[1]
     suffix_list_csv = options.suffix_list_csv
     hyp_test_type = options.hyp_test_type
+    
+    if hyp_test_type not in ['bf', 'ttest']:
+        print '-t or --test_type option must be either "bf" or "ttest".\n'\
+            '%s found.' %hyp_test_type
     
     # Create list of read bed paths:
     suffix_list = suffix_list_csv.split(',')
