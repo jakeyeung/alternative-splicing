@@ -115,6 +115,97 @@ def get_info_from_fimo_output(fimo_path, writeobj, fimo_dic,
         fimo_dic[pat_name][n_occurs_subkey] = len(qval_list)
     return fimo_dic
 
+def get_number_of_sequences_from_fimohtml(fimo_html_path, rownumber=42):
+    '''
+    The 42nd line from fimo html output contains total number
+    of fasta sequences used to run FIMO.
+    '''
+    currentrow = 0
+    with open(fimo_html_path, 'rb') as readfile:
+        while currentrow != rownumber:
+            rowstr = readfile.readline()
+            currentrow += 1
+        # Strip of any white space
+        total_sequences = float(rowstr.strip())
+    return total_sequences
+
+def get_info_from_fimo_output2(fimo_path, writeobj, fimo_dic, 
+                               convert_to_fraction=False):
+    '''
+    Second attempt at getting info from fimo.
+    I want gene name to show up only ONCE for a given sequence.
+    '''
+    # Def colname constants
+    pattern_name_colname = '#pattern name'
+    qval_colname = 'q-value'
+    seq_name_colname = 'sequence name'
+    pattern_name_subkey = 'pattern_name'
+    qval_med_subkey = 'median_q_value'
+    n_occurs_subkey = 'n_motif_occurences'
+    
+    with open(fimo_path, 'rb') as readfile:
+        myreader = csv.reader(readfile, delimiter='\t')
+        header = myreader.next()
+        for row in myreader:
+            '''
+            Check every row to make sure seq name and pattern name
+            are different. If both are the same, then we don't want to
+            include it in our analysis (too many RBPs)
+            '''
+            seq_name = row[header.index(seq_name_colname)]
+            pattern_name = row[header.index(pattern_name_colname)]
+            qval = row[header.index(qval_colname)]
+            '''
+            # Get gene name from pattern name, expect 
+            string to be: GENENAME,MOTIF,IorD, so we will separate commas.
+            '''
+            gene_name = pattern_name.split(',')[0]
+            
+            # Create new key for pattern name if it doesnt exist in dic
+            # Create qval subkey with empty list.
+            if gene_name not in fimo_dic:
+                fimo_dic[gene_name] = {}
+                fimo_dic[gene_name][qval_colname] = []
+                fimo_dic[gene_name][seq_name_colname] = []
+            # Check that seq name does not already exist in our dic.
+            # if it is already in our dic, then move to next row.
+            if seq_name in fimo_dic[gene_name][seq_name_colname]:
+                continue
+            # Append empty list with qvalues from each row...
+            fimo_dic[gene_name][qval_colname].append(qval)
+            fimo_dic[gene_name][seq_name_colname].append(seq_name)
+    # Get median q-value, n_motif_occurences and pattern name to dictionary.
+    for gene_name, qval_dic in fimo_dic.iteritems():
+        # Get pattern name into dictionary info
+        fimo_dic[gene_name][pattern_name_subkey] = gene_name
+        # calculate med qval
+        qval_list = [float(i) for i in qval_dic[qval_colname]]
+        med_qval = stats_functions.median(qval_list)
+        # Store med qval to dic
+        fimo_dic[gene_name][qval_med_subkey] = med_qval
+        # Get n_occurences
+        # fimo_dic[gene_name][n_occurs_subkey] = len(qval_list)
+        n_occurences = len(qval_list)
+        if convert_to_fraction == True:
+            '''
+            # Get n_occurences divided by total fasta inputs
+            # Get dirname of fimo txt file, append the html file
+            # to read html file.
+            '''
+            fimo_html_path = os.path.join(os.path.dirname(fimo_path), 'fimo.html')
+            n_fasta_seqs = \
+                get_number_of_sequences_from_fimohtml(fimo_html_path, rownumber=42)
+            fimo_dic[gene_name][n_occurs_subkey] = float(n_occurences) / n_fasta_seqs
+        elif convert_to_fraction == False:
+            '''
+            Just get the occurences, no dividing by fasta seqs
+            '''
+            fimo_dic[gene_name][n_occurs_subkey] = n_occurences
+        else:
+            print 'Expected convert to fraction '\
+            'to be True or False. %s found.' %convert_to_fraction
+    return fimo_dic
+
 def get_rbp_name_from_pat_name(pat_name):
     '''
     From a pat name of expected CSV form: rbp,motifid,D_or_I
@@ -138,6 +229,17 @@ def add_info_for_dic(fimo_info_dic, region, incl_or_excl):
         subkeys = get_fimo_subkeys()
         for subk, subval in zip(subkeys, [rbp_name, region, incl_or_excl]):
             fimo_info_dic[pat_name][subk] = subval
+    return fimo_info_dic
+
+def add_info_for_dic2(fimo_info_dic, region, incl_or_excl):
+    '''
+    Second try: now pat name is a gene name. No need to get rbp_name from
+    a function.
+    '''
+    for rbp_name in fimo_info_dic.keys():
+        subkeys = get_fimo_subkeys()
+        for subk, subval in zip(subkeys, [rbp_name, region, incl_or_excl]):
+            fimo_info_dic[rbp_name][subk] = subval
     return fimo_info_dic
 
 def get_region_from_dirname(mydir):
@@ -284,11 +386,19 @@ def main():
             incl_or_excl = get_incl_or_excl_from_dirname(d)
             
             fimo_path = os.path.join(fimo_dir, d, fimo_filename)
-            fimo_info_dic = get_info_from_fimo_output(fimo_path, 
-                                                      mywriter, 
-                                                      fimo_info_dic)
-            fimo_info_dic = add_info_for_dic(fimo_info_dic, region, 
-                                             incl_or_excl)
+            if collapse_rbps:
+                fimo_info_dic = get_info_from_fimo_output2(fimo_path, 
+                                                           mywriter, 
+                                                           fimo_info_dic,
+                                                           convert_to_fraction=False)
+                fimo_info_dic = add_info_for_dic2(fimo_info_dic, region, 
+                                                  incl_or_excl)
+            else:
+                fimo_info_dic = get_info_from_fimo_output(fimo_path, 
+                                                          mywriter, 
+                                                          fimo_info_dic)
+                fimo_info_dic = add_info_for_dic(fimo_info_dic, region, 
+                                                 incl_or_excl)
             '''
             Loop through keys and do a double check that there are no sequence names duplicated.
             '''
