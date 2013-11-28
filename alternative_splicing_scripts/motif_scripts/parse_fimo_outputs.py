@@ -331,6 +331,21 @@ def reduce_dic_rbps_only(fimo_info_dic):
             fimo_info_dic[pat_name][n_motif_subkey]
     return reduced_dic
 
+def convert_to_boolean(myvariable):
+    '''
+    Expects True or False as input as a string.
+    Outputs True or False as boolean variable.
+    '''
+    if myvariable in ['True', 'TRUE', 'true', 't', 'T']:
+        myvariable = True
+    elif myvaraible in ['False', 'FALSE', 'false', 'f' , 'F']:
+        myvariable = False
+    else:
+        print 'Expected variable to be True or False. %s found.' \
+            %myvariable
+        sys.exit() 
+    return myvariable
+
 def main():
     usage = 'usage: %prog fimo_out_dir output_file.txtfile\n'\
         'Two args must be specified in commandline: \n'\
@@ -344,6 +359,9 @@ def main():
     parser.add_option('-c', '--collapse_rbps', dest='collapse_rbps',
                       help='Collapse all motifs for one rbp into one line. Default True',
                       default='True')
+    parser.add_option('-C', '--convert_to_fraction', dest='convert_to_fraction',
+                      help='Convert number of hits to fraction of total sequences. Default True',
+                      default='True')
     (options, args) = parser.parse_args()
     if len(args) < 2:
         print(usage)
@@ -351,6 +369,11 @@ def main():
     fimo_dir = args[0]
     out_path = args[1]
     fimo_filename = options.fimo_filename
+    
+    # convert True/False options to Boolean
+    collapse_rbps = convert_to_boolean(options.collapse_rbps)
+    convert_to_fraction = convert_to_boolean(options.convert_to_fraction)
+    '''
     if options.collapse_rbps in ['True', 'TRUE', 'true', 't', 'T']:
         collapse_rbps = True
     elif options.collapse_rbps in ['False', 'FALSE', 'false', 'f' , 'F']:
@@ -359,6 +382,7 @@ def main():
         print 'Expected collapse_rbps to be True or False. %s found.' \
             %collapse_rbps
         sys.exit() 
+    '''
     
     # Check that outpath does not already exist. If it does, then abort.
     if os.path.isfile(out_path):
@@ -387,10 +411,12 @@ def main():
             
             fimo_path = os.path.join(fimo_dir, d, fimo_filename)
             if collapse_rbps:
-                fimo_info_dic = get_info_from_fimo_output2(fimo_path, 
-                                                           mywriter, 
-                                                           fimo_info_dic,
-                                                           convert_to_fraction=False)
+                fimo_info_dic = \
+                    get_info_from_fimo_output2(fimo_path, 
+                                               mywriter, 
+                                               fimo_info_dic,
+                                               convert_to_fraction=\
+                                                    convert_to_fraction)
                 fimo_info_dic = add_info_for_dic2(fimo_info_dic, region, 
                                                   incl_or_excl)
             else:
