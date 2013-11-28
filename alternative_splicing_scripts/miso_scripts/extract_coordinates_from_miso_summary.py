@@ -121,7 +121,7 @@ def create_exon_intron_bed_files(output_bed_file, bed_description, eventtype='SE
         for i, k in zip(exon_index, exon_keys):
             # Append output_bed_file suffix
             output_bed_file_suffixed = \
-                ''.join([output_bed_file, '_exon', str(i), '.bed'])
+                ''.join([output_bed_file, '_exon_', str(i), '.bed'])
             fullpaths.append(output_bed_file_suffixed)
             output_file_dic_exons[k] = open(output_bed_file_suffixed, 'wb')
         
@@ -130,7 +130,7 @@ def create_exon_intron_bed_files(output_bed_file, bed_description, eventtype='SE
         for i, k in zip(intron_index, intron_keys):
             # Append output_bed_file suffix
             output_bed_file_suffixed = \
-                ''.join([output_bed_file, '_intron', str(i), '.bed'])
+                ''.join([output_bed_file, '_intron_', str(i), '.bed'])
             fullpaths.append(output_bed_file_suffixed)
             output_file_dic_introns[k] = open(output_bed_file_suffixed, 'wb')
             
