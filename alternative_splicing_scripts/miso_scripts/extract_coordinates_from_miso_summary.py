@@ -143,7 +143,7 @@ def create_exon_intron_bed_files(output_bed_file, bed_description, eventtype='SE
             output_file_dic_introns[k].write(write_str)
         
     else:
-        print('Unknown event type (or not yet implemented.')
+        print('Unknown event type (or not yet implemented. %s' %eventtype)
         sys.exit()
         
     return output_file_dic_exons, output_file_dic_introns, fullpaths
