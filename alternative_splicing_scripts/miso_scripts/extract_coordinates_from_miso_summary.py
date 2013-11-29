@@ -502,14 +502,13 @@ def extract_coordinates_from_miso_bf(miso_file, bed_dir,
         return wcount, full_outpaths
 
 def main():
-    
-    parser = OptionParser()
-    parser.add_option('-f', '--file', dest='miso_file',
-                      help='Miso summary results or '\
-                      'bh_adj t-test summary file.')
-    parser.add_option('-o', '--output_prefix', dest='bed_dir',
-                      help='Output bed file path, e.g.:'\
-                      '/Data/bedfiles/. Created bedfiles will be found here.')
+    usage = 'usage: %prog [opts] miso_file output_beds_dir\n'\
+        'Two args must be specified in commandline: \n'\
+        '1) MISO file path, whether from t-test or bayes analysis'\
+        ', both should work.\n'\
+        '2) Directory to where bed files will be created.\n'\
+        'Press -h or --help for option parameter information.'
+    parser = OptionParser(usage=usage)
     parser.add_option('-O', '--appended_output_name', 
                       dest='appended_bed_filename',
                       help='Appended output bed file path, e.g.:'\
@@ -518,18 +517,17 @@ def main():
                       default='appended_bedfiles.bed')
     parser.add_option('-d', '--descrip', dest='bed_description',
                       help='Description of your bed files: e.g. mincount_10')
-    (options, _) = parser.parse_args()
-    '''
-    If user inputted bed_dir with a .* ending, we will remove it
-    because we want to append more strings to end of filename before 
-    tagging the .bed ending. 
-    '''
-    wcount, outpaths = extract_coordinates_from_miso_bf(options.miso_file, 
-                                                        options.bed_dir, 
+    (options, args) = parser.parse_args()
+    
+    miso_file = args[0]
+    bed_dir = args[1]
+    
+    wcount, outpaths = extract_coordinates_from_miso_bf(miso_file, 
+                                                        bed_dir, 
                                                         options.bed_description)
     # Join path to appended bed filename
     appended_bed_file_path = \
-        os.path.join(options.bed_dir, options.appended_bed_filename)
+        os.path.join(bed_dir, options.appended_bed_filename)
     append_multiple_bed_files(outpaths, appended_bed_file_path)
     print('Done. %s total coordinates extracted.' %wcount)
     print('Bed files written to:')
