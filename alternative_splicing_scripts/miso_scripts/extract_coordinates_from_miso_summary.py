@@ -317,20 +317,22 @@ def write_coords_to_multi_files(output_file_dic_exons,
         
     return writecount
 
-def check_intron_lengths_assign_300bp(intron_5p, intron_3p):
+def check_intron_lengths_assign_nbp(intron_5p, intron_3p, n=100):
     '''
-    Check length of intron, and assign 300 bp upstream or downstream
+    Check length of intron, and assign n bp upstream or downstream
     accordingly. We need to check intron because for short introns, 300bp
     would cause overlap into the next exon.
+    
+    n is default 100, meaning 100 bp upstream or downstream.
     '''
     intron_len = abs(intron_5p - intron_3p)
-    if intron_len > 300:
-        intron_5p_300bp = intron_5p + 300
-        intron_3p_300bp = intron_3p - 300
-    elif intron_len <= 300:
-        intron_5p_300bp = intron_3p
-        intron_3p_300bp = intron_5p
-    return intron_5p_300bp, intron_3p_300bp
+    if intron_len > n:
+        intron_5p_nbp = intron_5p + n
+        intron_3p_nbp = intron_3p - n
+    elif intron_len <= n:
+        intron_5p_nbp = intron_3p
+        intron_3p_nbp = intron_5p
+    return intron_5p_nbp, intron_3p_nbp
         
 def split_introns_to_5p_3p(intron_starts, intron_ends, strand, eventtype='SE'):
     '''
@@ -376,27 +378,27 @@ def split_introns_to_5p_3p(intron_starts, intron_ends, strand, eventtype='SE'):
         intron_dwnstrm_3p = int(intron_ends[1])
         
         # Get 300 bp distances from intron 5' and 3' sites.
-        intron_upstrm_5p_300bp, intron_upstrm_3p_300bp = \
-            check_intron_lengths_assign_300bp(intron_upstrm_5p, 
+        intron_upstrm_5p_nbp, intron_upstrm_3p_nbp = \
+            check_intron_lengths_assign_nbp(intron_upstrm_5p, 
                                               intron_upstrm_3p)
-        intron_dwnstrm_5p_300bp, intron_dwnstrm_3p_300bp = \
-            check_intron_lengths_assign_300bp(intron_dwnstrm_5p,
+        intron_dwnstrm_5p_nbp, intron_dwnstrm_3p_nbp = \
+            check_intron_lengths_assign_nbp(intron_dwnstrm_5p,
                                               intron_dwnstrm_3p)
         # Recreate intron_starts in proper order.
         if strand=='+':
                 intron_starts = \
-                    [intron_upstrm_5p, intron_upstrm_3p_300bp, 
-                     intron_dwnstrm_5p, intron_dwnstrm_3p_300bp]
+                    [intron_upstrm_5p, intron_upstrm_3p_nbp, 
+                     intron_dwnstrm_5p, intron_dwnstrm_3p_nbp]
                 intron_ends = \
-                    [intron_upstrm_5p_300bp, intron_upstrm_3p, 
-                     intron_dwnstrm_5p_300bp, intron_dwnstrm_3p]
+                    [intron_upstrm_5p_nbp, intron_upstrm_3p, 
+                     intron_dwnstrm_5p_nbp, intron_dwnstrm_3p]
         if strand=='-':
             intron_starts = \
-                [intron_upstrm_3p_300bp, intron_upstrm_5p,
-                 intron_dwnstrm_3p_300bp, intron_dwnstrm_5p]
+                [intron_upstrm_3p_nbp, intron_upstrm_5p,
+                 intron_dwnstrm_3p_nbp, intron_dwnstrm_5p]
             intron_ends = \
-                [intron_upstrm_3p, intron_upstrm_5p_300bp,
-                 intron_dwnstrm_3p, intron_dwnstrm_5p_300bp]
+                [intron_upstrm_3p, intron_upstrm_5p_nbp,
+                 intron_dwnstrm_3p, intron_dwnstrm_5p_nbp]
         
         return intron_starts, intron_ends
 
