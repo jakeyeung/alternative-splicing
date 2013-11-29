@@ -11,6 +11,7 @@ that we should split
 import sys
 import csv
 import re
+import os
 from optparse import OptionParser
 
 
@@ -56,6 +57,30 @@ class read_bed_misobf(object):
         self.misobffile.close()
         self.writefile1.close()
         self.writefile2.close()
+        
+def create_bed_paths2(bed_path):
+    '''
+    Finds all files ending with .bed
+    in directory. 
+    Creates inclusion and exclusion along with each .bed file.
+    Output list of read .bedfiles and output inclusion and 
+    exclusion .bed files.
+    '''
+    bed_paths_list = \
+        [os.path.join(bed_path, f) for f \
+            in os.listdir(bed_path) if f.endswith('.bed')]
+    '''
+    # For each bed path, create an inclusion or exclusion bed file
+    # used for writing.
+    '''
+    # split extension: grabs file without .bed, then add ".inclusion.bed"
+    bed_paths_inclusion_list = \
+        [''.join([os.path.splitext(f)[0], '.inclusion.bed']) \
+            for f in bed_paths_list]
+    bed_paths_exclusion_list = \
+        [''.join([os.path.splitext(f)[0], '.exclusion.bed']) \
+            for f in bed_paths_list]
+    return bed_paths_list, bed_paths_inclusion_list, bed_paths_exclusion_list
         
 def create_bed_paths(bed_path, suffix_list):
     '''
@@ -310,16 +335,20 @@ def split_bed_by_inclusion_exclusion(bed_path, misobf_path,
                 sys.exit()
 
 def main():
-    default_suffix = '_exon1,_exon2,_exon3,_intron1_a5p,'\
-        '_intron1_b3p,_intron2_a5p,_intron2_b3p'
+    '''
+    default_suffix = '_exon_1,_exon_2,_exon_3,_intron_1_5p,'\
+        '_intron_1_3p,_intron_2_5p,_intron_2_3p'
+    '''
     
     usage = 'usage: %prog [options] bedfile_prefix misosummary_file'
     parser = OptionParser(usage=usage)
     
+    '''
     parser.add_option('-s', '--suffix_csv', dest='suffix_list_csv', 
                       default=default_suffix,
                       help='Suffix of bed file names.\n'\
                       'default: %s' %default_suffix)
+    '''
     parser.add_option('-t', '--test_type', dest='hyp_test_type',
                       default='ttest',
                       help='The hypothesis test used to generate your '\
@@ -330,7 +359,7 @@ def main():
     
     bed_path = args[0]
     misobf_path = args[1]
-    suffix_list_csv = options.suffix_list_csv
+    # suffix_list_csv = options.suffix_list_csv
     hyp_test_type = options.hyp_test_type
     
     if hyp_test_type not in ['bf', 'ttest']:
@@ -338,9 +367,9 @@ def main():
             '%s found.' %hyp_test_type
     
     # Create list of read bed paths:
-    suffix_list = suffix_list_csv.split(',')
+    # suffix_list = suffix_list_csv.split(',')
     bed_paths_list, bed_paths_incl_list, bed_paths_excl_list = \
-        create_bed_paths(bed_path, suffix_list)
+        create_bed_paths2(bed_path)
         
     for bed_path, inclusion_bed_path, exclusion_bed_path in \
         zip(bed_paths_list, bed_paths_incl_list, bed_paths_excl_list):
