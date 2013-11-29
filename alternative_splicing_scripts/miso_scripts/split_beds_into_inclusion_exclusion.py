@@ -58,7 +58,7 @@ class read_bed_misobf(object):
         self.writefile1.close()
         self.writefile2.close()
         
-def create_bed_paths2(bed_path):
+def create_bed_paths2(bed_dir, out_dir):
     '''
     Finds all files ending with .bed
     in directory. 
@@ -66,20 +66,21 @@ def create_bed_paths2(bed_path):
     Output list of read .bedfiles and output inclusion and 
     exclusion .bed files.
     '''
-    bed_paths_list = \
-        [os.path.join(bed_path, f) for f \
-            in os.listdir(bed_path) if f.endswith('.bed')]
-    '''
-    # For each bed path, create an inclusion or exclusion bed file
-    # used for writing.
-    '''
-    # split extension: grabs file without .bed, then add ".inclusion.bed"
-    bed_paths_inclusion_list = \
-        [''.join([os.path.splitext(f)[0], '.inclusion.bed']) \
-            for f in bed_paths_list]
-    bed_paths_exclusion_list = \
-        [''.join([os.path.splitext(f)[0], '.exclusion.bed']) \
-            for f in bed_paths_list]
+    bed_filenames = [f for f in os.listdir(bed_dir) if f.endswith('.bed')]
+    bed_paths_list = []
+    bed_paths_inclusion_list = []
+    bed_paths_exclusion_list = []
+    for bedfile in bed_filenames:
+        # add to bed path list
+        bed_paths_list.append(os.path.join(bed_dir, bedfile))
+        # first create inclusion/exclusion filename
+        inclusion_fname = ''.join([os.path.splitext(bedfile)[0], 
+                                   '.inclusion.bed'])
+        exclusion_fname = ''.join([os.path.splitext(bedfile)[0],
+                                   '.exclusion.bed'])
+        # append to respective lists
+        bed_paths_inclusion_list.append(os.path.join(out_dir, inclusion_fname))
+        bed_paths_exclusion_list.append(os.path.join(out_dir, exclusion_fname))
     return bed_paths_list, bed_paths_inclusion_list, bed_paths_exclusion_list
         
 def create_bed_paths(bed_path, suffix_list):
@@ -335,30 +336,19 @@ def split_bed_by_inclusion_exclusion(bed_path, misobf_path,
                 sys.exit()
 
 def main():
-    '''
-    default_suffix = '_exon_1,_exon_2,_exon_3,_intron_1_5p,'\
-        '_intron_1_3p,_intron_2_5p,_intron_2_3p'
-    '''
     
-    usage = 'usage: %prog [options] bedfile_prefix misosummary_file'
+    usage = 'usage: %prog [opt] bedfile_dir output_bedfiledir misosummary_file'
     parser = OptionParser(usage=usage)
-    
-    '''
-    parser.add_option('-s', '--suffix_csv', dest='suffix_list_csv', 
-                      default=default_suffix,
-                      help='Suffix of bed file names.\n'\
-                      'default: %s' %default_suffix)
-    '''
     parser.add_option('-t', '--test_type', dest='hyp_test_type',
                       default='ttest',
                       help='The hypothesis test used to generate your '\
                       'miso summary file.\nOnly "bf" or "ttest" accepted.'\
                       'Default is "ttest"')
-    
     (options, args) = parser.parse_args()
     
-    bed_path = args[0]
-    misobf_path = args[1]
+    bed_dir = args[0]
+    out_dir = args[1]
+    misobf_path = args[2]
     # suffix_list_csv = options.suffix_list_csv
     hyp_test_type = options.hyp_test_type
     
@@ -369,18 +359,18 @@ def main():
     # Create list of read bed paths:
     # suffix_list = suffix_list_csv.split(',')
     bed_paths_list, bed_paths_incl_list, bed_paths_excl_list = \
-        create_bed_paths2(bed_path)
+        create_bed_paths2(bed_dir, out_dir)
         
-    for bed_path, inclusion_bed_path, exclusion_bed_path in \
+    for bed_dir, inclusion_bed_path, exclusion_bed_path in \
         zip(bed_paths_list, bed_paths_incl_list, bed_paths_excl_list):
             print('Splitting bed files to inclusion and exclusion.'\
                   '\nAssuming sample1_posterior_mean is PC and '\
                   'sample2_posterior_mean is NEPC...')
-            print('Bed file: %s' %bed_path)
+            print('Bed file: %s' %bed_dir)
             print('Miso BF file: %s' %misobf_path)
             print('Outputs: \n%s\n%s' %(inclusion_bed_path, 
                                         exclusion_bed_path))
-            split_bed_by_inclusion_exclusion(bed_path, misobf_path, 
+            split_bed_by_inclusion_exclusion(bed_dir, misobf_path, 
                                              inclusion_bed_path, 
                                              exclusion_bed_path,
                                              hyp_test_type=hyp_test_type)
