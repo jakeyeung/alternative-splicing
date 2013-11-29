@@ -19,6 +19,7 @@ their sequences obtained via UCSC browser to be sent for motif search.
 
 import sys
 import csv
+import os
 from optparse import OptionParser
 from append_multiple_bed_files import append_multiple_bed_files
 
@@ -84,7 +85,7 @@ def create_exon_coords(event_name):
     
     return exon_starts, exon_ends
 
-def create_exon_intron_bed_files(output_bed_file, bed_description, eventtype='SE'):
+def create_exon_intron_bed_files(bed_dir, bed_description, eventtype='SE'):
     '''
     Create dictionary containing writefile objects depending on 
     event type.
@@ -119,20 +120,22 @@ def create_exon_intron_bed_files(output_bed_file, bed_description, eventtype='SE
         # Create dic to store output write objects to write exon coords
         output_file_dic_exons = {}
         for i, k in zip(exon_index, exon_keys):
-            # Append output_bed_file suffix
-            output_bed_file_suffixed = \
-                ''.join([output_bed_file, '_exon_', str(i), '.bed'])
-            fullpaths.append(output_bed_file_suffixed)
-            output_file_dic_exons[k] = open(output_bed_file_suffixed, 'wb')
+            # Append bed_dir suffix
+            myfilename = \
+                ''.join(['exon_', str(i), '.bed'])
+            bed_dir_suffixed = os.path.join(bed_dir, myfilename)
+            fullpaths.append(bed_dir_suffixed)
+            output_file_dic_exons[k] = open(bed_dir_suffixed, 'wb')
         
         # Create dic to store write objects to write intron coords
         output_file_dic_introns = {}
         for i, k in zip(intron_index, intron_keys):
-            # Append output_bed_file suffix
-            output_bed_file_suffixed = \
-                ''.join([output_bed_file, '_intron_', str(i), '.bed'])
-            fullpaths.append(output_bed_file_suffixed)
-            output_file_dic_introns[k] = open(output_bed_file_suffixed, 'wb')
+            # Append bed_dir suffix
+            myfilename = \
+                ''.join(['intron_', str(i), '.bed'])
+            bed_dir_suffixed = os.path.join(bed_dir, myfilename)
+            fullpaths.append(bed_dir_suffixed)
+            output_file_dic_introns[k] = open(bed_dir_suffixed, 'wb')
             
         # Writes bed header to file
         for k in exon_keys:
@@ -402,19 +405,19 @@ def split_introns_to_5p_3p(intron_starts, intron_ends, strand, eventtype='SE'):
         
         return intron_starts, intron_ends
 
-def extract_coordinates_from_miso_bf(miso_file, output_bed_file, 
+def extract_coordinates_from_miso_bf(miso_file, bed_dir, 
                                      bed_description, eventtype='SE'):
     '''
     Input:
         miso_file - file from bayes analysis. Expects column names such as
             event_name, chrom, and strand.
     Output:
-        output_bed_file - bed file extracting coordinates of upstream, skipped
+        bed_dir - bed dir containing extracted coordinates of upstream, skipped
         and downstream exon as well as the two upstream/downstream introns.
         
         Each region (upstream skipped, downstream, up/down introns) are outputted
-        into a separate bed file, with the output_bed_file suffixed to indicate
-        the type of region.
+        into a separate bed file, with the bed_dir containig file names 
+        of the exon intron regions
     
     #TODO: chrom_str and strand_str can be obtained from event_name, so it 
     can be replaced by a function.
@@ -430,7 +433,7 @@ def extract_coordinates_from_miso_bf(miso_file, output_bed_file,
     # TODO: delete me. 
     # Create read_write_obj for reading and writing simultaneously and also works
     # in python 2.6
-    # read_write_obj = read_write(miso_file, output_bed_file, header=True)
+    # read_write_obj = read_write(miso_file, bed_dir, header=True)
     '''
     with open(miso_file, 'rb') as readfile:
         reader = csv.reader(readfile, delimiter='\t')
@@ -448,7 +451,7 @@ def extract_coordinates_from_miso_bf(miso_file, output_bed_file,
                 3' downstream from skipped intron
             '''
             output_file_dic_exons, output_file_dic_introns , full_outpaths = \
-                create_exon_intron_bed_files(output_bed_file, 
+                create_exon_intron_bed_files(bed_dir, 
                                              bed_description, 
                                              eventtype='SE')
         # Get header
@@ -504,32 +507,34 @@ def main():
     parser.add_option('-f', '--file', dest='miso_file',
                       help='Miso summary results or '\
                       'bh_adj t-test summary file.')
-    parser.add_option('-o', '--output_prefix', dest='output_bed_file',
+    parser.add_option('-o', '--output_prefix', dest='bed_dir',
                       help='Output bed file path, e.g.:'\
-                      '~/mincounts_10.bed. A suffix will be appended to this.')
+                      '/Data/bedfiles/. Created bedfiles will be found here.')
     parser.add_option('-O', '--appended_output_name', 
-                      dest='appended_bed_file_path',
+                      dest='appended_bed_filename',
                       help='Appended output bed file path, e.g.:'\
-                      '~/mincounts_10_appended.bed. '\
+                      '-O appended.bed creates appended.bed in bed_dir'\
                       'This will be the file you load to UCSC.')
     parser.add_option('-d', '--descrip', dest='bed_description',
                       help='Description of your bed files: e.g. mincount_10')
     (options, _) = parser.parse_args()
     '''
-    If user inputted output_bed_file with a .* ending, we will remove it
+    If user inputted bed_dir with a .* ending, we will remove it
     because we want to append more strings to end of filename before 
     tagging the .bed ending. 
     '''
-    options.output_bed_file = '.'.join(options.output_bed_file.split('.')[:-1])
     wcount, outpaths = extract_coordinates_from_miso_bf(options.miso_file, 
-                                                        options.output_bed_file, 
+                                                        options.bed_dir, 
                                                         options.bed_description)
-    append_multiple_bed_files(outpaths, options.appended_bed_file_path)
+    # Join path to appended bed filename
+    appended_bed_file_path = \
+        os.path.join(options.bed_dir, options.appended_bed_filename)
+    append_multiple_bed_files(outpaths, appended_bed_file_path)
     print('Done. %s total coordinates extracted.' %wcount)
     print('Bed files written to:')
     for f in outpaths:
         print(f)
-    print('Appended bed file written to:\n%s' %options.appended_bed_file_path)
+    print('Appended bed file written to:\n%s' %appended_bed_file_path)
 
 if __name__ == '__main__':
     main()
