@@ -514,7 +514,8 @@ def main():
                       dest='appended_bed_filename',
                       help='Appended output bed file path, e.g.:'\
                       '-O appended.bed creates appended.bed in bed_dir'\
-                      'This will be the file you load to UCSC.')
+                      'This will be the file you load to UCSC.',
+                      default='appended_bedfiles.bed')
     parser.add_option('-d', '--descrip', dest='bed_description',
                       help='Description of your bed files: e.g. mincount_10')
     (options, _) = parser.parse_args()
