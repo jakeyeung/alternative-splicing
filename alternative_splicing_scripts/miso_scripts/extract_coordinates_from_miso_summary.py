@@ -108,7 +108,7 @@ def create_exon_intron_bed_files(bed_dir, bed_description, eventtype='SE'):
         exon_index = range(1, 4)    # 3 exons (1, 2, 3)
         # Because we will sort later, we need to add a and b to
         # ensure when we sort, we will get same order as defined.
-        intron_index = ['1_a5p', '1_b3p', '2_a5p', '2_b3p']
+        intron_index = ['1_5p', '1_3p', '2_5p', '2_3p']
         
         # Create keynames for exon and intron dictionaries.
         exon_keys = [''.join(['exon_', str(i)]) for i in exon_index]
@@ -337,7 +337,8 @@ def check_intron_lengths_assign_nbp(intron_5p, intron_3p, n=100):
         intron_3p_nbp = intron_5p
     return intron_5p_nbp, intron_3p_nbp
         
-def split_introns_to_5p_3p(intron_starts, intron_ends, strand, eventtype='SE'):
+def split_introns_to_5p_3p(intron_starts, intron_ends, 
+                           strand, length, eventtype='SE'):
     '''
     Input:
         intron_starts: a list of start of each intron (end of respective exon)
@@ -383,10 +384,12 @@ def split_introns_to_5p_3p(intron_starts, intron_ends, strand, eventtype='SE'):
         # Get 300 bp distances from intron 5' and 3' sites.
         intron_upstrm_5p_nbp, intron_upstrm_3p_nbp = \
             check_intron_lengths_assign_nbp(intron_upstrm_5p, 
-                                              intron_upstrm_3p)
+                                              intron_upstrm_3p,
+                                              n=length)
         intron_dwnstrm_5p_nbp, intron_dwnstrm_3p_nbp = \
             check_intron_lengths_assign_nbp(intron_dwnstrm_5p,
-                                              intron_dwnstrm_3p)
+                                              intron_dwnstrm_3p,
+                                              n=length)
         # Recreate intron_starts in proper order.
         if strand=='+':
                 intron_starts = \
@@ -406,7 +409,8 @@ def split_introns_to_5p_3p(intron_starts, intron_ends, strand, eventtype='SE'):
         return intron_starts, intron_ends
 
 def extract_coordinates_from_miso_bf(miso_file, bed_dir, 
-                                     bed_description, eventtype='SE'):
+                                     bed_description, 
+                                     length, eventtype='SE'):
     '''
     Input:
         miso_file - file from bayes analysis. Expects column names such as
@@ -478,7 +482,7 @@ def extract_coordinates_from_miso_bf(miso_file, bed_dir,
                 create_intron_coords_from_exon_coords(exon_starts, exon_ends, strand)
             # Split intron start ends to 5' and 3'ends, 300 bp each.
             intron_starts, intron_ends = \
-                split_introns_to_5p_3p(intron_starts, intron_ends, strand)
+                split_introns_to_5p_3p(intron_starts, intron_ends, strand, length)
             
             # Write exons then introns to files.
             wcount += write_coords_to_files(output_file_dic_exons, 
@@ -514,17 +518,30 @@ def main():
                       help='Appended output bed file path, e.g.:'\
                       '-O appended.bed creates appended.bed in bed_dir'\
                       'This will be the file you load to UCSC.',
-                      default='appended_bedfiles.bed')
+                      default='appended_bedfiles.appendedbed')
     parser.add_option('-d', '--descrip', dest='bed_description',
                       help='Description of your bed files: e.g. mincount_10')
+    parser.add_option('-l', '--length', dest='length_of_intron',
+                      help='Length of introns to extract. Default 100.',
+                      default='100')
     (options, args) = parser.parse_args()
     
-    miso_file = args[0]
+    # Convert length of intron to integer.
+    try:
+        length_of_intron = int(options.length_of_intron)
+    except ValueError:
+        print 'Length of intron (-d opt flag) must be an integer.'\
+            '%s found.' %options.length_of_intron
+    print 'Creating bed files, introns will have max length %s' \
+        %length_of_intron
+    
+    miso_file = args[0] 
     bed_dir = args[1]
     
     wcount, outpaths = extract_coordinates_from_miso_bf(miso_file, 
                                                         bed_dir, 
-                                                        options.bed_description)
+                                                        options.bed_description,
+                                                        length_of_intron)
     # Join path to appended bed filename
     appended_bed_file_path = \
         os.path.join(bed_dir, options.appended_bed_filename)
