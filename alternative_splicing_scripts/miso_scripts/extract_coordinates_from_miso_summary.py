@@ -85,6 +85,29 @@ def create_exon_coords(event_name):
     
     return exon_starts, exon_ends
 
+def create_exon_keys(eventtype='SE'):
+    '''
+    Get exon keys to access dictionaries
+    Works for SE only.
+    '''
+    if eventtype == 'SE':
+        exon_keys = [''.join(['exon_', str(i)]) for i in range(1, 4)]
+    else:
+        print 'only SE events have been scripted. Sorry.'
+    return exon_keys
+
+def create_intron_keys(eventtype='SE'):
+    '''
+    Get intron keys to access dictionaries
+    Works for SE only.
+    '''
+    if eventtype == 'SE':
+        intron_index = ['1_5p', '1_3p', '2_5p', '2_3p']
+        intron_keys = [''.join(['intron_', str(i)]) for i in intron_index]
+    else:
+        print 'Only SE events have been scripted so far.'
+    return intron_keys
+
 def create_exon_intron_bed_files(bed_dir, bed_description, eventtype='SE'):
     '''
     Create dictionary containing writefile objects depending on 
@@ -244,9 +267,16 @@ def write_exon_coords_to_files(output_file_dic_exons,
 
 def write_coords_to_files(output_file_dic,
                          chrom, starts, ends,
-                         event, score, strand):
+                         event, score, strand,
+                         dic_keys):
     '''
-    Given list of intron start and ends, write to multiple files, one for each exon.
+    Given list of intron start and ends, write to multiple files, 
+    one for each exon.
+    Inputs:
+    dic_keys: keys sorted in a specific order to make sure 
+    it matches with the order
+    of the starts and ends (i.e. intron_1_5p, intron_1_3p, 
+    intron_2_5p, intron_2_3p.
     '''
     # Check lengths
     if len(starts) != len(ends):
@@ -256,20 +286,15 @@ def write_coords_to_files(output_file_dic,
         print('intron_ends: %s' %ends)
         raw_input('Continue? (Press enter:')
     
-    # Get sorted key for looping later...
-    jkeys = sorted(output_file_dic.keys())
-    
     writecount = 0
     # Write start-ends to files.
-    for start, end, k in zip(starts, ends, jkeys):
+    for start, end, k in zip(starts, ends, dic_keys):
         # Create tab separated string for writing to file.
         write_str = '\t'.join([chrom, str(start), str(end), event,
                                score, strand, '\n'])
         output_file_dic[k].write(write_str)
         writecount += 1
     return writecount
-    
-    
 
 def write_coords_to_multi_files(output_file_dic_exons, 
                                 output_file_dic_introns,
@@ -485,20 +510,24 @@ def extract_coordinates_from_miso_bf(miso_file, bed_dir,
                 split_introns_to_5p_3p(intron_starts, intron_ends, strand, length)
             
             # Write exons then introns to files.
+            exon_keys = create_exon_keys(eventtype='SE')
             wcount += write_coords_to_files(output_file_dic_exons, 
                                             chrom, 
                                             exon_starts, 
                                             exon_ends, 
                                             event_name, 
                                             score, 
-                                            strand)
+                                            strand,
+                                            exon_keys)
+            intron_keys = create_intron_keys(eventtype='SE')
             wcount += write_coords_to_files(output_file_dic_introns,
                                             chrom,
                                             intron_starts,
                                             intron_ends,
                                             event_name,
                                             score,
-                                            strand)
+                                            strand,
+                                            intron_keys)
         # Close exon and intron files.
         for writeobj in (output_file_dic_exons.values() + 
                          output_file_dic_introns.values()):
