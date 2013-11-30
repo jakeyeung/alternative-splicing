@@ -338,7 +338,7 @@ def convert_to_boolean(myvariable):
     '''
     if myvariable in ['True', 'TRUE', 'true', 't', 'T']:
         myvariable = True
-    elif myvaraible in ['False', 'FALSE', 'false', 'f' , 'F']:
+    elif myvariable in ['False', 'FALSE', 'false', 'f' , 'F']:
         myvariable = False
     else:
         print 'Expected variable to be True or False. %s found.' \
