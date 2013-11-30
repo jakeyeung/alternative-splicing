@@ -75,9 +75,9 @@ def create_bed_paths2(bed_dir, out_dir):
         bed_paths_list.append(os.path.join(bed_dir, bedfile))
         # first create inclusion/exclusion filename
         inclusion_fname = ''.join([os.path.splitext(bedfile)[0], 
-                                   '.inclusion.bed'])
+                                   '_inclusion.bed'])
         exclusion_fname = ''.join([os.path.splitext(bedfile)[0],
-                                   '.exclusion.bed'])
+                                   '_exclusion.bed'])
         # append to respective lists
         bed_paths_inclusion_list.append(os.path.join(out_dir, inclusion_fname))
         bed_paths_exclusion_list.append(os.path.join(out_dir, exclusion_fname))
