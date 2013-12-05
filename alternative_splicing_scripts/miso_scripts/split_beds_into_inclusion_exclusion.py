@@ -143,6 +143,7 @@ def check_bed_miso_events_match(bed_event, miso_event):
         print('Bed event: %s\nMiso event: %s' \
               %(bed_event, 
                 miso_event))
+        print 'Did you specify the correct miso file in command line?'
         sys.exit()
     return None
 
