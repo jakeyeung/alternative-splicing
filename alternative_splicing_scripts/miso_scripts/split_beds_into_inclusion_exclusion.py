@@ -147,17 +147,25 @@ def check_bed_miso_events_match(bed_event, miso_event):
         sys.exit()
     return None
 
-def decide_inclusion_or_exclusion_misobf(bed_row, summary_row):
+def decide_inclusion_or_exclusion_misobf(bed_row, summary_row, summary_header):
     '''
     Input: summary_row, a row from either miso_bf or miso_t_test textfile.
         bed_row, a row from bedfile, to check if it is same event. 
         
     Output: strings 'inclusion' or 'exclusion'.
     '''
+    # Def column names
+    psi_samp1_colname = 'sample1_posterior_mean'
+    psi_samp2_colname = 'sample2_posterior_mean'
+    miso_event_colname = 'event_name'
+    
     output_str = ''
-    psi_samp1_index = 1
-    psi_samp2_index = 4
-    miso_event_index = 0
+    
+    # Define indices
+    psi_samp1_index = summary_header.index(psi_samp1_colname)
+    psi_samp2_index = summary_header.index(psi_samp2_colname)
+    miso_event_index = summary_header.index(miso_event_colname)
+    # Bed has no header, so just hard code it.
     bed_event_index = 3
     inclusion_str = 'inclusion'
     exclusion_str = 'exclusion'
@@ -312,7 +320,8 @@ def split_bed_by_inclusion_exclusion(bed_path, misobf_path,
             '''
             if hyp_test_type=='bf':
                 incl_or_excl_str = \
-                    decide_inclusion_or_exclusion_misobf(bed_row, miso_row)
+                    decide_inclusion_or_exclusion_misobf(bed_row, miso_row,
+                                                         header)
             elif hyp_test_type=='ttest':
                 incl_or_excl_str = \
                     decide_inclusion_or_exclusion_t_test(bed_row, miso_row, 
