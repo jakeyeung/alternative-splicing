@@ -100,8 +100,9 @@ def not_differentially_expressed(samp1_readcount, samp2_readcount,
     if samp1_readcount < min_reads or samp2_readcount < min_reads:
         # go to next row
         return False
+    
     # 2) Check fold changes are not above or below threshold
-    elif fc > min_reads or fc < 1.0/min_reads:
+    elif fc > max_fc or fc < 1.0/max_fc:
         # go to next row
         return False
     else:
@@ -126,6 +127,8 @@ def filter_miso_file(miso_file, exprs_dic, output_file,
     with open(miso_file, 'rb') as readfile:
         myreader = csv.reader(readfile, delimiter='\t')
         header = myreader.next()
+        # Write header to writefile
+        mywriter.writerow(header)
         for rowcount, row in enumerate(myreader):
             genename = row[header.index(genename_colname)]
             try:
@@ -142,6 +145,7 @@ def filter_miso_file(miso_file, exprs_dic, output_file,
                 mywriter.writerow(row)
                 writecount += 1
     print '%s rows written out of %s.' %(writecount, rowcount)
+    print 'Output file: %s' %output_file
     
 def main():
     usage = 'usage: %prog [opt] miso_file exprs_file output_miso_file\n'\
