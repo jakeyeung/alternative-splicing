@@ -505,6 +505,7 @@ def extract_coordinates_from_miso_bf(miso_file, bed_dir,
                 create_exon_coords(event_name)        
             intron_starts, intron_ends = \
                 create_intron_coords_from_exon_coords(exon_starts, exon_ends, strand)
+
             # Split intron start ends to 5' and 3'ends, 300 bp each.
             intron_starts, intron_ends = \
                 split_introns_to_5p_3p(intron_starts, intron_ends, strand, length)
