@@ -13,6 +13,7 @@ import sys
 import csv
 import math
 from optparse import OptionParser
+from utilities import plot_utils
 
 def get_lfq_colnames(options):
     '''
@@ -227,12 +228,62 @@ def write_lfq_mrna_data_to_file(lfq_mrna_dic, out_fname, options):
                 mrna_diff = ['NA']
             mywriter.writerow([gene] + lfq_list + mrna_list + lfq_diff + mrna_diff)
     print '%s rows written to: %s' %(rowcount, out_fname)
+    return None
     
-def scatter_plot_lfq_mrna(lfq_mrna_dic):
+def scatter_plot_lfq_mrna(lfq_mrna_dic, spliced_genes):
     '''
-    Plots log2 fold change with 
+    Plots log2 fold change with lfq difference. 
     '''
-    pass
+    # Get vectors lfq and mrna as a list.
+    bubble_annotations = []
+    lfq_diff_vector = []
+    mrna_diff_vector = []
+    color_vector = []    # blue if not spliced, red if spliced.
+    for gene in lfq_mrna_dic:
+        if 'lfq_diff' in lfq_mrna_dic[gene] and \
+            'mrna_log2_fc' in lfq_mrna_dic[gene]:
+            try:
+                # Since these are lists of length 1, take the first element [0]
+                lfq_diff = float(lfq_mrna_dic[gene]['lfq_diff'][0])
+            except ValueError:
+                continue
+            try:
+                # Since these are lists of length 1, take the first element [0]
+                mrna_diff = float(lfq_mrna_dic[gene]['mrna_log2_fc'][0])
+            except ValueError:
+                continue
+            
+            if gene in spliced_genes:
+                color_vector.append('r')
+            else:
+                # continue
+                color_vector.append('b')
+                
+            lfq_diff_vector.append(lfq_diff)
+            mrna_diff_vector.append(mrna_diff)
+            bubble_annotations.append(gene)
+
+    # plot_utils.plot_bubble_chart(mrna_diff_vector, lfq_diff_vector, bubble_annotations)
+    
+    # Create bubble size
+    
+    plot_utils.plot_bubble_plot(mrna_diff_vector, lfq_diff_vector, color_vector, 
+                     bubble_annotations, 'mRNA Log 2 Fold Change', 
+                     'LFQ Intensity Difference', 
+                     '331 vs 331R: RNA-Seq and LFQ Data')
+    
+def get_spliced_genes(miso_filename):
+    '''
+    Get list of spliced genes from miso
+    '''
+    genename_list = []
+    with open(miso_filename, 'rb') as readfile:
+        myreader = csv.reader(readfile, delimiter='\t')
+        myheader = myreader.next()
+        for row in myreader:
+            genename = row[myheader.index('gsymbol')]
+            genename_list.append(genename)
+    return genename_list
             
 def main():
     usage = 'usage: %prog [opt] lfq_filename gene_exprs_filename output_filename'\
@@ -274,24 +325,30 @@ def main():
         print 'Not enough args specified.\n%s' %usage
         sys.exit()
     
-    
     lfq_filename = args[0]
     gene_exprs_filename = args[1]
     out_filename = args[2]
+    miso_filename = args[3]
     
     lfq_mrna_dic = {}
     
     # Add LFQ information to dic
     lfq_mrna_dic = index_lfq_data(lfq_filename, lfq_mrna_dic, options)
+    print 'lfq data indexed from file: %s' %lfq_filename
     
     # Add gene exprs to dic
     lfq_mrna_dic = index_mrna_data(gene_exprs_filename, lfq_mrna_dic, options)
+    print 'mrna data indexed from file: %s' %gene_exprs_filename
     
     # Write dic to file
     write_lfq_mrna_data_to_file(lfq_mrna_dic, out_filename, options)
     
+    # Get differentially spliced genes (non-redundant only)
+    spliced_genes = list(set(get_spliced_genes(miso_filename)))
+    print '%s spliced genes extracted from %s' %(len(spliced_genes), miso_filename)
+    
     # Scatterplot data
-    scatter_plot_lfq_mrna(lfq_mrna_dic)
+    scatter_plot_lfq_mrna(lfq_mrna_dic, spliced_genes)
     
 if __name__ == '__main__':
     main()
