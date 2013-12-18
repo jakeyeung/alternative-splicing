@@ -14,6 +14,19 @@ import csv
 import math
 from optparse import OptionParser
 from utilities import plot_utils
+from scipy.stats import stats
+
+def get_lfq_mrna_dic_keys():
+    '''
+    Create function to store my dic names
+    This way I dont' have to hard code constanst everywhere 
+    when I want to access keys in dic
+    '''
+    lfq_data_key = 'lfq_data'
+    mrna_data_key = 'mrna_data'
+    lfq_diff_key = ' lfq_diff'
+    mrna_log2_fc_key = 'mrna_log2_fc'
+    return lfq_data_key, mrna_data_key, lfq_diff_key, mrna_log2_fc_key
 
 def get_lfq_colnames(options):
     '''
@@ -90,6 +103,8 @@ def index_lfq_data(lfq_filename, mydic, options):
     Read lfq filename and store as dictionary.
     dic format:
     {genename: {"lfq_intensity": lfq_diff}}
+    Gene names MAY be semi-colon separated. So try to
+    split and treat each gene separately.
     '''
     # Define column names
     samp1_lfq_colname1, \
@@ -98,43 +113,53 @@ def index_lfq_data(lfq_filename, mydic, options):
     samp2_lfq_colname2, \
     gene_colname = get_lfq_colnames(options)
     
+    # Define keynames
+    lfq_data_key, _, lfq_diff_key, _ = \
+        get_lfq_mrna_dic_keys()
+    
+    index_count = 0
     with open(lfq_filename, 'rb') as readfile:
         myreader = csv.reader(readfile, delimiter='\t')
         myheader = myreader.next()
         for row in myreader:
-            gene = row[myheader.index(gene_colname)]
-            # If no gene name, go next
-            if gene == '':
-                continue
-            '''
-            For each row, extract LFQ intensities of two samples, each with
-            two replicates.
-            '''
-            samp1_lfq1 = row[myheader.index(samp1_lfq_colname1)]
-            samp1_lfq2 = row[myheader.index(samp1_lfq_colname2)]
-            samp2_lfq1 = row[myheader.index(samp2_lfq_colname1)]
-            samp2_lfq2 = row[myheader.index(samp2_lfq_colname2)]
-            
-            # get samp1 avg (or just one of the replicates, or
-            #  none, depending on availability)
-            samp1_avg = try_float_get_samp_avg(samp1_lfq1, samp1_lfq2, gene)
-            samp2_avg = try_float_get_samp_avg(samp2_lfq1, samp2_lfq2, gene)
-            
-            samp_diff = try_get_samp_diff(samp1_avg, samp2_avg)
-            
-            # Only store floats to dic, no NaNs
-            if samp_diff != None:
-                mydic[gene] = {'lfq_diff': [samp_diff], 
-                               'lfq_data': [samp1_lfq1, 
-                                             samp1_lfq2, 
-                                             samp2_lfq1, 
-                                             samp2_lfq2]}
-            else:
-                mydic[gene] = {'lfq_diff': ['NA'],
-                               'lfq_data': [samp1_lfq1, 
-                                             samp1_lfq2, 
-                                             samp2_lfq1, 
-                                             samp2_lfq2]}
+            # Get gene names, may be semicolon separated, so split then iterate
+            genes_semicolon_sep = row[myheader.index(gene_colname)]
+            genes_list = genes_semicolon_sep.split(';')
+            for gene in genes_list:
+                # If no gene name, go next
+                if gene == '':
+                    continue
+                '''
+                For each row, extract LFQ intensities of two samples, each with
+                two replicates.
+                '''
+                samp1_lfq1 = row[myheader.index(samp1_lfq_colname1)]
+                samp1_lfq2 = row[myheader.index(samp1_lfq_colname2)]
+                samp2_lfq1 = row[myheader.index(samp2_lfq_colname1)]
+                samp2_lfq2 = row[myheader.index(samp2_lfq_colname2)]
+                
+                # get samp1 avg (or just one of the replicates, or
+                #  none, depending on availability)
+                samp1_avg = try_float_get_samp_avg(samp1_lfq1, samp1_lfq2, gene)
+                samp2_avg = try_float_get_samp_avg(samp2_lfq1, samp2_lfq2, gene)
+                
+                samp_diff = try_get_samp_diff(samp1_avg, samp2_avg)
+                
+                # Only store floats to dic, no NaNs
+                if samp_diff != None:
+                    mydic[gene] = {lfq_diff_key: [samp_diff], 
+                                   lfq_data_key: [samp1_lfq1, 
+                                                 samp1_lfq2, 
+                                                 samp2_lfq1, 
+                                                 samp2_lfq2]}
+                    index_count += 1
+                else:
+                    mydic[gene] = {lfq_diff_key: ['NA'],
+                                   lfq_data_key: [samp1_lfq1, 
+                                                 samp1_lfq2, 
+                                                 samp2_lfq1, 
+                                                 samp2_lfq2]}
+    print '%s non-NA genes (from LFQ data) stored in dic' %index_count
     return mydic
 
 def index_mrna_data(mrna_filename, mydic, options):
@@ -142,14 +167,19 @@ def index_mrna_data(mrna_filename, mydic, options):
     Read mRNA exprs data, and add gene exprs levels to dic.
     {genename: {"gene_exprs": gene_exprs_foldchange}}
     '''
+    # def colnames
     samp1_exprs_colname, \
     samp2_exprs_colname, \
     gene_colname = get_mrna_colnames(options)
     
+    # def keynames
+    _, mrna_data_key, _, mrna_log2_fc_key = \
+        get_lfq_mrna_dic_keys()
+    
     with open(mrna_filename, 'rb') as readfile:
         myreader = csv.reader(readfile, delimiter='\t')
         myheader = myreader.next()
-        for row in myreader:
+        for rowcount, row in enumerate(myreader):
             gene = row[myheader.index(gene_colname)]
             samp1_exprs = float(row[myheader.index(samp1_exprs_colname)])
             samp2_exprs = float(row[myheader.index(samp2_exprs_colname)])
@@ -161,11 +191,12 @@ def index_mrna_data(mrna_filename, mydic, options):
                 foldchange_log2 = \
                     math.log(float(samp2_exprs) / float(samp1_exprs), 2)
             try:
-                mydic[gene].update({'mrna_log2_fc': [foldchange_log2], 
-                                    'mrna_data': [samp1_exprs, samp2_exprs]})
+                mydic[gene].update({mrna_log2_fc_key: [foldchange_log2], 
+                                    mrna_data_key: [samp1_exprs, samp2_exprs]})
             except KeyError:
-                mydic[gene] = {'mrna_log2_fc': [foldchange_log2], 
-                                    'mrna_data': [samp1_exprs, samp2_exprs]}
+                mydic[gene] = {mrna_log2_fc_key: [foldchange_log2], 
+                                    mrna_data_key: [samp1_exprs, samp2_exprs]}
+    print '%s mRNA rows stored in dic.' %rowcount
     return mydic
 
 def write_headers(writeobj, options):
@@ -187,12 +218,16 @@ def write_headers(writeobj, options):
     samp2_exprs_colname, \
     _ = get_mrna_colnames(options)
     
+    # Define keynames
+    _, _, lfq_diff_key, mrna_log2_fc_key = \
+        get_lfq_mrna_dic_keys()
+    
     gene_colname = 'gene'
     
     raw_data = [gene_colname, samp1_lfq_colname1, samp1_lfq_colname2, 
                       samp2_lfq_colname1, samp2_lfq_colname2, 
                       samp1_exprs_colname, samp2_exprs_colname]
-    processed_data = ['lfq_diff', 'mrna_log2_fc']
+    processed_data = [lfq_diff_key, mrna_log2_fc_key]
     writeobj.writerow(raw_data + processed_data)
     return None
 
@@ -205,25 +240,28 @@ def write_lfq_mrna_data_to_file(lfq_mrna_dic, out_fname, options):
         samp2-lfq2, samp1-exprs, samp2-exprs, 
         lfq_diff, mrna_log2_fc]
     '''
+    lfq_data_key, mrna_data_key, lfq_diff_key, mrna_log2_fc_key = \
+        get_lfq_mrna_dic_keys()
+        
     with open(out_fname, 'wb') as outfile:
         mywriter = csv.writer(outfile, delimiter='\t')
         # Write headers
         write_headers(mywriter, options)
         for rowcount, gene in enumerate(lfq_mrna_dic):
             try:
-                lfq_list = lfq_mrna_dic[gene]['lfq_data']
+                lfq_list = lfq_mrna_dic[gene][lfq_data_key]
             except KeyError:
                 lfq_list = 4 * ['NA']
             try:
-                mrna_list = lfq_mrna_dic[gene]['mrna_data']
+                mrna_list = lfq_mrna_dic[gene][mrna_data_key]
             except KeyError:
                 mrna_list = 2 * ['NA']
             try:
-                lfq_diff = lfq_mrna_dic[gene]['lfq_diff']
+                lfq_diff = lfq_mrna_dic[gene][lfq_diff_key]
             except KeyError:
                 lfq_diff = ['NA']
             try:
-                mrna_diff = lfq_mrna_dic[gene]['mrna_log2_fc']
+                mrna_diff = lfq_mrna_dic[gene][mrna_log2_fc_key]
             except KeyError:
                 mrna_diff = ['NA']
             mywriter.writerow([gene] + lfq_list + mrna_list + lfq_diff + mrna_diff)
@@ -234,22 +272,26 @@ def scatter_plot_lfq_mrna(lfq_mrna_dic, spliced_genes):
     '''
     Plots log2 fold change with lfq difference. 
     '''
+    # Define keynames
+    _, _, lfq_diff_key, mrna_log2_fc_key = \
+        get_lfq_mrna_dic_keys()
+    
     # Get vectors lfq and mrna as a list.
     bubble_annotations = []
     lfq_diff_vector = []
     mrna_diff_vector = []
     color_vector = []    # blue if not spliced, red if spliced.
     for gene in lfq_mrna_dic:
-        if 'lfq_diff' in lfq_mrna_dic[gene] and \
-            'mrna_log2_fc' in lfq_mrna_dic[gene]:
+        if lfq_diff_key in lfq_mrna_dic[gene] and \
+            mrna_log2_fc_key in lfq_mrna_dic[gene]:
             try:
                 # Since these are lists of length 1, take the first element [0]
-                lfq_diff = float(lfq_mrna_dic[gene]['lfq_diff'][0])
+                lfq_diff = float(lfq_mrna_dic[gene][lfq_diff_key][0])
             except ValueError:
                 continue
             try:
                 # Since these are lists of length 1, take the first element [0]
-                mrna_diff = float(lfq_mrna_dic[gene]['mrna_log2_fc'][0])
+                mrna_diff = float(lfq_mrna_dic[gene][mrna_log2_fc_key][0])
             except ValueError:
                 continue
             
@@ -284,6 +326,25 @@ def get_spliced_genes(miso_filename):
             genename = row[myheader.index('gsymbol')]
             genename_list.append(genename)
     return genename_list
+
+def split_by_splice_status(lfq_mrna_dic, spliced_genes, spliced=None):
+    '''
+    Given lfq mrna dic, get lfq and mrna data for three cases:
+    1) Only spliced genes (spliced == True)
+    2) Only non-spliced genes (spliced == False)
+    3) All genes (spliced == None)
+    '''
+    _, _, lfq_diff_key, mrna_log2_fc_key = \
+        get_lfq_mrna_dic_keys()
+        
+    lfq_list = []
+    mrna_list = []
+    if spliced == None:
+        for gene in lfq_mrna_dic:
+            lfq_list.append(lfq_mrna_dic[lfq_diff_key])
+            mrna_list.append(lfq_mrna_dic[mrna_log2_fc_key])
+    return None
+        
             
 def main():
     usage = 'usage: %prog [opt] lfq_filename gene_exprs_filename output_filename'\
@@ -345,10 +406,19 @@ def main():
     
     # Get differentially spliced genes (non-redundant only)
     spliced_genes = list(set(get_spliced_genes(miso_filename)))
-    print '%s spliced genes extracted from %s' %(len(spliced_genes), miso_filename)
+    print '%s spliced genes extracted from %s' %(len(spliced_genes), 
+                                                 miso_filename)
+    
+    # Calculate Pearson and Spearman correlation for non-AS genes and AS genes
+    '''
+    mrna_log2_fc, lfq_diff = split_by_splice_status(lfq_mrna_dic, 
+                                                    spliced_genes,
+                                                    spliced=True)
+    '''
     
     # Scatterplot data
     scatter_plot_lfq_mrna(lfq_mrna_dic, spliced_genes)
+    
     
 if __name__ == '__main__':
     main()
