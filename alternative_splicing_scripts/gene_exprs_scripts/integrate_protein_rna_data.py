@@ -98,13 +98,17 @@ def try_get_samp_diff(samp1_avg, samp2_avg):
     else:
         return None
 
-def index_lfq_data(lfq_filename, mydic, options):
+def index_lfq_data(lfq_filename, mydic, options, filter_out_missing_data=False):
     '''
     Read lfq filename and store as dictionary.
     dic format:
     {genename: {"lfq_intensity": lfq_diff}}
     Gene names MAY be semi-colon separated. So try to
     split and treat each gene separately.
+    
+    filter_out_missing_data = False by default. This means it will
+    store data even if it has missing NAs.
+    If True, it will only take values when samp_diff returns non-None.
     '''
     # Define column names
     samp1_lfq_colname1, \
@@ -153,16 +157,18 @@ def index_lfq_data(lfq_filename, mydic, options):
                                                  samp2_lfq1, 
                                                  samp2_lfq2]}
                     index_count += 1
-                else:
+                elif samp_diff == None and filter_out_missing_data == False:
                     mydic[gene] = {lfq_diff_key: ['NA'],
                                    lfq_data_key: [samp1_lfq1, 
                                                  samp1_lfq2, 
                                                  samp2_lfq1, 
                                                  samp2_lfq2]}
+                else:
+                    pass
     print '%s non-NA genes (from LFQ data) stored in dic' %index_count
     return mydic
 
-def index_mrna_data(mrna_filename, mydic, options):
+def index_mrna_data(mrna_filename, mydic, options, filter_na=False):
     '''
     Read mRNA exprs data, and add gene exprs levels to dic.
     {genename: {"gene_exprs": gene_exprs_foldchange}}
@@ -176,17 +182,21 @@ def index_mrna_data(mrna_filename, mydic, options):
     _, mrna_data_key, _, mrna_log2_fc_key = \
         get_lfq_mrna_dic_keys()
     
+    rowcount = 0
     with open(mrna_filename, 'rb') as readfile:
         myreader = csv.reader(readfile, delimiter='\t')
         myheader = myreader.next()
-        for rowcount, row in enumerate(myreader):
+        for row in myreader:
             gene = row[myheader.index(gene_colname)]
             samp1_exprs = float(row[myheader.index(samp1_exprs_colname)])
             samp2_exprs = float(row[myheader.index(samp2_exprs_colname)])
             
             # If either gene exprs are zero, go to next.
             if samp1_exprs == 0 or samp2_exprs == 0:
-                foldchange_log2 = 'NA'
+                if filter_na==False:
+                    foldchange_log2 = 'NA'
+                elif filter_na==True:
+                    continue
             else:
                 foldchange_log2 = \
                     math.log(float(samp2_exprs) / float(samp1_exprs), 2)
@@ -196,6 +206,7 @@ def index_mrna_data(mrna_filename, mydic, options):
             except KeyError:
                 mydic[gene] = {mrna_log2_fc_key: [foldchange_log2], 
                                     mrna_data_key: [samp1_exprs, samp2_exprs]}
+            rowcount += 1
     print '%s mRNA rows stored in dic.' %rowcount
     return mydic
 
@@ -336,15 +347,39 @@ def split_by_splice_status(lfq_mrna_dic, spliced_genes, spliced=None):
     '''
     _, _, lfq_diff_key, mrna_log2_fc_key = \
         get_lfq_mrna_dic_keys()
-        
-    lfq_list = []
-    mrna_list = []
+    
+    
+    lfq_diff_list = []
+    mrna_diff_list = []
+    
     if spliced == None:
         for gene in lfq_mrna_dic:
-            lfq_list.append(lfq_mrna_dic[lfq_diff_key])
-            mrna_list.append(lfq_mrna_dic[mrna_log2_fc_key])
-    return None
-        
+            if lfq_diff_key in lfq_mrna_dic[gene] and \
+                mrna_log2_fc_key in lfq_mrna_dic[gene]: 
+                lfq_diff_list += lfq_mrna_dic[gene][lfq_diff_key]
+                mrna_diff_list += lfq_mrna_dic[gene][mrna_log2_fc_key]
+
+    elif spliced == True:
+        for gene in lfq_mrna_dic:
+            if gene in spliced_genes:
+                if lfq_diff_key in lfq_mrna_dic[gene] and \
+                    mrna_log2_fc_key in lfq_mrna_dic[gene]:
+                        lfq_diff_list += lfq_mrna_dic[gene][lfq_diff_key]
+                        mrna_diff_list += lfq_mrna_dic[gene][mrna_log2_fc_key]
+
+    elif spliced == False:
+        for gene in lfq_mrna_dic:
+            if gene not in spliced_genes:
+                if lfq_diff_key in lfq_mrna_dic[gene] and \
+                    mrna_log2_fc_key in lfq_mrna_dic[gene]: 
+                        lfq_diff_list += lfq_mrna_dic[gene][lfq_diff_key]
+                        mrna_diff_list += lfq_mrna_dic[gene][mrna_log2_fc_key]
+            else:
+                pass
+    else:
+        print 'Spliced argument must be None, True or False. %s found.' \
+            %spliced
+    return lfq_diff_list, mrna_diff_list
             
 def main():
     usage = 'usage: %prog [opt] lfq_filename gene_exprs_filename output_filename'\
@@ -394,15 +429,17 @@ def main():
     lfq_mrna_dic = {}
     
     # Add LFQ information to dic
-    lfq_mrna_dic = index_lfq_data(lfq_filename, lfq_mrna_dic, options)
+    lfq_mrna_dic = index_lfq_data(lfq_filename, lfq_mrna_dic, options, 
+                                  filter_out_missing_data=True)
     print 'lfq data indexed from file: %s' %lfq_filename
     
     # Add gene exprs to dic
-    lfq_mrna_dic = index_mrna_data(gene_exprs_filename, lfq_mrna_dic, options)
+    lfq_mrna_dic = index_mrna_data(gene_exprs_filename, lfq_mrna_dic, options,
+                                   filter_na=True)
     print 'mrna data indexed from file: %s' %gene_exprs_filename
     
     # Write dic to file
-    write_lfq_mrna_data_to_file(lfq_mrna_dic, out_filename, options)
+    # write_lfq_mrna_data_to_file(lfq_mrna_dic, out_filename, options)
     
     # Get differentially spliced genes (non-redundant only)
     spliced_genes = list(set(get_spliced_genes(miso_filename)))
@@ -410,12 +447,32 @@ def main():
                                                  miso_filename)
     
     # Calculate Pearson and Spearman correlation for non-AS genes and AS genes
-    '''
-    mrna_log2_fc, lfq_diff = split_by_splice_status(lfq_mrna_dic, 
-                                                    spliced_genes,
-                                                    spliced=True)
-    '''
     
+    # Create x and y vectors for spliced, nonspliced and both
+    spliced_mrna_log2_fc, spliced_lfq_diff = \
+        split_by_splice_status(lfq_mrna_dic, spliced_genes, spliced=True)
+    non_spliced_mrna_log2_fc, non_spliced_lfq_diff = \
+        split_by_splice_status(lfq_mrna_dic, spliced_genes, spliced=False)
+    mrna_log2_fc, lfq_diff = \
+        split_by_splice_status(lfq_mrna_dic, spliced_genes, spliced=None)
+    # Calculate r and pvals for Pearson
+
+    for mrna_diff_vector, \
+        lfq_diff_vector, \
+        splice_status in \
+            zip([spliced_mrna_log2_fc, non_spliced_mrna_log2_fc, mrna_log2_fc], 
+                [spliced_lfq_diff, non_spliced_lfq_diff, lfq_diff], 
+                ['DS Genes', 'Non-DS Genes', 'All Genes']):
+        pearsonr, pearsonpval = \
+            stats.pearsonr(mrna_diff_vector, lfq_diff_vector)
+        print 'Gene set:%s\nPearson coefficient: %s\nPval:%s' \
+            %(splice_status, pearsonr, pearsonpval)
+        spearmanr, spearmanpval = \
+            stats.spearmanr(mrna_diff_vector, lfq_diff_vector)
+        print 'Gene set:%s\nSpearman coefficient: %s\nPval:%s' \
+            %(splice_status, spearmanr, spearmanpval)
+        slope, intercept, r_value, p_value, std_err = stats.linregress(mrna_diff_vector,lfq_diff_vector)
+        print 'slope: %s\nintercept: %s\nr_value: %s\nstd_error: %s' %(slope, intercept, r_value, std_err)
     # Scatterplot data
     scatter_plot_lfq_mrna(lfq_mrna_dic, spliced_genes)
     
