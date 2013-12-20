@@ -207,6 +207,27 @@ def annotate_exon_seq(exon_aa_seq, gene_aa_seq, uniprot_dic, gene_key,
                                                        output_dic)
             match_count_total += match_count
     return output_dic, match_count_total
+
+def write_annotations_to_output(output_dic, output_file, summary_file):
+    '''
+    Given output dic of annotated sequences, write to outputfile.
+    We want to include all the information that is already in summary file
+    (basically like append but duplicate the file afterwards), so
+    we use summary file to read each row and add annotations.
+    '''
+    # initialize writefile as write obj
+    outfile = open(output_file, 'wb')
+    mywriter = csv.writer(outfile, delimiter='\t')
+    
+    # create read file obj for summary file
+    with open(summary_file, 'rb') as readfile:
+        myreader = csv.reader(readfile, delimiter='\t')
+        myheader = myreader.next()
+        # Add 
+        mywriter.writerow(myheader)
+    
+    
+    outfile.close()
     
 def main():
     usage = 'usage: %prog [opt] protein_summary_file output_filename'\
@@ -286,14 +307,18 @@ def main():
             total_matches += match_count
     print '%s matches after searching for %s genes.' %(total_matches, 
                                                        gene_count)
-    
+    for keyname in output_dic:
+        print keyname
+        print output_dic[keyname]
+        raw_input()
     # Write protein annotations to output file by recreating
     # summary file and appending uniprot annotations to the end.
+    # candidate genes file useful for recreating summary file.
+    '''
+    writecount = write_annotations_to_output(output_dic, outfile, 
+                                             candidate_genes_file)
+    '''
     
-    for key in output_dic:
-        print key
-        print output_dic[key]
-        raw_input()
     
 if __name__ == '__main__':
     main()
