@@ -7,7 +7,7 @@ Code adotped from cbayly
 '''
 
 import sys 
-from convert_dna_fasta_to_protein_fasta import make_dictionary
+from create_dna_protein_summary_file import make_dictionary
 
 def main():
     ensdatabase = sys.argv[1]
