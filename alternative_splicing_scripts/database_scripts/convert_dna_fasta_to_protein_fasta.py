@@ -9,7 +9,6 @@ Code adotped from cbayly
 
 import pickle
 import sys 
-import re
 import csv
 
 def get_chromosome_list(add_chr_prefix=False):
@@ -79,7 +78,7 @@ def make_dictionary(ensdatabase, ensdictionary):
     
     # Define index names
     chr_index = 0    # chromosome, we want 1, 2, 3.. X and Y's only
-    feature_index = 2    # we want coding sequence only
+    # feature_index = 2    # we want coding sequence only
     exon_start_index = 3
     exon_end_index = 4
     strand_index = 6
@@ -169,7 +168,7 @@ def make_dictionary(ensdatabase, ensdictionary):
     return ensdict, count
 
 def openpkl(ensdictionary):
-    ensdict = pickle.load( open(ensdictionary, "rb") )
+    ensdict = pickle.load( open(ensdictionary, 'rb') )
     return ensdict
 
 def getgencode():
@@ -207,52 +206,6 @@ def getgencode():
         'tac':'Y', 'tat':'Y', 'taa':'*', 'tag':'*',
         'tgc':'C', 'tgt':'C', 'tga':'*', 'tgg':'W'}
     return gencode
-
-def get_prevline_rf(prevline, exon_of_interest, prev_location, ensdict):
-    chromoloc = re.findall(r'(?!<=range)chr\w*:\d*:\d*:[-+]1', prevline)         #identify exon locations in fasta file line
-    if chromoloc:
-        # exon1loc = chromoloc[0]
-        #exon2loc = chromoloc[1]
-        #exon3loc = chromoloc[2]
-        if exon_of_interest == '1':
-            unstripped_location = chromoloc[0]                                    #THIS INDEX SHOULD BE AN ARGUMENT so we can change it when we want
-        elif exon_of_interest == '2':
-            unstripped_location = chromoloc[1]
-        #    unstripped_location = chromoloc[1]
-        elif exon_of_interest == '3':
-            unstripped_location = chromoloc[2]
-        #    unstripped_location = chromoloc[2]
-        else:
-            print "only_3_possible_exons"
-
-        location = unstripped_location[3:][:-3]                                    #this is necessary to skip the last location, which spans the others.    
-        strand = unstripped_location[-2:]
-        rf = ''
-        print unstripped_location
-        print location
-        if location in ensdict:
-            print ensdict[location]
-            for g in ensdict[location]:
-                for h in ensdict[location][g]:
-                    if h =='.':
-                        if rf == '.' or rf == '':
-                            rf = h
-                        else:
-                            pass
-                    else:
-                        if location == prev_location:                    #where p = the previous location of a readframe
-                            # rf2 = h
-                            prev_location = location
-                        else:
-                            rf = h                
-                            prev_location = location 
-        elif location not in ensdict:
-            rf = ""
-        print rf
-        print strand
-        return rf, prev_location, strand
-    else:
-        pass
         
 def translate(nucleotide_seq, reading_frame):
     gencode = getgencode()
@@ -302,7 +255,7 @@ def write_seq_to_file(myseq, mywritefile, maxlength=60):
         mywritefile.write(''.join(seq_list + ['\n']))
     return None
 
-def extract_location_from_miso_coordinate(miso_coordinates, exon_number):
+def extract_location_from_miso_event(miso_event, exon_number):
     '''
     Given MISO coordinate (e.g.:
     chr2:25650404:25650500:-@chr2:25642384:25642404:-@chr2:25611071:25611230:-
@@ -311,7 +264,7 @@ def extract_location_from_miso_coordinate(miso_coordinates, exon_number):
     Exon number should be an integer.
     '''
     # split by @
-    miso_coords_list = miso_coordinates.split('@')
+    miso_coords_list = miso_event.split('@')
     
     # Get exon number, since index starts at 0, subtract exon_number by 1.
     return miso_coords_list[exon_number -1]
@@ -324,7 +277,7 @@ def main():
     except ValueError:
         print '3rd argument must be integer, eg 1 2 or 3 (exon number)'
         sys.exit()
-    protein_fasta = sys.argv[4]
+    summary_output_path = sys.argv[4]
     
     if len(sys.argv) < 5:
         print '4 arguments must be specified in command line.'
@@ -333,29 +286,58 @@ def main():
     print 'Loading dictionary from %s' %ensdictionary
     ensembl_dic = pickle.load(open(ensdictionary, "rb"))
     print 'Loaded dictionary from %s' %ensdictionary
-    protein_fasta_file = open(protein_fasta, 'wb')
+    
+    # init summary file, write header
+    summary_file = open(summary_output_path, 'wb')
+    summary_writer = csv.writer(summary_file, delimiter='\t')
+    # 1. Get subkeys for ensembl dictionary
+    reading_frame_str, \
+    gene_name_str, \
+    exon_number_str, \
+    gene_id_str, \
+    transcript_id_str, \
+    _ = get_subkeys()
+    # 2. Define additional column names in summaryfile
+    miso_event_str = 'miso_event'
+    nucleotide_seq_str = 'nucleotide_sequence'
+    amino_acid_seq_str = 'amino_acid_sequence'
+    # 3. write header
+    outheader = [gene_name_str, miso_event_str, reading_frame_str, 
+                nucleotide_seq_str, 
+                 amino_acid_seq_str, gene_id_str, 
+                 transcript_id_str,
+                 exon_number_str]
+    summary_writer.writerow(outheader)
+    # end init summary file
     
     print 'Reading DNA fasta files and translating to protein...'
-    
-    matchcount = 0
-    nomatch = 0
-    count = 0
+    writecount = 0
     with open(dna_fasta, 'rb') as dnafile:
-        for readcount, line in enumerate(dnafile):    
+        for line in dnafile:    
             # alternates header and sequence.
             # remove \n from end of each line
             line = line.strip()
             if line.startswith('>'):    # header of fasta...
-                miso_coordinate = line[1:]    # removes first '>' in header
+                miso_event = line[1:]    # removes first '>' in header
                 location = \
-                    extract_location_from_miso_coordinate(miso_coordinate, 
+                    extract_location_from_miso_event(miso_event, 
                                                           exon_isoform_number)
                     
                 # Get reading frames (as a list) and get all possible
                 # translations.
                 # nothing we can do if location not in dic...
                 if location in ensembl_dic:
-                    dna_seq = dnafile.next()
+                    dna_seq = dnafile.next().strip()
+                    # Get gene, transcript, exon annotations from dictionary
+                    gene_names = \
+                        list(set(ensembl_dic[location][gene_name_str]))
+                    exon_numbers = \
+                        ensembl_dic[location][exon_number_str]
+                    gene_ids = \
+                        list(set(ensembl_dic[location][gene_id_str]))
+                    transcript_ids = \
+                        list(set(ensembl_dic[location][transcript_id_str]))
+                    
                     # Get non-redundant reading frames for iterating
                     reading_frames = \
                         list(set(ensembl_dic[location]['reading_frame']))
@@ -364,7 +346,19 @@ def main():
                     for reading_frame in reading_frames:
                         # print 'Reading frames: %s' %reading_frame
                         amino_acid_seq = translate(dna_seq, reading_frame)
-    
-    
+                        # write to summary output path (order matches header)
+                        # some are lists, so convert them to CSV
+                        summary_writer.writerow([','.join(gene_names), 
+                                                 miso_event, 
+                                                 reading_frame,
+                                                 dna_seq,
+                                                 amino_acid_seq, 
+                                                 ','.join(gene_ids), 
+                                                 ','.join(transcript_ids),
+                                                 ','.join(exon_numbers)])
+                        writecount += 1
+    print '%s rows written to: %s' %(writecount, summary_output_path)
+                    
+                    
 if __name__ == '__main__':
     main()
