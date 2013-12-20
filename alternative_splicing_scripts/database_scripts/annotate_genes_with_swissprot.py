@@ -119,9 +119,10 @@ def append_dic_if_feature_within_start_end(exon_start, exon_end,
     '''
     # get uniprot subkeys for accessing feature starts, stops and descriptions
     start_subkey, end_subkey, descript_subkey = get_uniprot_subkeys()
-    # define two additional subkeys: exon_start and exon_end
+    # define additional subkeys: exon_start and exon_end and feature
     exon_start_subkey = 'exon_start'
     exon_end_subkey = 'exon_end'
+    feature_subkey = 'feature'
     
     # initialize match_count
     match_count = 0
@@ -150,21 +151,20 @@ def append_dic_if_feature_within_start_end(exon_start, exon_end,
             output_keyname = amino_acid_seq
             if output_keyname not in output_dic:
                 output_dic[output_keyname] = {}
-                output_dic[output_keyname][feature] = {}
                 for subkey in [start_subkey, end_subkey, descript_subkey, 
-                               exon_start_subkey, exon_end_subkey]:
-                    output_dic[output_keyname][feature][subkey] = []
+                               exon_start_subkey, exon_end_subkey, 
+                               feature_subkey]:
+                    output_dic[output_keyname][subkey] = []
             else:
-                # If amino acid seq already exists in output_dic, just return
-                # output dic (i.e. go to next amino acid seq)
-                return output_dic, match_count
+                # already initialized, so simply append subvals to list.
+                pass
             # store values into subkey
             for subkey, subval in \
                 zip([start_subkey, end_subkey, descript_subkey, 
-                     exon_start_subkey, exon_end_subkey],
+                     exon_start_subkey, exon_end_subkey, feature_subkey],
                     [feature_start, feature_end, descript, 
-                     exon_start, exon_end]):
-                output_dic[output_keyname][feature][subkey].append(subval)
+                     exon_start, exon_end, feature]):
+                output_dic[output_keyname][subkey].append(subval)
             match_count += 1
     return output_dic, match_count
 
@@ -206,6 +206,7 @@ def annotate_exon_seq(exon_aa_seq, gene_aa_seq, uniprot_dic, gene_key,
                                                        feature, 
                                                        output_dic)
             match_count_total += match_count
+
     return output_dic, match_count_total
 
 def write_annotations_to_output(output_dic, output_file, summary_file):
