@@ -9,6 +9,7 @@ residues)
 '''
 
 import sys
+import os
 from optparse import OptionParser
 import pickle
 from Bio import SwissProt
@@ -118,6 +119,13 @@ def main():
     output_pickle_path = args[0]
     uniprot_file = options.uniprot_file
     
+    # Check if pickle path exists, if it does exist, warn user that 
+    # it will be overwritten
+    if os.path.exists(output_pickle_path):
+        print 'Pickle file %s already exists. \nPress enter to overwrite' \
+            %output_pickle_path
+        raw_input()
+    
     # index uniprot database
     uniprot_dic, count = index_uniprot_database(uniprot_file, species='homosapiens')
     print '%s features indexed from %s' %(count, uniprot_file)
@@ -126,6 +134,7 @@ def main():
     pkl = open(output_pickle_path, 'wb')        
     pickle.dump(uniprot_dic, pkl)
     print 'Dictionary saved to: %s' %output_pickle_path
+    
     
 if __name__ == '__main__':
     main()
