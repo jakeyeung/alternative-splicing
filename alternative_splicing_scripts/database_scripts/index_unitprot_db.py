@@ -43,6 +43,7 @@ def index_uniprot_database(uniprot_file, species='homosapiens'):
     
     # def subkeys
     start_subkey, end_subkey, description_subkey = get_uniprot_subkeys()
+    amino_acid_seq_subkey = 'amino_acid_sequence'
         
     uniprot_dic = {}
     for count, record in enumerate(SwissProt.parse(open(uniprot_file))):
@@ -77,6 +78,9 @@ def index_uniprot_database(uniprot_file, species='homosapiens'):
             # all from record.features, which is a list of tuples with 
             (keyname, from, to, description)
             '''
+            aa_sequence = record.sequence
+            # Add sequence to subdic
+            uniprot_dic[gene_name_key][amino_acid_seq_subkey] = aa_sequence
             for feature in record.features:
                 keyname = feature[0]
                 residue_start = feature[1]
