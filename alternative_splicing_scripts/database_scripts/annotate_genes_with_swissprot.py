@@ -14,6 +14,22 @@ from optparse import OptionParser
 from create_dna_protein_summary_file import get_subkeys
 from index_unitprot_db import get_uniprot_subkeys
 
+def get_summary_file_colnames():
+    '''
+    Generates expected column names from summary file 
+    (output of create_dna_protein_summary.py)
+    '''
+    gene_name = 'gene_name'
+    miso_event = 'miso_event'
+    reading_frame = 'reading_frame'
+    nucleotide_seq = 'nucleotide_sequence'
+    amino_acid_seq = 'amino_acid_sequence'
+    gene_id = 'gene_id'
+    transcript_id = 'transcript_id'
+    exon_number = 'exon_number'
+    return gene_name, miso_event, reading_frame, nucleotide_seq, \
+            amino_acid_seq, gene_id, transcript_id, exon_number
+
 def index_candidate_genes(gene_file):
     '''
     Read gene file (created from create_dna_protein_summary_file.py)
@@ -213,22 +229,77 @@ def write_annotations_to_output(output_dic, output_file, summary_file):
     '''
     Given output dic of annotated sequences, write to outputfile.
     We want to include all the information that is already in summary file
-    (basically like append but duplicate the file afterwards), so
+    so
     we use summary file to read each row and add annotations.
+    
+    Each row in summary file may write 0 or more lines depending on 
+    how many uniprot annotations match to the amino acid sequence.
     '''
     # initialize writefile as write obj
     outfile = open(output_file, 'wb')
     mywriter = csv.writer(outfile, delimiter='\t')
     
+    # define column names
+    # summary file colnames
+    gene_name_colname, miso_event_colname, reading_frame_colname, \
+    nucleotide_seq_colname, amino_acid_seq_colname, gene_id_colname, \
+    transcript_id_colname, exon_number_colname = \
+        get_summary_file_colnames()
+    summary_colnames = [gene_name_colname,
+                        miso_event_colname, 
+                        reading_frame_colname, 
+                        nucleotide_seq_colname, 
+                        amino_acid_seq_colname, 
+                        gene_id_colname, 
+                        transcript_id_colname, 
+                        exon_number_colname]
+    
+    # get annotation colnames
+    start_colname, end_colname, descript_colname = get_uniprot_subkeys()
+    exon_start_colname = 'exon_start'
+    exon_end_colname = 'exon_end'
+    feature_colname = 'feature'
+    annotation_colnames = [feature_colname,
+                           start_colname,
+                           end_colname,
+                           descript_colname,
+                           exon_start_colname,
+                           exon_end_colname]
+    
+    # Write header to output file. Order matters.
+    outheader = summary_colnames + annotation_colnames
+    mywriter.writerow(outheader)
+    
+    # init writecount.
+    writecount = 0
+    
     # create read file obj for summary file
     with open(summary_file, 'rb') as readfile:
         myreader = csv.reader(readfile, delimiter='\t')
-        myheader = myreader.next()
-        # Add 
-        mywriter.writerow(myheader)
-    
-    
+        readheader = myreader.next()
+        for row in myreader:
+            # get amino acid seq, our key used to access output dic annotes
+            aa_seq = row[readheader.index(amino_acid_seq_colname)]
+            
+            # if no associatd annotations, skip to next.
+            if aa_seq not in output_dic:
+                continue
+            
+            '''
+            # iterate over list in list of features, write corresponding annotes
+            # along with summary information. Expect multiple annotations (or none)
+            # for each miso event.
+            '''
+            for i in range(0, len(output_dic[aa_seq][feature_colname])):
+                row_to_write = []    # initialize
+                for summary_colname in summary_colnames:
+                    row_to_write.append(row[readheader.index(summary_colname)])
+                for annote_colname in annotation_colnames:
+                    row_to_write.append(output_dic[aa_seq][annote_colname][i])
+                mywriter.writerow(row_to_write)
+                writecount += 1
     outfile.close()
+    return writecount
     
 def main():
     usage = 'usage: %prog [opt] protein_summary_file output_filename'\
@@ -308,17 +379,15 @@ def main():
             total_matches += match_count
     print '%s matches after searching for %s genes.' %(total_matches, 
                                                        gene_count)
-    for keyname in output_dic:
-        print keyname
-        print output_dic[keyname]
-        raw_input()
+
     # Write protein annotations to output file by recreating
     # summary file and appending uniprot annotations to the end.
     # candidate genes file useful for recreating summary file.
-    '''
+    
     writecount = write_annotations_to_output(output_dic, outfile, 
                                              candidate_genes_file)
-    '''
+    print '%s rows written to file: %s' %(writecount, outfile)
+    
     
     
 if __name__ == '__main__':
