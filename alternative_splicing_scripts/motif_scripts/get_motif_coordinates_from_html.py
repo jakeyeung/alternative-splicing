@@ -120,14 +120,15 @@ def get_intron_starts_ends_list(miso_event):
     # Convert starts ends to int.
     # Starts must be incremented by ONE because technically the start
     # is an exon end, so we want the basepair after exon end.
-    # Ends are OK because end points are not inclusive.
+    # Ends must be deincremented by ONE so it does not overlap
+    # with exon start
     '''
     try:
         intron_starts = [int(i) + 1 for i in intron_starts_list]
     except ValueError:
         print 'Could not convert elements in %s to int.' %intron_starts_list
     try:
-        intron_ends = [int(i) for i in intron_ends_list]
+        intron_ends = [int(i) - 1 for i in intron_ends_list]
     except ValueError:
         print 'Could not convert elements in %s to int.' %intron_ends_list
     return intron_starts, intron_ends
@@ -157,17 +158,19 @@ def get_intron_starts_ends(miso_event,
     strand = get_strand_from_miso_event(miso_event)
     intron_starts, intron_ends = get_intron_starts_ends_list(miso_event)
     
+    # get seq length - 1 because start coordinates are inclusive.
+    seq_length_adj = seq_length - 1
+    
     # get intron start and ends corresponding to intron index
     intron_index = intron_number - 1
 
     # Get seq length at 3p or 5p site of intron start/end
-    # get seq length - 1 because start coordinates are inclusive.
     if intron_3p_or_5p == '5p':
         intron_start = intron_starts[intron_index]
-        intron_end = intron_start + seq_length - 1
+        intron_end = intron_start + seq_length_adj
     elif intron_3p_or_5p == '3p':
         intron_end = intron_ends[intron_index]
-        intron_start = intron_end - seq_length - 1
+        intron_start = intron_end - seq_length_adj
     else:
         print 'Expected intron_3p_or_5p to be "5p" or "3p". %s found.' \
             %intron_3p_or_5p
