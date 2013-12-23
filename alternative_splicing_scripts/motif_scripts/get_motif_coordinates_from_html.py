@@ -46,9 +46,35 @@ def get_seq_start_end_from_miso_event(miso_event, region_of_interest):
     '''
     miso event example:
     chr22:19964938:19965109:-@chr22:19964229:19964246:-@chr22:19963209:19963280:-
-    region_of_interest: either exon_1|2|3, intron_1|2 (for now)
+    region_of_interest: either exon_1|2|3, intron_1|2_3p|5p (cassette events only)
+    
+    Also need to take into account the strand + or - strand.
     '''
     pass
+    return None, None
+
+def get_region_of_interest_from_filepath(filepath):
+    '''
+    I expect filepath to be for example:
+    ~.../fasta_unshuffled/intron_1_3p_inclusion/meme.html
+    
+    We want intron_1_3p to be returned.
+    '''
+    # Find gene region (intron or exon) based on the dir name of html file
+    myregion = os.path.basename(os.path.dirname(filepath))
+    
+    # myregion still has _inclusion, let's remove that.
+    myregion_split = myregion.split('_')
+    
+    # check first element in split is exon or intron
+    if myregion_split[0] == 'exon' or myregion_split[0] == 'intron':
+        pass
+    else:
+        print 'Expected exon or intron in string: %s' %myregion
+        sys.exit()
+    
+    # rejoin, removing the last element in list
+    return '_'.join(myregion_split[:-1])
 
 def main():
     usage = 'usage: %prog meme_results_file output_file\n'\
@@ -86,8 +112,8 @@ def main():
     # define endline
     endline = '//'    # last line signaling end of motif information
     
-    # Find gene region (intron or exon) based on the dir name of html file
-    myregion = os.path.basename(os.path.dirname(meme_html_path))
+    # get region of interest from filename
+    region_of_interest = get_region_of_interest_from_filepath(meme_html_path)
     
     # Read meme html path, retrieve genomic coordinates of the motif region
     # Create search string to match 
@@ -107,10 +133,11 @@ def main():
                 while not motif_line.startswith(endline):
                     miso_event = get_motif_name_from_motif_line(motif_line)
                     motif_start = get_motif_start_from_motif_line(motif_line)
-                    '''
+                    
                     seq_start, seq_end = \
-                        get_seq_start_end_from_miso_event(miso_event)
-                    '''
+                        get_seq_start_end_from_miso_event(miso_event, 
+                                                          region_of_interest)
+                    
                     print miso_event
                     print motif_start
                     
