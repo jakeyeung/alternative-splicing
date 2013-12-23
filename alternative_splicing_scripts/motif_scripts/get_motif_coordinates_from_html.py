@@ -42,16 +42,94 @@ def get_motif_name_from_motif_line(motif_line):
     '''
     return motif_line.split(' ')[0]
 
-def get_seq_start_end_from_miso_event(miso_event, region_of_interest):
+def get_strand_from_miso_event(miso_event):
+    '''
+    Given event: 
+    chr22:19964938:19965109:-@chr22:19964229:19964246:-@chr22:19963209:19963280:-
+    Return either '-' or '+'
+    '''
+    return miso_event.split(':')[-1]
+
+def get_chr_from_miso_event(miso_event):
+    '''
+    Given event:
+    chr22:19964938:19965109:-@chr22:19964229:19964246:-@chr22:19963209:19963280:-
+    Return chr22
+    '''
+    return miso_event.split(':')[0]
+
+def get_intron_starts_ends(miso_event, 
+                           intron_number,
+                           intron_3p_or_5p,
+                           seq_length):
+    '''
+    Given event, retrieve intron starts and ends.
+    Example:
+    chr22:19964938:19965109:-@chr22:19964229:19964246:-@chr22:19963209:19963280:-
+    if intron_number = 1, intron_3p_or_5p = "3p", seq_length = 100
+    Return:
+    start = 19964838 (19964938 minus 100)
+    end = 19964938 
+    
+    Example2:
+    chr2:131890475:131890564:+@chr2:131897740:131897848:+@chr2:131904210:131907425:+
+    if intron_number = 2, intron_3p_or_5p = "5p", seq_length = 50
+    Return:
+    start = 131897848
+    end = 131897898 (131897848 + 50)
+    '''
+    strand = get_strand_from_miso_event(miso_event)
+    # split by columns
+    if strand == '+':
+        pass
+    elif strand == '-':
+        pass
+    else:
+        print 'Expected %s to be "+" or "-". %s found.' %strand
+        sys.exit()
+    
+def get_exon_starts_ends(miso_event, exon_number, seq_length):
+    '''
+    #TODO
+    '''
+    pass
+    
+def get_seq_start_end_from_miso_event(miso_event, region_of_interest, 
+                                      seq_lengths_dic):
     '''
     miso event example:
     chr22:19964938:19965109:-@chr22:19964229:19964246:-@chr22:19963209:19963280:-
     region_of_interest: either exon_1|2|3, intron_1|2_3p|5p (cassette events only)
     
     Also need to take into account the strand + or - strand.
+    
+    Code each region of interest separately
+    possible regions of interest: exon_1|2|3, intron_1|2_3p|5p
+    
+    Return chr, start, end
     '''
-    pass
-    return None, None
+    region_split = region_of_interest.split('_')
+    exon_or_intron = region_split[0]
+    
+    strand = get_strand_from_miso_event(miso_event)
+    chromo = get_chr_from_miso_event(miso_event)
+    seq_length = seq_lengths_dic[miso_event]
+    
+    # check if exon or intron
+    if exon_or_intron == 'exon':
+        start, end = get_exon_starts_ends(miso_event, strand)
+    elif exon_or_intron == 'intron':
+        # check which intron number and 3p or 5p
+        intron_number = region_split[1]
+        intron_3p_or_5p = region_split[2]
+        start, end = get_intron_starts_ends(miso_event, 
+                                            intron_number, 
+                                            intron_3p_or_5p,
+                                            seq_length)
+    else:
+        print 'Expected %s to begin with "exon" or "intron". %s found.' %(region_of_interest, exon_or_intron)
+        sys.exit()
+    return chromo, None, None
 
 def get_region_of_interest_from_filepath(filepath):
     '''
@@ -75,6 +153,45 @@ def get_region_of_interest_from_filepath(filepath):
     
     # rejoin, removing the last element in list
     return '_'.join(myregion_split[:-1])
+
+def get_seq_lengths_from_meme_file(meme_file):
+    '''
+    Read meme file, and find the text block where it contains
+    information of miso event
+    '''
+    # define string that signals the beginning and end relevant textblock
+    begin_string = '<input type="hidden" name="combinedblock" value="'
+    end_string = '">'    # signals end of textblock
+    
+    seq_lengths_dic = {}
+    
+    with open(meme_file, 'rb') as readfile:
+        for line in readfile:
+            if not line.startswith(begin_string):
+                continue
+            else:
+                relevant_line = readfile.next()
+                while not relevant_line.startswith(end_string):
+                    '''
+                    Relevant line looks like:
+                    chr2:25650404:25650500:-@chr2:25642384:25642404:-@chr2:25611071:25611230:- 6.54e-04 1 100 +3 74 2.30e-05 
+                    Split by ' ', retrieve "100" (4th element in split'd list)
+                    '''
+                    line_split = relevant_line.split(' ')
+                    miso_event = line_split[0]
+                    seq_length = line_split[3]
+                    if miso_event not in seq_lengths_dic:
+                        try:
+                            seq_lengths_dic[miso_event] = int(seq_length)
+                        except ValueError:
+                            print 'Expected %s to be integer.' %seq_length
+                            sys.exit()
+                    else:
+                        print 'Unexpected duplicate of %s.' %miso_event
+                        print 'Press enter to overwrite.'
+                        raw_input()
+                    relevant_line = readfile.next()
+    return seq_lengths_dic
 
 def main():
     usage = 'usage: %prog meme_results_file output_file\n'\
@@ -115,6 +232,9 @@ def main():
     # get region of interest from filename
     region_of_interest = get_region_of_interest_from_filepath(meme_html_path)
     
+    # create dictionary of miso_event: sequence length from meme html file
+    seq_lengths_dic = get_seq_lengths_from_meme_file(meme_html_path)
+
     # Read meme html path, retrieve genomic coordinates of the motif region
     # Create search string to match 
     with open(meme_html_path, 'rb') as readfile:
@@ -134,16 +254,16 @@ def main():
                     miso_event = get_motif_name_from_motif_line(motif_line)
                     motif_start = get_motif_start_from_motif_line(motif_line)
                     
-                    seq_start, seq_end = \
+                    chromo, seq_start, seq_end = \
                         get_seq_start_end_from_miso_event(miso_event, 
-                                                          region_of_interest)
-                    
+                                                          region_of_interest,
+                                                          seq_lengths_dic)
+                    print region_of_interest
                     print miso_event
                     print motif_start
                     
                     motif_line = readfile.next()
-                    raw_input()
-            
+                    raw_input()  
     
     
 if __name__ == '__main__':
