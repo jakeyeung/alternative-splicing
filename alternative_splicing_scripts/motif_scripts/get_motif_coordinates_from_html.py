@@ -58,6 +58,80 @@ def get_chr_from_miso_event(miso_event):
     '''
     return miso_event.split(':')[0]
 
+def get_intron_starts_ends_list(miso_event):
+    '''
+    Given event:
+    chr22:19964938:19965109:-@chr22:19964229:19964246:-@chr22:19963209:19963280:-
+    Returns all possible intron starts and ends
+    in this caseA:
+    starts = [19964246, 19965109]
+    ends = [19963209, 19964229]
+    '''
+    strand = get_strand_from_miso_event(miso_event)
+    intron_starts_list = []
+    intron_ends_list = []
+    # split by @ to get exon starts and stops
+    miso_at_split = miso_event.split('@')
+    if strand == '+':
+        '''
+        # iterate from i to length - 1, because
+        the last exon does not have an intron start, only an end.
+        We match start with exon_end in i position
+        We match end with exon_start in i+1 position
+        Example:
+        miso_at_split:
+        ['chr2:131890475:131890564:+', 'chr2:131897740:131897848:+', 'chr2:131904210:131907425:+']
+        Intron starts are:
+        131890564, 131897740
+        Intron ends are:
+        131897848, 131904210
+        '''
+        for i in xrange(0, len(miso_at_split) - 1):
+            current_exon_coords = miso_at_split[i].split(':')
+            next_exon_coords = miso_at_split[i + 1].split(':')
+            intron_starts_list.append(current_exon_coords[2])
+            intron_ends_list.append(next_exon_coords[1])
+            
+    elif strand == '-':
+        '''
+        # iterate from i to length - 1, because
+        the last exon does not have an intron end, only an start.
+        We match start with exon_end in i+1 position
+        We match end with exon_start in i position
+        Example:
+        miso_at_split:
+        ['chr22:19964938:19965109:-', 'chr22:19964229:19964246:-', 'chr22:19963209:19963280:-']
+        Intron starts are:
+        19964246, 19963280
+        Intron ends are:
+        19964938, 19964229
+        '''   
+        for i in xrange(0, len(miso_at_split) - 1):
+            current_exon_coords = miso_at_split[i].split(':')
+            next_exon_coords = miso_at_split[i + 1].split(':')
+            intron_starts_list.append(next_exon_coords[2])
+            intron_ends_list.append(current_exon_coords[1])
+    
+    else:
+        print 'Expected strand to be "+" or "-". %s found.' %strand
+        sys.exit()
+    
+    '''
+    # Convert starts ends to int.
+    # Starts must be incremented by ONE because technically the start
+    # is an exon end, so we want the basepair after exon end.
+    # Ends are OK because end points are not inclusive.
+    '''
+    try:
+        intron_starts = [int(i) + 1 for i in intron_starts_list]
+    except ValueError:
+        print 'Could not convert elements in %s to int.' %intron_starts_list
+    try:
+        intron_ends = [int(i) for i in intron_ends_list]
+    except ValueError:
+        print 'Could not convert elements in %s to int.' %intron_ends_list
+    return intron_starts, intron_ends
+
 def get_intron_starts_ends(miso_event, 
                            intron_number,
                            intron_3p_or_5p,
@@ -77,17 +151,29 @@ def get_intron_starts_ends(miso_event,
     Return:
     start = 131897848
     end = 131897898 (131897848 + 50)
+    
+    Intron number should be int
     '''
     strand = get_strand_from_miso_event(miso_event)
-    # split by columns
-    if strand == '+':
-        pass
-    elif strand == '-':
-        pass
-    else:
-        print 'Expected %s to be "+" or "-". %s found.' %strand
-        sys.exit()
+    intron_starts, intron_ends = get_intron_starts_ends_list(miso_event)
     
+    # get intron start and ends corresponding to intron index
+    intron_index = intron_number - 1
+
+    # Get seq length at 3p or 5p site of intron start/end
+    # get seq length - 1 because start coordinates are inclusive.
+    if intron_3p_or_5p == '5p':
+        intron_start = intron_starts[intron_index]
+        intron_end = intron_start + seq_length - 1
+    elif intron_3p_or_5p == '3p':
+        intron_end = intron_ends[intron_index]
+        intron_start = intron_end - seq_length - 1
+    else:
+        print 'Expected intron_3p_or_5p to be "5p" or "3p". %s found.' \
+            %intron_3p_or_5p
+        sys.exit()
+    return intron_start, intron_end
+        
 def get_exon_starts_ends(miso_event, exon_number, seq_length):
     '''
     #TODO
@@ -120,12 +206,20 @@ def get_seq_start_end_from_miso_event(miso_event, region_of_interest,
         start, end = get_exon_starts_ends(miso_event, strand)
     elif exon_or_intron == 'intron':
         # check which intron number and 3p or 5p
-        intron_number = region_split[1]
+        try:
+            intron_number = int(region_split[1])
+        except ValueError:
+            print 'Expected int for %s' %intron_number
+            sys.exit()
         intron_3p_or_5p = region_split[2]
         start, end = get_intron_starts_ends(miso_event, 
                                             intron_number, 
                                             intron_3p_or_5p,
                                             seq_length)
+        print miso_event, intron_number, intron_3p_or_5p, seq_length
+        print start, end
+        raw_input()
+        raw_input()
     else:
         print 'Expected %s to begin with "exon" or "intron". %s found.' %(region_of_interest, exon_or_intron)
         sys.exit()
@@ -257,13 +351,8 @@ def main():
                     chromo, seq_start, seq_end = \
                         get_seq_start_end_from_miso_event(miso_event, 
                                                           region_of_interest,
-                                                          seq_lengths_dic)
-                    print region_of_interest
-                    print miso_event
-                    print motif_start
-                    
+                                                          seq_lengths_dic)                    
                     motif_line = readfile.next()
-                    raw_input()  
     
     
 if __name__ == '__main__':
