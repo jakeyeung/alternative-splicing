@@ -13,7 +13,7 @@ import sys
 import os
 from optparse import OptionParser
 
-def get_motif_start_from_motif_line(motif_line):
+def get_motif_start_end(motif_line):
     '''
     Motif line example:
     chr22:19964938:19965109:-@chr22:19964229:19964246:-@chr22:19963209:19963280:-  ( 23) GGGAGGGCATGGGGG 1
@@ -24,9 +24,15 @@ def get_motif_start_from_motif_line(motif_line):
     Return 23, which should be an integer.
     '''
     motif_linesplit = motif_line.split(' ')
-    motif_start = motif_linesplit[3][:-1]
+    motif = motif_linesplit[4]
     try:
-        return int(motif_start)
+        motif_start = int(motif_linesplit[3][:-1])
+    except ValueError:
+        print 'Expected %s to be an integer.' %motif_start
+        raw_input()
+    motif_end = motif_start + len(motif)
+    try:
+        return int(motif_start), int(motif_end)
     except ValueError:
         print 'Could not extract motif start from: %s' %motif_line
         print '%s must be an integer.' %motif_start
@@ -164,17 +170,30 @@ def get_intron_starts_ends(miso_event,
     # get intron start and ends corresponding to intron index
     intron_index = intron_number - 1
 
-    # Get seq length at 3p or 5p site of intron start/end
-    if intron_3p_or_5p == '5p':
-        intron_start = intron_starts[intron_index]
-        intron_end = intron_start + seq_length_adj
-    elif intron_3p_or_5p == '3p':
-        intron_end = intron_ends[intron_index]
-        intron_start = intron_end - seq_length_adj
-    else:
-        print 'Expected intron_3p_or_5p to be "5p" or "3p". %s found.' \
-            %intron_3p_or_5p
-        sys.exit()
+    if strand == '+':
+        # Get seq length at 3p or 5p site of intron start/end
+        if intron_3p_or_5p == '5p':
+            intron_start = intron_starts[intron_index]
+            intron_end = intron_start + seq_length_adj
+        elif intron_3p_or_5p == '3p':
+            intron_end = intron_ends[intron_index]
+            intron_start = intron_end - seq_length_adj
+        else:
+            print 'Expected intron_3p_or_5p to be "5p" or "3p". %s found.' \
+                %intron_3p_or_5p
+            sys.exit()
+    elif strand == '-':
+        # Get seq length at 3p or 5p site of intron start/end
+        if intron_3p_or_5p == '5p':
+            intron_start = intron_ends[intron_index] - seq_length_adj
+            intron_end = intron_starts[intron_index]
+        elif intron_3p_or_5p == '3p':
+            intron_start = intron_starts[intron_index]
+            intron_end = intron_start + seq_length_adj
+        else:
+            print 'Expected intron_3p_or_5p to be "5p" or "3p". %s found.' \
+                %intron_3p_or_5p
+            sys.exit()
     return intron_start, intron_end
         
 def get_exon_starts_ends(miso_event, exon_number, seq_length):
@@ -219,14 +238,10 @@ def get_seq_start_end_from_miso_event(miso_event, region_of_interest,
                                             intron_number, 
                                             intron_3p_or_5p,
                                             seq_length)
-        print miso_event, intron_number, intron_3p_or_5p, seq_length
-        print start, end
-        raw_input()
-        raw_input()
     else:
         print 'Expected %s to begin with "exon" or "intron". %s found.' %(region_of_interest, exon_or_intron)
         sys.exit()
-    return chromo, None, None
+    return chromo, start, end
 
 def get_region_of_interest_from_filepath(filepath):
     '''
@@ -290,6 +305,53 @@ def get_seq_lengths_from_meme_file(meme_file):
                     relevant_line = readfile.next()
     return seq_lengths_dic
 
+def get_motif_start_end_coordinates(seq_start, seq_end, 
+                                    motif_rel_start, motif_rel_end, 
+                                    strand):
+    '''
+    Purpose:
+    Given sequence start and ends and motif relative starts/ends, return
+    motif starts and stops relative to genomic coordinates.
+    Must take strand into consideration, because sequence start/end is
+    based on UCSC coordinates (i.e. start > end, always, even if negative 
+    strand)
+    Inputs:
+    seq_start: genomic start coordinate (chromosome agnostic)
+    seq_end: genomic end coordinate
+    motif_rel_start: when the motif begins, relative to input sequence
+        (motif_rel_start = 0 is the first basepair in sequence, also
+        means motif_rel_start == seq_start if motif_rel_start == 0)
+    motif_rel_end: when the motif ends, relative to input sequence
+    strand: "+" or "-".
+    
+    Outputs:
+    motif_start_coord: genomic start coordinate of motif
+    motif_end_coord: genomic end coordinate of motif
+    
+    motif_start_coord > motif_end_coord always, no matter what strand.
+    This helps visualization in UCSC.
+    '''
+    # motif_rel_end must be deincremented by 1 because coords are inclusive
+    motif_rel_end_adj = motif_rel_end - 1
+    if strand == '+':
+        motif_start_coord = seq_start + motif_rel_start
+        motif_end_coord = seq_start + motif_rel_end_adj
+    elif strand == '-':
+        '''
+        If strand is -, seq_end is actually beginning of input sequence
+        because seq_start > seq_end always, as a rule.
+        
+        So even though seq_end - motif_rel_start is begining of motif
+        relative to transcription, we name it as end coord because it is
+        the farther down if we take + strand as reference.
+        '''
+        motif_end_coord = seq_end - motif_rel_start
+        motif_start_coord = seq_end - motif_rel_end_adj
+    else:
+        print 'Expected %s to be "+" or "-"' %strand
+        sys.exit()
+    return motif_start_coord, motif_end_coord
+
 def main():
     usage = 'usage: %prog meme_results_file output_file\n'\
         'Two args must be specified in commandline: \n'\
@@ -349,12 +411,26 @@ def main():
                 motif_line = readfile.next()
                 while not motif_line.startswith(endline):
                     miso_event = get_motif_name_from_motif_line(motif_line)
-                    motif_start = get_motif_start_from_motif_line(motif_line)
-                    
+                    strand = get_strand_from_miso_event(miso_event)
+                    # motif start/end, relative to beginning of fasta sequence
+                    motif_rel_start, motif_rel_end = \
+                        get_motif_start_end(motif_line)
                     chromo, seq_start, seq_end = \
                         get_seq_start_end_from_miso_event(miso_event, 
                                                           region_of_interest,
-                                                          seq_lengths_dic)                    
+                                                          seq_lengths_dic)
+                    # Get motif start and end genomic coordinates.
+                    motif_start, motif_end = \
+                        get_motif_start_end_coordinates(seq_start, 
+                                                        seq_end,
+                                                        motif_rel_start,
+                                                        motif_rel_end, 
+                                                        strand)
+                    print miso_event, region_of_interest
+                    print seq_start, seq_end
+                    print motif_rel_start, motif_rel_end
+                    print chromo, motif_start, motif_end
+                    raw_input()
                     motif_line = readfile.next()
     
     
