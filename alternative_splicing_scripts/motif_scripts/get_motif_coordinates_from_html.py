@@ -38,13 +38,23 @@ def get_motif_start_end(motif_line):
         print '%s must be an integer.' %motif_start
         sys.exit()
         
+def get_sequence_from_motif_line(motif_line):
+    '''
+    Motif line example:
+    chr22:19964938:19965109:-@chr22:19964229:19964246:-@chr22:19963209:19963280:-  ( 23) GGGAGGGCATGGGGG 1
+    
+    Split by spaces, retrieve the 5th element from split line.
+    Return GGGAGGGCATGGGGG     
+    '''
+    return motif_line.split(' ')[4]
+        
 def get_motif_name_from_motif_line(motif_line):
     '''
     Motif line example:
     chr22:19964938:19965109:-@chr22:19964229:19964246:-@chr22:19963209:19963280:-  ( 23) GGGAGGGCATGGGGG 1
     
     Split by spaces, retrieve the 1st element from split line.
-    Return that.
+    Return chr22:19964938:19965109:-@chr22:19964229:19964246:-@chr22:19963209:19963280:-
     '''
     return motif_line.split(' ')[0]
 
@@ -352,6 +362,15 @@ def get_motif_start_end_coordinates(seq_start, seq_end,
         sys.exit()
     return motif_start_coord, motif_end_coord
 
+def init_dic(mydic, keys_list):
+    '''
+    Given a dictionary, create a key:value where
+    key is in keys_list and value is empty list.
+    '''
+    for key in keys_list:
+        mydic[key] = []
+    return mydic
+
 def main():
     usage = 'usage: %prog meme_results_file output_file\n'\
         'Two args must be specified in commandline: \n'\
@@ -388,6 +407,17 @@ def main():
     # define endline
     endline = '//'    # last line signaling end of motif information
     
+    # Create output dic to store information
+    outdic = {}
+    
+    # Define subkeys used within outdic
+    motif_rel_start_str = 'motif_relative_start'
+    motif_rel_end_str = 'motif_relative_end'
+    genomic_coord_str = 'genomic_coordinate'
+    sequence_str = 'motif_sequence'
+    subkeys_list = [motif_rel_start_str, motif_rel_end_str, 
+                    genomic_coord_str, sequence_str]
+    
     # get region of interest from filename
     region_of_interest = get_region_of_interest_from_filepath(meme_html_path)
     
@@ -410,6 +440,7 @@ def main():
                 readfile.next()
                 motif_line = readfile.next()
                 while not motif_line.startswith(endline):
+                    # BEGIN: RETRIEVE MOTIF INFORMATION
                     miso_event = get_motif_name_from_motif_line(motif_line)
                     strand = get_strand_from_miso_event(miso_event)
                     # motif start/end, relative to beginning of fasta sequence
@@ -426,13 +457,57 @@ def main():
                                                         motif_rel_start,
                                                         motif_rel_end, 
                                                         strand)
-                    print miso_event, region_of_interest
-                    print seq_start, seq_end
-                    print motif_rel_start, motif_rel_end
-                    print chromo, motif_start, motif_end
-                    raw_input()
+                    # Concatenate to get genomic coordinate with chromo
+                    genomic_coord = ':'.join([chromo, str(motif_start), 
+                                              str(motif_end)])
+                    # Get motif sequence
+                    motif_seq = get_sequence_from_motif_line(motif_line)
+                    # END: RETRIEVE MOTIF INFORMATION
+                    
+                    # BEGIN: Create list of relevant information ready 
+                    # to be stored in dic.
+                    '''
+                    subkeys_list is in order:
+                        1) motif_rel_start
+                        2) motif_rel_end
+                        3) genomic_coordinate
+                        4) motif_sequence
+                    '''
+                    motif_info_list = [motif_rel_start, motif_rel_end, 
+                                       genomic_coord, motif_seq]
+                    # BEGIN: store information to output dic
+                    '''
+                    Do two checks: one if miso_event is initialized,
+                    second if region_of_interest
+                    Rationale:
+                        if we loop across many meme outputs, we will
+                        need dictionary to hold a summary of miso events
+                        across all regions of interest.
+                    '''
+                    if miso_event not in outdic:
+                        # intiialize if miso_event not yet a key
+                        outdic[miso_event] = {}
+                        outdic[miso_event][region_of_interest] = {}
+                    elif region_of_interest not in outdic[miso_event]:
+                        # initialize only region of interest if not yet subkey
+                        outdic[miso_event][region_of_interest] = {}
+                    else:
+                        pass
+                    # create key:empty lists
+                    outdic[miso_event][region_of_interest] = \
+                        init_dic(outdic[miso_event][region_of_interest], 
+                                 subkeys_list)
+                    '''
+                    # Add motif information to output dic in lists
+                    # in case multiple motifs matching to same event
+                    '''
+                    for subkey, subval in zip(subkeys_list, motif_info_list):
+                        # append subval to subkey list
+                        outdic[miso_event][region_of_interest][subkey].\
+                            append(subval)
                     motif_line = readfile.next()
-    
+    # Write to output file
+    # print outdic
     
 if __name__ == '__main__':
     main()
