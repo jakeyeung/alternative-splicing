@@ -11,6 +11,7 @@ Currently only works for miso events from cassette exons!
 
 import sys
 import os
+import csv
 from optparse import OptionParser
 
 def get_motif_start_end(motif_line):
@@ -371,6 +372,14 @@ def init_dic(mydic, keys_list):
         mydic[key] = []
     return mydic
 
+def get_csv_from_list(mylist):
+    '''
+    Given a list, return csv. 
+    All elements in list gets converted to string.
+    '''
+    mylist = [str(i) for i in mylist]
+    return ','.join(mylist)
+
 def main():
     usage = 'usage: %prog meme_results_file output_file\n'\
         'Two args must be specified in commandline: \n'\
@@ -415,8 +424,10 @@ def main():
     motif_rel_end_str = 'motif_relative_end'
     genomic_coord_str = 'genomic_coordinate'
     sequence_str = 'motif_sequence'
+    motif_number_str = 'motif_number'
     subkeys_list = [motif_rel_start_str, motif_rel_end_str, 
-                    genomic_coord_str, sequence_str]
+                    genomic_coord_str, sequence_str, 
+                    motif_number_str]
     
     # get region of interest from filename
     region_of_interest = get_region_of_interest_from_filepath(meme_html_path)
@@ -472,9 +483,11 @@ def main():
                         2) motif_rel_end
                         3) genomic_coordinate
                         4) motif_sequence
+                        5) motif_number
                     '''
                     motif_info_list = [motif_rel_start, motif_rel_end, 
-                                       genomic_coord, motif_seq]
+                                       genomic_coord, motif_seq, 
+                                       motif_number]
                     # BEGIN: store information to output dic
                     '''
                     Do two checks: one if miso_event is initialized,
@@ -505,9 +518,38 @@ def main():
                         # append subval to subkey list
                         outdic[miso_event][region_of_interest][subkey].\
                             append(subval)
+                    # END: store information to output dic
                     motif_line = readfile.next()
+                # Out of while loop, means we should increment motif number 
+                motif_number += 1
+                search_motif_string = ''.join([searchstring, 
+                                               str(motif_number)])
+                
+    # Create output column names, append region (eg intron_1_3p to subkey)
+    miso_event_str = 'miso_event'
+    # Initialize column name list
+    output_colnames = [miso_event_str]
+    # append region to subkey
+    for subkey in subkeys_list:
+        output_colnames.append(':'.join([region_of_interest, subkey]))
+    
     # Write to output file
-    # print outdic
+    with open(output_path, 'wb') as outfile:
+        outwriter = csv.writer(outfile, delimiter='\t')
+        # write colnames
+        outwriter.writerow(output_colnames)
+        for writecount, miso_event in enumerate(outdic):
+            # init empty list and add miso event to list
+            row_to_write = [miso_event]
+            for region in outdic[miso_event]:
+                for subkey in subkeys_list:
+                    # Get value_list from subkey
+                    subval_list = outdic[miso_event][region][subkey]
+                    # Collapse list to CSV, append to row_to_write
+                    subval_csv = get_csv_from_list(subval_list)
+                    row_to_write.append(subval_csv)
+            outwriter.writerow(row_to_write)
+    print '%s rows written to %s:' %(writecount, output_path)
     
 if __name__ == '__main__':
     main()
