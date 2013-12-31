@@ -380,27 +380,16 @@ def get_csv_from_list(mylist):
     mylist = [str(i) for i in mylist]
     return ','.join(mylist)
 
-def main():
-    usage = 'usage: %prog meme_results_file output_file\n'\
-        'Two args must be specified in commandline: \n'\
-        '1) Meme HTML file containing meme results.\n'\
-        '2) Output file to which results will be written.\n'
-    
-    parser = OptionParser(usage=usage)
-    
-    parser.add_option('-l', '--intron_length', dest='intron_length',
-                      default=100,
-                      help='Length (in basepairs) of intron sequence extracted.'\
-                        'Default is 100bp from the start or end of exon.')
-    
-    (options, args) = parser.parse_args()
-    if len(args) < 2:
-        print 'Incorrect number of parameters specified.'
-        print usage
-        sys.exit()
-    meme_html_path = args[0]
-    output_path = args[1]
-    
+def update_dic_with_motifs(outdic, meme_html_path, region_of_interest, 
+                           seq_lengths_dic):
+    '''
+    Loop through meme html file, for every motif in meme html file, retrieve
+    all the miso events that match the motif as well as
+    the genomic coordinates of the motif and relative motif position with 
+    respect to the region.
+    '''
+    # Get subkeys list
+    subkeys_list = get_dic_subkeys()
     # def search string to know when you are reading info containing
     # where the motif was matched to the event.
     searchstring = '<input type="hidden" id="blocks'
@@ -416,25 +405,6 @@ def main():
     # define endline
     endline = '//'    # last line signaling end of motif information
     
-    # Create output dic to store information
-    outdic = {}
-    
-    # Define subkeys used within outdic
-    motif_rel_start_str = 'motif_relative_start'
-    motif_rel_end_str = 'motif_relative_end'
-    genomic_coord_str = 'genomic_coordinate'
-    sequence_str = 'motif_sequence'
-    motif_number_str = 'motif_number'
-    subkeys_list = [motif_rel_start_str, motif_rel_end_str, 
-                    genomic_coord_str, sequence_str, 
-                    motif_number_str]
-    
-    # get region of interest from filename
-    region_of_interest = get_region_of_interest_from_filepath(meme_html_path)
-    
-    # create dictionary of miso_event: sequence length from meme html file
-    seq_lengths_dic = get_seq_lengths_from_meme_file(meme_html_path)
-
     # Read meme html path, retrieve genomic coordinates of the motif region
     # Create search string to match 
     with open(meme_html_path, 'rb') as readfile:
@@ -524,14 +494,114 @@ def main():
                 motif_number += 1
                 search_motif_string = ''.join([searchstring, 
                                                str(motif_number)])
+    return outdic
+
+def get_dic_subkeys():
+    '''
+    Get predefined dictionary subkeys.
+    '''
+    # Define subkeys used within outdic
+    motif_rel_start_str = 'motif_relative_start'
+    motif_rel_end_str = 'motif_relative_end'
+    genomic_coord_str = 'genomic_coordinate'
+    sequence_str = 'motif_sequence'
+    motif_number_str = 'motif_number'
+    subkeys_list = [motif_rel_start_str, motif_rel_end_str, 
+                    genomic_coord_str, sequence_str, 
+                    motif_number_str]
+    return subkeys_list
+
+def main():
+    usage = 'usage: %prog meme_results_file output_file\n'\
+        'Two args must be specified in commandline: \n'\
+        '1) Meme HTML file containing meme results.\n'\
+        '2) Output file to which results will be written.\n'
+    
+    parser = OptionParser(usage=usage)
+    
+    parser.add_option('-l', '--intron_length', dest='intron_length',
+                      default=100,
+                      help='Length (in basepairs) of intron sequence extracted.'\
+                        'Default is 100bp from the start or end of exon.')
+    parser.add_option('-e', '--include_exons', dest='include_exons',
+                      default=False,
+                      help='True or False: option flag to include exon motifs '\
+                      'in analysis or not.')
+    parser.add_option('-f', '--meme_filename', dest='meme_filename',
+                      default='meme.html',
+                      help='Meme output filename. Default meme.html')
+    (options, args) = parser.parse_args()
+    if len(args) < 2:
+        print 'Incorrect number of parameters specified.'
+        print usage
+        sys.exit()
+    meme_html_dir = args[0]
+    output_path = args[1]
+    
+    # parse include_exons option
+    include_exons = options.include_exons
+    if include_exons in ['True', 'true', 'TRUE', True]:
+        include_exons = True
+    elif include_exons in ['False', 'false', 'FALSE', False]:
+        include_exons = False
+    else:
+        print 'include_exons expected True or False, %s found.' %include_exons
+    # parse meme_filename options
+    meme_filename = options.meme_filename
+    
+    # create list of meme html paths linking to meme.html files
+    # for each intronic and exonic region.
+    all_dirs = os.listdir(meme_html_dir)
+    meme_paths = []
+    # include only dirs starting wih intron_ and maybe exon_ 
+    # depending on option flags
+    for mydir in all_dirs:
+        if include_exons == False:
+            if mydir.startswith('intron_'):
+                # append path to dir
+                mypath = os.path.join(meme_html_dir, mydir, meme_filename)
+                # only append if it is a true path to a file
+                if os.path.isfile(mypath):
+                    meme_paths.append(mypath)
+        elif include_exons == True:
+            if mydir.startswith('intron_') or mydir.startswith('exon_'):
+                mypath = os.path.join(meme_html_dir, mydir, meme_filename)
+                # only append if it is a true path to a file
+                if os.path.isfile(mypath):
+                    meme_paths.append(mypath)
+        else:
+            print 'include_exons must be True or False. %s found.' \
+                %include_exons
+            sys.exit()
+    
+    # Loop through meme html paths
+    regions_list = []
+    # Create output dic to store information
+    outdic = {}
+    for meme_html_path in meme_paths:
+        print 'Retrieving motif info from %s' %meme_html_path
+        
+        # get region of interest from filename
+        region_of_interest = get_region_of_interest_from_filepath(meme_html_path)
+        # store region of interest for later output
+        regions_list.append(region_of_interest)
+        
+        # create dictionary of miso_event: sequence length from meme html file
+        seq_lengths_dic = get_seq_lengths_from_meme_file(meme_html_path)
+        
+        # Fill dic with motif info
+        outdic = update_dic_with_motifs(outdic, meme_html_path, region_of_interest, seq_lengths_dic)
                 
     # Create output column names, append region (eg intron_1_3p to subkey)
     miso_event_str = 'miso_event'
     # Initialize column name list
     output_colnames = [miso_event_str]
+    # Get dic subkeys
+    subkeys_list = get_dic_subkeys()
     # append region to subkey
-    for subkey in subkeys_list:
-        output_colnames.append(':'.join([region_of_interest, subkey]))
+    for region in regions_list:
+        for subkey in subkeys_list:
+            output_colnames.append(':'.join([region, subkey]))
     
     # Write to output file
     with open(output_path, 'wb') as outfile:
@@ -541,13 +611,18 @@ def main():
         for writecount, miso_event in enumerate(outdic):
             # init empty list and add miso event to list
             row_to_write = [miso_event]
-            for region in outdic[miso_event]:
-                for subkey in subkeys_list:
-                    # Get value_list from subkey
-                    subval_list = outdic[miso_event][region][subkey]
-                    # Collapse list to CSV, append to row_to_write
-                    subval_csv = get_csv_from_list(subval_list)
-                    row_to_write.append(subval_csv)
+            for region in regions_list:
+                # subkey might not exist in dic, skip if it doesn't exist
+                if region not in outdic[miso_event]:
+                    for subkey in subkeys_list:
+                        row_to_write.append('NA')
+                else:
+                    for subkey in subkeys_list:
+                        # Get value_list from subkey
+                        subval_list = outdic[miso_event][region][subkey]
+                        # Collapse list to CSV, append to row_to_write
+                        subval_csv = get_csv_from_list(subval_list)
+                        row_to_write.append(subval_csv)
             outwriter.writerow(row_to_write)
     print '%s rows written to %s:' %(writecount, output_path)
     
