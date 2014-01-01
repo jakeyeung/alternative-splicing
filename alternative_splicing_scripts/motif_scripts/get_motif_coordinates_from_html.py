@@ -13,6 +13,7 @@ import sys
 import os
 import csv
 from optparse import OptionParser
+from utilities.gerp_utilities import get_avg_rs_score
 
 def get_motif_start_end(motif_line):
     '''
@@ -381,7 +382,7 @@ def get_csv_from_list(mylist):
     return ','.join(mylist)
 
 def update_dic_with_motifs(outdic, meme_html_path, region_of_interest, 
-                           seq_lengths_dic):
+                           seq_lengths_dic, gerp_dir):
     '''
     Loop through meme html file, for every motif in meme html file, retrieve
     all the miso events that match the motif as well as
@@ -438,6 +439,9 @@ def update_dic_with_motifs(outdic, meme_html_path, region_of_interest,
                                                         motif_rel_start,
                                                         motif_rel_end, 
                                                         strand)
+                    # Get RS scores as a list
+                    avg_rs_score = get_avg_rs_score(gerp_dir, chromo, 
+                                                    motif_start, motif_end)
                     # Concatenate to get genomic coordinate with chromo
                     genomic_coord = ':'.join([chromo, str(motif_start), 
                                               str(motif_end)])
@@ -454,10 +458,11 @@ def update_dic_with_motifs(outdic, meme_html_path, region_of_interest,
                         3) genomic_coordinate
                         4) motif_sequence
                         5) motif_number
+                        6) Avg RS score (conservation)
                     '''
                     motif_info_list = [motif_rel_start, motif_rel_end, 
                                        genomic_coord, motif_seq, 
-                                       motif_number]
+                                       motif_number, avg_rs_score]
                     # BEGIN: store information to output dic
                     '''
                     Do two checks: one if miso_event is initialized,
@@ -506,10 +511,20 @@ def get_dic_subkeys():
     genomic_coord_str = 'genomic_coordinate'
     sequence_str = 'motif_sequence'
     motif_number_str = 'motif_number'
+    rs_score_str = 'rs_score'
     subkeys_list = [motif_rel_start_str, motif_rel_end_str, 
                     genomic_coord_str, sequence_str, 
-                    motif_number_str]
+                    motif_number_str, rs_score_str]
     return subkeys_list
+
+def get_gerp_filepath():
+    '''
+    Get gerp filepath
+    '''
+    gerp_filepath = \
+        'G:\jyeung\projects\alternative_splicing\input'\
+        '\gerp_conservation_score\gerp_scores_by_chr'
+    return gerp_filepath
 
 def main():
     usage = 'usage: %prog meme_results_file output_file\n'\
@@ -530,6 +545,12 @@ def main():
     parser.add_option('-f', '--meme_filename', dest='meme_filename',
                       default='meme.html',
                       help='Meme output filename. Default meme.html')
+    parser.add_option('-g', '--gerp_directory', dest='gerp_directory',
+        default='G:/jyeung/projects/alternative_splicing/input/'\
+            'gerp_conservation_score/gerp_scores_by_chr',
+            help='Path containing gerp flat files. Default is'\
+                'G:/jyeung/projects/alternative_splicing/input/'\
+            'gerp_conservation_score/gerp_scores_by_chr')
     (options, args) = parser.parse_args()
     if len(args) < 2:
         print 'Incorrect number of parameters specified.'
@@ -548,6 +569,8 @@ def main():
         print 'include_exons expected True or False, %s found.' %include_exons
     # parse meme_filename options
     meme_filename = options.meme_filename
+    # parse gerp file directory
+    gerp_dir = options.gerp_directory
     
     # create list of meme html paths linking to meme.html files
     # for each intronic and exonic region.
@@ -590,7 +613,11 @@ def main():
         seq_lengths_dic = get_seq_lengths_from_meme_file(meme_html_path)
         
         # Fill dic with motif info
-        outdic = update_dic_with_motifs(outdic, meme_html_path, region_of_interest, seq_lengths_dic)
+        # need gerp file directory as input because 
+        # we will retrieve conservation scores from GERP.
+        outdic = update_dic_with_motifs(outdic, meme_html_path, 
+                                        region_of_interest, seq_lengths_dic,
+                                        gerp_dir)
                 
     # Create output column names, append region (eg intron_1_3p to subkey)
     miso_event_str = 'miso_event'
