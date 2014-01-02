@@ -649,7 +649,7 @@ def main():
                 # subkey might not exist in dic, skip if it doesn't exist
                 if region not in outdic[miso_event]:
                     for subkey in subkeys_list:
-                        row_to_write.append('NA')
+                        row_to_write.append(None)
                 else:
                     for subkey in subkeys_list:
                         # Get value_list from subkey
