@@ -20,7 +20,7 @@ def get_chr_list(add_chr_prefix=True):
     '''
     # def my prefix
     chr_str = 'chr'
-    chr_list = [str(i) for i in range(23)] + ['X', 'Y']
+    chr_list = [str(i) for i in range(1, 23)] + ['X', 'Y']
     if add_chr_prefix == True:
         chr_list = [''.join([chr_str, i]) for i in chr_list]
     return chr_list
@@ -83,4 +83,35 @@ def get_avg_rs_score(gerp_scores_dir, chromo, start, end):
     rs_scores_avg = float(sum(rs_scores)) / len(rs_scores)
     
     return rs_scores_avg
+
+def get_avg_rs_score_multithread(gerp_scores_dir, genome_coords_dic):
+    '''
+    Reads genome coordinates dic in the form:
+    {chr1: {coords: [(start1, end1), (start2, end2), (start3, end3)...]}
+     chr2: {coords: [...]}
+     chr23: {coords: [...]}
+     chrX: {coords: [...]}
+     chrY: {coords: [...]}
+     }
+    
+    For each chromosome, begin a Process, each Process takes
+    list of tuples [(start1, end1)...] and updates 
+    genome_coords_dic to include avg_rs_score
+    
+    Output coords dic should look like:
+    
+    {chr1: {coords: [(start1, end1), (start2, end2), (start3, end3)...]
+           avg_rs_score: [avg_score1, avg_score2, ...]}
+     chr2: {coords: [...]
+         avg_rs_score: [avg_score1, avg_score2, ...]}
+     chr23: {coords: [...]
+         avg_rs_score: [avg_score1, avg_score2, ...]}
+     chrX: {coords: [...]
+         avg_rs_score: [avg_score1, avg_score2, ...]}
+     chrY: {coords: [...]
+         avg_rs_score: [avg_score1, avg_score2, ...]}
+     }
+    '''
+    pass
+    
 
