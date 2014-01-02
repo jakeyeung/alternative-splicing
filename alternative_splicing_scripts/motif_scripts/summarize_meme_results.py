@@ -538,6 +538,54 @@ def save_dic_as_pickle(mydic, picklepath):
     pickle_output.close()
     print 'Pickle object saved to: %s' %picklepath
 
+def write_outdic_to_file(outdic, output_path, subkeys_list):
+    '''
+    Now that we have our wonderful dictionary. let's write it to a 
+    textfile. This needs to be general enough so that
+    if we add anything to our outdic, we will still be able to
+    use this function to write to file.
+    '''
+    
+    # Get regions list from outdic:
+    regions_list = []
+    for miso_event in outdic:
+        for region in outdic[miso_event]:
+            if region not in regions_list:
+                regions_list.append(region)
+    regions_list = sorted(regions_list)
+    
+    # Create output column names, append region (eg intron_1_3p to subkey)
+    miso_event_str = 'miso_event'
+    # Initialize column name list
+    output_colnames = [miso_event_str]
+    # append region to subkey
+    for region in regions_list:
+        for subkey in subkeys_list:
+            output_colnames.append(':'.join([region, subkey]))
+    
+    # Write to output file
+    with open(output_path, 'wb') as outfile:
+        outwriter = csv.writer(outfile, delimiter='\t')
+        # write colnames
+        outwriter.writerow(output_colnames)
+        for writecount, miso_event in enumerate(outdic):
+            # init empty list and add miso event to list
+            row_to_write = [miso_event]
+            for region in regions_list:
+                # subkey might not exist in dic, skip if it doesn't exist
+                if region not in outdic[miso_event]:
+                    for subkey in subkeys_list:
+                        row_to_write.append(None)
+                else:
+                    for subkey in subkeys_list:
+                        # Get value_list from subkey
+                        subval_list = outdic[miso_event][region][subkey]
+                        # Collapse list to CSV, append to row_to_write
+                        subval_csv = get_csv_from_list(subval_list)
+                        row_to_write.append(subval_csv)
+            outwriter.writerow(row_to_write)
+    print '%s rows written to %s:' %(writecount, output_path)
+
 def main():
     usage = 'usage: %prog meme_results_file output_file\n'\
         'Two args must be specified in commandline: \n'\
@@ -625,40 +673,9 @@ def main():
         # Fill dic with motif info
         outdic = update_dic_with_motifs(outdic, meme_html_path, 
                                         region_of_interest, seq_lengths_dic)
-                
-    # Create output column names, append region (eg intron_1_3p to subkey)
-    miso_event_str = 'miso_event'
-    # Initialize column name list
-    output_colnames = [miso_event_str]
-    # Get dic subkeys
-    subkeys_list = get_dic_subkeys()
-    # append region to subkey
-    for region in regions_list:
-        for subkey in subkeys_list:
-            output_colnames.append(':'.join([region, subkey]))
     
-    # Write to output file
-    with open(output_path, 'wb') as outfile:
-        outwriter = csv.writer(outfile, delimiter='\t')
-        # write colnames
-        outwriter.writerow(output_colnames)
-        for writecount, miso_event in enumerate(outdic):
-            # init empty list and add miso event to list
-            row_to_write = [miso_event]
-            for region in regions_list:
-                # subkey might not exist in dic, skip if it doesn't exist
-                if region not in outdic[miso_event]:
-                    for subkey in subkeys_list:
-                        row_to_write.append(None)
-                else:
-                    for subkey in subkeys_list:
-                        # Get value_list from subkey
-                        subval_list = outdic[miso_event][region][subkey]
-                        # Collapse list to CSV, append to row_to_write
-                        subval_csv = get_csv_from_list(subval_list)
-                        row_to_write.append(subval_csv)
-            outwriter.writerow(row_to_write)
-    print '%s rows written to %s:' %(writecount, output_path)
+    subkeys_list = get_dic_subkeys()
+    write_outdic_to_file(outdic, output_path, subkeys_list)
     
     # Save outdic to pickle file. In same directory as output file
     outdir = os.path.dirname(output_path)
