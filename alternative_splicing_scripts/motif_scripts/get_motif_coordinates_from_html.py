@@ -13,6 +13,7 @@ import sys
 import os
 import csv
 from optparse import OptionParser
+import pickle
 
 def get_motif_start_end(motif_line):
     '''
@@ -521,6 +522,22 @@ def get_gerp_filepath():
         '\gerp_conservation_score\gerp_scores_by_chr'
     return gerp_filepath
 
+def save_dic_as_pickle(mydic, picklepath):
+    '''
+    Given a dictionary and path to file, 
+    check if file exists. If does not exist,
+    save dic as pickle to that path.
+    If it does exist, return warning message.
+    '''
+    if os.path.isfile(picklepath):
+        print 'Pickle path: %s already exists.'\
+        '\nPress enter to overwrite.' %picklepath
+        raw_input()
+    pickle_output = open(picklepath, 'wb')
+    pickle.dump(mydic, pickle_output, -1)    # highest protocol
+    pickle_output.close()
+    print 'Pickle object saved to: %s' %picklepath
+
 def main():
     usage = 'usage: %prog meme_results_file output_file\n'\
         'Two args must be specified in commandline: \n'\
@@ -540,12 +557,10 @@ def main():
     parser.add_option('-f', '--meme_filename', dest='meme_filename',
                       default='meme.html',
                       help='Meme output filename. Default meme.html')
-    parser.add_option('-g', '--gerp_directory', dest='gerp_directory',
-        default='G:/jyeung/projects/alternative_splicing/input/'\
-            'gerp_conservation_score/gerp_scores_by_chr',
-            help='Path containing gerp flat files. Default is'\
-                'G:/jyeung/projects/alternative_splicing/input/'\
-            'gerp_conservation_score/gerp_scores_by_chr')
+    parser.add_option('-p', '--pickle_filename', dest='pickle_filename',
+        default='meme_summary.pkl',
+            help='Output filename for pickled dictionary.'\
+            'Default meme_summary.pkl')
     (options, args) = parser.parse_args()
     if len(args) < 2:
         print 'Incorrect number of parameters specified.'
@@ -564,6 +579,8 @@ def main():
         print 'include_exons expected True or False, %s found.' %include_exons
     # parse meme_filename options
     meme_filename = options.meme_filename
+    # parse pickle filename option
+    pickle_filename = options.pickle_filename
     
     # create list of meme html paths linking to meme.html files
     # for each intronic and exonic region.
@@ -642,6 +659,11 @@ def main():
                         row_to_write.append(subval_csv)
             outwriter.writerow(row_to_write)
     print '%s rows written to %s:' %(writecount, output_path)
+    
+    # Save outdic to pickle file. In same directory as output file
+    outdir = os.path.dirname(output_path)
+    picklepath = os.path.join(outdir, pickle_filename)
+    save_dic_as_pickle(outdic, picklepath)
     
 if __name__ == '__main__':
     main()
