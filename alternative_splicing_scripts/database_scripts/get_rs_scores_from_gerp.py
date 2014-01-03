@@ -21,7 +21,7 @@ def get_chr_list(add_chr_prefix=True):
     '''
     # def my prefix
     chr_str = 'chr'
-    chr_list = [str(i) for i in range(23)] + ['X', 'Y']
+    chr_list = [str(i) for i in range(1, 23)] + ['X', 'Y']
     if add_chr_prefix == True:
         chr_list = [''.join([chr_str, i]) for i in chr_list]
     return chr_list

@@ -79,7 +79,7 @@ def main():
     
     # Read meme results, get sequence names from specified motif.
     seq_names_list = get_seq_names_from_meme_results(meme_html_path, 
-                                                    motif_number)
+                                                     motif_number)
     n_seq_names = len(seq_names_list)
     intron_region = os.path.basename(os.path.dirname(meme_html_path))
     print '%s sequence names matched to %s motif %s' %(n_seq_names,
@@ -108,5 +108,6 @@ def main():
                                                        match_count,
                                                        n_seq_names)
             motif_compare_number += 1
+            
 if __name__ == '__main__':
     main()
