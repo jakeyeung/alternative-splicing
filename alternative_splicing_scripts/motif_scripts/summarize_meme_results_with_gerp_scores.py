@@ -105,7 +105,12 @@ def add_rs_scores_to_gerp_dic(gerp_dic, chromo, gerp_dir, queue_obj):
     get rs_scores for relevant positions (by looking at subkeys),
     update subvalues for each position with rs_scores.
     
-    Return rs_score updated gerp_dic.
+    Put gerp_dic[chromo] into queue_obj. This is important 
+    for multiprocessing because
+    when we update, we want to update only gerp_dic[chromo].
+    
+    Updating gerp_dic will result in "Nones" in a lot of RS scores
+    that are not in respective chromosome.  
     '''
     
     # Get gerp fpath
@@ -122,7 +127,8 @@ def add_rs_scores_to_gerp_dic(gerp_dic, chromo, gerp_dir, queue_obj):
     coords_list = gerp_dic[chromo].keys()
     if len(coords_list) == 0:
         print 'Empty coordinates list in chromosome: %s\nSkipping...\n' %chromo
-        return gerp_dic
+        queue_obj.put((gerp_dic[chromo], chromo))
+        return
     else:
         max_coord = max(coords_list)
     
@@ -148,7 +154,8 @@ def add_rs_scores_to_gerp_dic(gerp_dic, chromo, gerp_dir, queue_obj):
                 continue    # didnt match chromo, but should still iterate.
     print '%s scores extracted for chromosome: %s' \
         %(update_count, chromo)  
-    queue_obj.put(gerp_dic)    # for multiprocessing
+    queue_obj.put((gerp_dic[chromo], chromo))    # for multiprocessing
+    return
 
 def get_rs_score_subkey():
     rs_score_subkey = 'avg_rs_score'
@@ -161,8 +168,8 @@ def get_chromo_start_end(genomic_coordinate):
     '''
     coord_split = genomic_coordinate.split(':')
     chromo = coord_split[0]
-    start = coord_split[1]
-    end = coord_split[2]
+    start = int(coord_split[1])
+    end = int(coord_split[2])
     return chromo, start, end 
 
 def get_avg_rs_score(genomic_coordinate, gerp_dic):
@@ -218,6 +225,11 @@ def main():
                       default='gerp_pickle.pkl',
                       help='gerp scores pickle filename.\n'\
                         'Default gerp_pickle.pkl')
+    parser.add_option('-l', '--presaved_gerp_dic_path', dest='gerp_presaved_path',
+                      default=None,
+                      help='If a gerp dic has been presaved, use this flag to'\
+                        'indicate the file path to directly open the gerp file. '\
+                        'Reduces need for multiprocessing.')
     (options, args) = parser.parse_args()
     if len(args) < 2:
         print 'Incorrect number of parameters specified.'
@@ -229,6 +241,7 @@ def main():
     
     # parse options
     gerp_pickle_fname = options.gerp_pickle_fname
+    gerp_presaved_pkl_path = options.gerp_presaved_path
     
     # Load motif dic, obtained from summarize_meme_results
     pickle_file = open(motif_pickle_path, 'rb')
@@ -242,34 +255,51 @@ def main():
     # relevant to our motifs by reading pickled dictionary.
     gerp_dic = init_gerp_dic(motif_dic)
     
-    # BEGIN: MULTITHREADING
-    print 'Beginning multiprocessing.'
-    q = Queue()
-    process_list = []
-    # For each chromosome, open relevant gerp file and retrieve
-    # RS scores associated with the coordinates.
-    for chromosome in chr_list:
-        print 'Calculating RS scores for %s' %chromosome
-        p = Process(target=add_rs_scores_to_gerp_dic,
-                    args=(gerp_dic, chromosome, gerp_dir, q))
-        process_list.append(p)
-        p.start()
-    for chromosome in chr_list:
-        gerp_dic.update(q.get())
+    # Multithread only if presaved_gerp_dic_path flag is not None.
+    if gerp_presaved_pkl_path == None:
+        # BEGIN: MULTITHREADING
+        print 'Beginning multiprocessing.'
+        q = Queue()
+        process_list = []
+        # For each chromosome, open relevant gerp file and retrieve
+        # RS scores associated with the coordinates.
+        for chromosome in chr_list:
+            print 'Calculating RS scores for %s' %chromosome
+            p = Process(target=add_rs_scores_to_gerp_dic,
+                        args=(gerp_dic, chromosome, gerp_dir, q))
+            process_list.append(p)
+            p.start()
+        
+        for _ in chr_list:
+            # Update dic for every process that started.
+            # the actual chromosoem doesn't matter. It's the
+            # number of iterations that matter.
+            (gerp_dic_chromo, chromo) = q.get()
+            print chromo
+            print gerp_dic_chromo
+            # Find which chromosome this came from by looking at key
+            gerp_dic[chromo].update(gerp_dic_chromo)
+            
+        # Wait for all threads to be done before continuing.
+        for p in process_list:
+            p.join()
+        
+        # END: MULTITHREADING
+        print 'Done multiprocessing.'
+        
+        # save gerp dic as pickle
+        gerp_pickle_dir = os.path.dirname(motif_pickle_path)
+        gerp_pickle_fpath = os.path.join(gerp_pickle_dir, gerp_pickle_fname)
+        with open(gerp_pickle_fpath, 'wb') as gerp_pickle_file:
+            pickle.dump(gerp_dic, gerp_pickle_file, -1)
+        print 'Saved pickle object to: %s' %gerp_pickle_fpath 
     
-    # Wait for all threads to be done before continuing.
-    for p in process_list:
-        p.join()
-    # END: MULTITHREADING
-    print 'Done multiprocessing.'
-    
-    # save gerp dic as pickle
-    gerp_pickle_dir = os.path.dirname(motif_pickle_path)
-    gerp_pickle_fpath = os.path.join(gerp_pickle_dir, gerp_pickle_fname)
-    with open(gerp_pickle_fpath, 'wb') as gerp_pickle_file:
-        pickle.dump(gerp_dic, gerp_pickle_file, -1)
-    print 'Saved pickle object to: %s' %gerp_pickle_fpath 
-    
+    else:
+        # Try to open pickle path from options.gerp_path
+        with open(gerp_presaved_pkl_path, 'rb') as presaved_pkl:
+            pickle.load(presaved_pkl)
+        print 'Loaded presaved pickle from %s' %gerp_presaved_pkl_path
+            
     # Update motif_dic with gerp_dic
     motif_dic = update_motif_dic_with_gerp_dic(motif_dic, gerp_dic)
     
