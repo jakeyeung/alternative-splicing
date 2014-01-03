@@ -10,7 +10,7 @@ the column th gene names found from MISO annotations v2 hg19.
 
 import csv
 import re
-from optparse import OptionParser, Option
+from optparse import OptionParser
 
 
 class write_obj(object):
