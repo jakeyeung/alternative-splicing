@@ -205,11 +205,11 @@ def match_event_to_gsymbol(event, annot_dic):
         gsymbol = None
     return gsymbol
 
-def get_event_from_header(row, header):
+def get_event_from_header(row, header, event_colname_str):
     '''
     From row and given header, try to get event.
     It may either be 'event' or 'event_name'.
-    No other possibilities!
+    If neither work, try event_colname_str.
     '''
     # define constants
     event_str = 'event'    # A column name in input_header
@@ -218,10 +218,14 @@ def get_event_from_header(row, header):
     try:
         event = row[header.index(event_str)]
     except ValueError:
-        event = row[header.index(event_str2)]
+        try:
+            event = row[header.index(event_str2)]
+        except ValueError:
+            event = row[header.index(event_colname_str)]
     return event
 
-def iterate_rows_and_write_gsymbol(reader, header, annot_dic, writer_obj):
+def iterate_rows_and_write_gsymbol(reader, header, annot_dic, writer_obj, 
+                                   genename_colname):
     '''
     Iterate rows in input_reader (a csv_read_obj) and try to
     find its corresponding gene name from dictionary.
@@ -241,14 +245,14 @@ def iterate_rows_and_write_gsymbol(reader, header, annot_dic, writer_obj):
     write_count = 0
     # Write header
     for row in reader:
-        event = get_event_from_header(row, original_header)
+        event = get_event_from_header(row, original_header, genename_colname)
         gsymbol = match_event_to_gsymbol(event, annot_dic)
         row.insert(1, gsymbol)
         writer_obj.writerow(row)
         write_count += 1
     return write_count
 
-def main(input_filepath, annot_filepath, output_filepath):
+def main(input_filepath, annot_filepath, output_filepath, genename_colname):
     '''
     Strategy: read miso annotations, get dictionary of
     {event: genesymbol}, then run through input_filepath
@@ -266,25 +270,23 @@ def main(input_filepath, annot_filepath, output_filepath):
         write_count = iterate_rows_and_write_gsymbol(input_reader, 
                                                      input_header, 
                                                      annot_dic, 
-                                                     writer_obj.writeobj)
+                                                     writer_obj.writeobj,
+                                                     genename_colname)
     print('%s rows written to file: %s' %(write_count, output_filepath))
     writer_obj.close()
     
 if __name__ == '__main__':
     usage = 'usage: %prog input_filepath annotation_filepath output_filepath'
     parser = OptionParser(usage=usage)
-    '''
-    parser.add_option('-i', '--input_filepath', dest='input_filepath',
-                      help='Input file, likely the summary of t-test results'\
-                      ' from a previous script.')
-    parser.add_option('-a', '--annotation_filepath', dest='annot_filepath',
-                      help='File of miso annotations (.gff3 file)')
-    parser.add_option('-o', '--output_filepath', dest='output_filepath',
-                      help='Output file name')
-    '''
+    
+    parser.add_option('-c', '--genename_colname', dest='genename_colname',
+                      default='event',
+                      help='Column name containing miso events. Default is "event"')
+    
     (options, args) = parser.parse_args()
     input_filepath = args[0]
     annot_filepath = args[1]
     output_filepath = args[2]
+    genename_colname = options.genename_colname
     
-    main(input_filepath, annot_filepath, output_filepath)
+    main(input_filepath, annot_filepath, output_filepath, genename_colname)
