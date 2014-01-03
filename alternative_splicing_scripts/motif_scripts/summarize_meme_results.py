@@ -530,8 +530,7 @@ def save_dic_as_pickle(mydic, picklepath):
     '''
     if os.path.isfile(picklepath):
         print 'Pickle path: %s already exists.'\
-        '\nPress enter to overwrite.' %picklepath
-        raw_input()
+        'Overwriting...' %picklepath
     pickle_output = open(picklepath, 'wb')
     pickle.dump(mydic, pickle_output, -1)    # highest protocol
     pickle_output.close()
