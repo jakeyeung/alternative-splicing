@@ -312,8 +312,7 @@ def get_seq_lengths_from_meme_file(meme_file):
                             sys.exit()
                     else:
                         print 'Unexpected duplicate of %s.' %miso_event
-                        print 'Press enter to overwrite.'
-                        raw_input()
+                        print 'Overwriting...'
                     relevant_line = readfile.next()
     return seq_lengths_dic
 
