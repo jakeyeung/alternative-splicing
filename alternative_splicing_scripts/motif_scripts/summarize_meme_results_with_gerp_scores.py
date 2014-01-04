@@ -230,6 +230,11 @@ def main():
                       help='If a gerp dic has been presaved, use this flag to'\
                         'indicate the file path to directly open the gerp file. '\
                         'Reduces need for multiprocessing.')
+    parser.add_option('-o', '--updated_dic_fname', dest='updated_dic_fname',
+                      default='meme_summary.gerp_updated.pkl',
+                      help='Filename to updated meme_summary.pkl'
+                        ' with gerp scores,\n'\
+                        'Default "meme_summary.gerp_updated.pkl"')
     (options, args) = parser.parse_args()
     if len(args) < 2:
         print 'Incorrect number of parameters specified.'
@@ -242,6 +247,7 @@ def main():
     # parse options
     gerp_pickle_fname = options.gerp_pickle_fname
     gerp_presaved_pkl_path = options.gerp_presaved_path
+    updated_dic_fname = options.updated_dic_fname
     
     # Load motif dic, obtained from summarize_meme_results
     pickle_file = open(motif_pickle_path, 'rb')
@@ -275,8 +281,6 @@ def main():
             # the actual chromosoem doesn't matter. It's the
             # number of iterations that matter.
             (gerp_dic_chromo, chromo) = q.get()
-            print chromo
-            print gerp_dic_chromo
             # Find which chromosome this came from by looking at key
             gerp_dic[chromo].update(gerp_dic_chromo)
             
@@ -302,6 +306,13 @@ def main():
             
     # Update motif_dic with gerp_dic
     motif_dic = update_motif_dic_with_gerp_dic(motif_dic, gerp_dic)
+    
+    # Save updated motif dic to pickle
+    updated_dic_dir = os.path.dirname(motif_pickle_path)
+    updated_dic_path = os.path.join(updated_dic_dir, updated_dic_fname)
+    with open(updated_dic_path, 'wb') as updated_dic_file:
+        pickle.dump(motif_dic, updated_dic_file, -1)
+    print 'Updated dic saved to: %s' %updated_dic_path
     
     # Write updated gerp_dic to file
     # add GERP scores as a subkey in subkey_list
