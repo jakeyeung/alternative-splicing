@@ -251,7 +251,8 @@ def get_seq_start_end_from_miso_event(miso_event, region_of_interest,
                                             intron_3p_or_5p,
                                             seq_length)
     else:
-        print 'Expected %s to begin with "exon" or "intron". %s found.' %(region_of_interest, exon_or_intron)
+        print 'Expected %s to begin with "exon" or "intron". %s found.' \
+            %(region_of_interest, exon_or_intron)
         sys.exit()
     return chromo, start, end
 
@@ -622,7 +623,8 @@ def main():
     elif include_exons in ['False', 'false', 'FALSE', False]:
         include_exons = False
     else:
-        print 'include_exons expected True or False, %s found.' %include_exons
+        print 'include_exons expected True or False, %s found.' \
+            %include_exons
     # parse meme_filename options
     meme_filename = options.meme_filename
     # parse pickle filename option
@@ -661,7 +663,8 @@ def main():
         print 'Retrieving motif info from %s' %meme_html_path
         
         # get region of interest from filename
-        region_of_interest = get_region_of_interest_from_filepath(meme_html_path)
+        region_of_interest = \
+            get_region_of_interest_from_filepath(meme_html_path)
         # store region of interest for later output
         regions_list.append(region_of_interest)
         
