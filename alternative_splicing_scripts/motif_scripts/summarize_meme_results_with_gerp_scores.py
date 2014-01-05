@@ -261,7 +261,7 @@ def main():
     # relevant to our motifs by reading pickled dictionary.
     gerp_dic = init_gerp_dic(motif_dic)
     
-    # Multithread only if presaved_gerp_dic_path flag is not None.
+    # Multithread only if presaved_gerp_dic_path flag is None.
     if gerp_presaved_pkl_path == None:
         # BEGIN: MULTITHREADING
         print 'Beginning multiprocessing.'
