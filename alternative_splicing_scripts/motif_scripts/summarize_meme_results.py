@@ -205,8 +205,8 @@ def get_intron_starts_ends(miso_event,
     elif strand == '-':
         # Get seq length at 3p or 5p site of intron start/end
         if intron_3p_or_5p == '5p':
-            intron_start = intron_ends[intron_index] - seq_length_adj
-            intron_end = intron_starts[intron_index]
+            intron_end = intron_ends[intron_index]
+            intron_start = intron_end - seq_length_adj
         elif intron_3p_or_5p == '3p':
             intron_start = intron_starts[intron_index]
             intron_end = intron_start + seq_length_adj
@@ -444,14 +444,10 @@ def update_dic_with_motifs(outdic, meme_html_path, region_of_interest,
                         get_seq_start_end_from_miso_event(miso_event, 
                                                           region_of_interest,
                                                           seq_lengths_dic)
-                    seq_length = int(seq_end) - int(seq_start)
-                    '''
-                    if seq_length != 99:
-                        print miso_event
-                        print chromo, seq_start, seq_end
-                        print 'Seq length: %s' %seq_length
-                        raw_input()
-                    '''
+                    # Check seq_end > seq_start, or else error.
+                    if seq_start > seq_end:
+                        print 'Error: expected end(%s) > start(%s).'
+                        sys.exit()
                     # Get motif start and end genomic coordinates.
                     # if null_mode, motif_start and end == seq_start, seq_end
                     # if not null_mode, get motif start ends from rel start/end
