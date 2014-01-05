@@ -7,6 +7,7 @@ Parse meme html output and retrieve
 start and stops of each motif hit.
 
 Currently only works for miso events from cassette exons!
+
 '''
 
 import sys
@@ -170,6 +171,13 @@ def get_intron_starts_ends(miso_event,
     Return:
     start = 131897848
     end = 131897898 (131897848 + 50)
+    
+    Example 3:
+    chr8:144679518:144679845:-@chr8:144676045:144676241:-@chr8:144674885:144675112:-
+    if intron_number == 1, intron_3p_or_5p == "5p", seq_length = 100
+    Return:
+    start = 144679418 (144679518 - 100)
+    end = 144679518
     
     Intron number should be int
     '''
@@ -382,12 +390,16 @@ def get_csv_from_list(mylist):
     return ','.join(mylist)
 
 def update_dic_with_motifs(outdic, meme_html_path, region_of_interest, 
-                           seq_lengths_dic):
+                           seq_lengths_dic, null_mode=False):
     '''
     Loop through meme html file, for every motif in meme html file, retrieve
     all the miso events that match the motif as well as
     the genomic coordinates of the motif and relative motif position with 
     respect to the region.
+    
+    null_mode: option flag to not retrieve motif start and ends, but rather
+    only the fasta seq start and ends. This is useful if you want to 
+    do some null distribution of gerp scores.
     '''
     # Get subkeys list
     subkeys_list = get_dic_subkeys()
@@ -432,13 +444,27 @@ def update_dic_with_motifs(outdic, meme_html_path, region_of_interest,
                         get_seq_start_end_from_miso_event(miso_event, 
                                                           region_of_interest,
                                                           seq_lengths_dic)
+                    seq_length = int(seq_end) - int(seq_start)
+                    '''
+                    if seq_length != 99:
+                        print miso_event
+                        print chromo, seq_start, seq_end
+                        print 'Seq length: %s' %seq_length
+                        raw_input()
+                    '''
                     # Get motif start and end genomic coordinates.
-                    motif_start, motif_end = \
-                        get_motif_start_end_coordinates(seq_start, 
-                                                        seq_end,
-                                                        motif_rel_start,
-                                                        motif_rel_end, 
-                                                        strand)
+                    # if null_mode, motif_start and end == seq_start, seq_end
+                    # if not null_mode, get motif start ends from rel start/end
+                    if not null_mode:
+                        motif_start, motif_end = \
+                            get_motif_start_end_coordinates(seq_start, 
+                                                            seq_end,
+                                                            motif_rel_start,
+                                                            motif_rel_end, 
+                                                            strand)
+                    else:
+                        motif_start = seq_start
+                        motif_end = seq_end
                     # Concatenate to get genomic coordinate with chromo
                     genomic_coord = ':'.join([chromo, str(motif_start), 
                                               str(motif_end)])
@@ -584,6 +610,18 @@ def write_outdic_to_file(outdic, output_path, subkeys_list):
                         row_to_write.append(subval_csv)
             outwriter.writerow(row_to_write)
     print '%s rows written to %s:' %(writecount, output_path)
+    
+def str_to_boolean(mystr):
+    '''
+    Parse string, return True or False as boolean.
+    '''
+    if mystr in ['True', 'true', 'TRUE', True, 'T', 't']:
+        return True
+    elif mystr in ['False', 'false', 'FALSE', False, 'F', 'f']:
+        return False
+    else:
+        print 'Error: expected %s to be True or False.' %mystr
+        return None
 
 def main():
     usage = 'usage: %prog meme_results_file output_file\n'\
@@ -605,9 +643,15 @@ def main():
                       default='meme.html',
                       help='Meme output filename. Default meme.html')
     parser.add_option('-p', '--pickle_filename', dest='pickle_filename',
-        default='meme_summary.pkl',
-            help='Output filename for pickled dictionary.'\
-            'Default meme_summary.pkl')
+                      default='meme_summary.pkl',
+                      help='Output filename for pickled dictionary.'\
+                      'Default meme_summary.pkl')
+    parser.add_option('-n', '--null_mode', dest='null_mode',
+                      default=False,
+                      help='Option flag to retrieve entire fasta genomic \n'\
+                        'coordinate rather than motif genomic coordinate.\n'\
+                        'Useful for obtaining a null distribution of gerp '\
+                        'scores.')
     (options, args) = parser.parse_args()
     if len(args) < 2:
         print 'Incorrect number of parameters specified.'
@@ -618,17 +662,15 @@ def main():
     
     # parse include_exons option
     include_exons = options.include_exons
-    if include_exons in ['True', 'true', 'TRUE', True]:
-        include_exons = True
-    elif include_exons in ['False', 'false', 'FALSE', False]:
-        include_exons = False
-    else:
-        print 'include_exons expected True or False, %s found.' \
-            %include_exons
+    include_exons = str_to_boolean(include_exons)
     # parse meme_filename options
     meme_filename = options.meme_filename
     # parse pickle filename option
     pickle_filename = options.pickle_filename
+    # parse null mode options
+    null_mode = options.null_mode
+    null_mode = str_to_boolean(null_mode)
+        
     
     # create list of meme html paths linking to meme.html files
     # for each intronic and exonic region.
@@ -673,7 +715,8 @@ def main():
         
         # Fill dic with motif info
         outdic = update_dic_with_motifs(outdic, meme_html_path, 
-                                        region_of_interest, seq_lengths_dic)
+                                        region_of_interest, seq_lengths_dic,
+                                        null_mode=null_mode)
     
     subkeys_list = get_dic_subkeys()
     write_outdic_to_file(outdic, output_path, subkeys_list)
