@@ -28,7 +28,8 @@ def extract_column_from_table(myfile, column_index_to_extract=1, header=False):
             mylist.append(row[column_index_to_extract])
     return mylist
 
-def index_gene_exprs(gene_exprs_fname, gene_list, group_1, group_2):
+def index_gene_exprs(gene_exprs_fname, gene_list, group_1, group_2, 
+                     gene_colname):
     '''
     Read gene expressions, assumes first column is gene names,
     other columns contain sample names found in group_1 and group_2.
@@ -39,7 +40,7 @@ def index_gene_exprs(gene_exprs_fname, gene_list, group_1, group_2):
     Group 1 should be PCa samples, Group 2 should be NEPC...
     '''
     # Initialize column names
-    gene_colname = 'gene'
+    # gene_colname = 'gene'
     passcount = 0
     
     # Initialize keynames as gene names.
@@ -139,7 +140,8 @@ def write_dic_to_file(mydic, mykeys, mysubkeys, output_file):
     return writecounts
 
 def main():
-    usage = 'usage: %prog [optional_gene_list_file] gene_exprs_file group_1_sampnames_file group_2_sampenames_file output_file'
+    usage = 'usage: %prog [optional_gene_list_file] gene_exprs_file '\
+        'group_1_sampnames_file group_2_sampenames_file output_file'
     parser = OptionParser(usage=usage)
     parser.add_option('-l', '--gene_list', dest='gene_list_file',
                       default=None,
@@ -147,6 +149,10 @@ def main():
     parser.add_option('-c', '--col_index', dest='col_index',
                       default=1,
                       help='Column index where gene names are. 0 is first column.')
+    parser.add_option('-g', '--gene_colname', dest='gene_colname',
+                      default='gene',
+                      help='Column name containing gene names in exprs file.\n'\
+                        'Default "gene"')    
     (opts, args) = parser.parse_args()
     
     if len(args) < 4:
@@ -154,11 +160,14 @@ def main():
               'Filename\nGroup 1 Samples Filename\nGroup 2 Samples '\
               'Filename\nOutput Filename\n-h for help.')
         sys.exit()
+    # args
     gene_exprs_fname = args[0]
     group_1_samps_fname = args[1]
     group_2_samps_fname = args[2]
     output_fname = args[3]
+    # options
     gene_list_fname = opts.gene_list_file
+    gene_colname = opts.gene_colname
     if gene_list_fname != None:
         col_index = int(opts.col_index)
     
@@ -185,7 +194,8 @@ def main():
     gene_exprs_dic = index_gene_exprs(gene_exprs_fname, 
                                       gene_list,
                                       group_1,
-                                      group_2)
+                                      group_2,
+                                      gene_colname)
     
     # Do a t-test for each gene, append it to gene_exprs_dic
     gene_exprs_dic = t_test_gene_exprs_dic(gene_exprs_dic)
