@@ -51,14 +51,16 @@ def calculate_fold_change(group1_exprs, group2_exprs, log2=True):
     Fold change is with respect to group2, that is:
     fold change of 2 means group2 is 2 times higher than group1 for that gene
     
-    log2 is an option to convert fold change to log2 scale.
+    If expressions are in log2 scale, log2 should be True
+    If they are in linear scale, then log2 should be False.
     '''
     group1_mean = float(sum(group1_exprs)) / len(group1_exprs)
     group2_mean = float(sum(group2_exprs)) / len(group2_exprs)
     
-    foldchange = group2_mean / group1_mean
     if log2 == True:
-        foldchange = log(foldchange, 2)
+        foldchange = group2_mean - group1_mean
+    elif log2 == False:
+        foldchange = group2_mean / group1_mean
     return foldchange
 
 def get_pvals_fc_from_file(t_test_textfile, group1_colname, 
