@@ -9,6 +9,7 @@ Calculate differentially expressed RBPs or any list of genes.
 from optparse import OptionParser
 import sys
 import csv
+from math import log
 from scipy import stats
 
 def extract_column_from_table(myfile, column_index_to_extract=1, header=False):
@@ -29,7 +30,7 @@ def extract_column_from_table(myfile, column_index_to_extract=1, header=False):
     return mylist
 
 def index_gene_exprs(gene_exprs_fname, gene_list, group_1, group_2, 
-                     gene_colname):
+                     gene_colname, convert_to_log2):
     '''
     Read gene expressions, assumes first column is gene names,
     other columns contain sample names found in group_1 and group_2.
@@ -38,6 +39,8 @@ def index_gene_exprs(gene_exprs_fname, gene_list, group_1, group_2,
     
     If dealing with Rubin cohort...
     Group 1 should be PCa samples, Group 2 should be NEPC...
+    
+    convert_to_log2: either True or False. 
     '''
     # Initialize column names
     # gene_colname = 'gene'
@@ -54,17 +57,26 @@ def index_gene_exprs(gene_exprs_fname, gene_list, group_1, group_2,
         header = myreader.next()    # has a header.
         for row in myreader:
             row_gene = row[header.index(gene_colname)]
+            '''
             # Put gene expression into respective group 1 and group 2.
             # Be warned, if you specified gene list, then row_gene
             # may not be in your dictionary. So check first before
             # putting gene expression into groups.
+            
+            Convert exprs to log2 if convert_to_log2 is True.
+            Add 1 to exprs to prevent infinities.
+            '''
             if row_gene in gene_exprs_dic:
                 for samp in group_1:
-                    gene_exprs_dic[row_gene]['group1'].\
-                        append(row[header.index(samp)])
+                    exprs = float(row[header.index(samp)])
+                    if convert_to_log2:
+                        exprs = log(exprs + 1, 2)
+                    gene_exprs_dic[row_gene]['group1'].append(exprs)
                 for samp in group_2:
-                    gene_exprs_dic[row_gene]['group2'].\
-                        append(row[header.index(samp)])
+                    exprs = float(row[header.index(samp)])
+                    if convert_to_log2:
+                        exprs = log(exprs + 1, 2)
+                    gene_exprs_dic[row_gene]['group2'].append(exprs)
             else:
                 passcount += 1
     print '%s genes not considered in this t-test.' %passcount
@@ -152,7 +164,10 @@ def main():
     parser.add_option('-g', '--gene_colname', dest='gene_colname',
                       default='gene',
                       help='Column name containing gene names in exprs file.\n'\
-                        'Default "gene"')    
+                        'Default "gene"')
+    parser.add_option('--convert_to_log2', dest='convert_to_log2',
+                      default=False,
+                      help='Boolean for convert expression to log2 scale. Default False')
     (opts, args) = parser.parse_args()
     
     if len(args) < 4:
@@ -170,6 +185,14 @@ def main():
     gene_colname = opts.gene_colname
     if gene_list_fname != None:
         col_index = int(opts.col_index)
+    convert_to_log2 = opts.convert_to_log2
+    if convert_to_log2 in ['True', 'true', 'TRUE', 'T', 't', True]:
+        convert_to_log2 = True
+    elif convert_to_log2 in ['False', 'false', 'FALSE', 'F', 'f', False]:
+        convert_to_log2 = False
+    else:
+        print 'Expected --convert_to_log2 option to be True or False. '\
+            '%s found.' %convert_to_log2
     
     # If gene_list is specified, use that to get gene_list, otherwise
     # use the entire gene_exprs_fname to get gene_list.
@@ -195,7 +218,8 @@ def main():
                                       gene_list,
                                       group_1,
                                       group_2,
-                                      gene_colname)
+                                      gene_colname,
+                                      convert_to_log2)
     
     # Do a t-test for each gene, append it to gene_exprs_dic
     gene_exprs_dic = t_test_gene_exprs_dic(gene_exprs_dic)
