@@ -53,6 +53,9 @@ def calculate_fold_change(group1_exprs, group2_exprs, log2=True):
     
     If expressions are in log2 scale, log2 should be True
     If they are in linear scale, then log2 should be False.
+    
+    Therefore, output if log2 == True returns log2 fold change
+    Output if log2 == False returns fold change on linear scale.
     '''
     group1_mean = float(sum(group1_exprs)) / len(group1_exprs)
     group2_mean = float(sum(group2_exprs)) / len(group2_exprs)
