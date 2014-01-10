@@ -264,28 +264,31 @@ def get_seq_start_end_from_miso_event(miso_event, region_of_interest,
         sys.exit()
     return chromo, start, end
 
-def get_region_of_interest_from_filepath(filepath):
+def get_region_of_interest_from_filepath(filepath, incl_excl=False):
     '''
     I expect filepath to be for example:
     ~.../fasta_unshuffled/intron_1_3p_inclusion/meme.html
     
-    We want intron_1_3p to be returned.
+    We want intron_1_3p to be returned if incl_excl == False
+    We want intron_1_3p_inclusion if incl_excl == True
     '''
     # Find gene region (intron or exon) based on the dir name of html file
     myregion = os.path.basename(os.path.dirname(filepath))
     
     # myregion still has _inclusion, let's remove that.
     myregion_split = myregion.split('_')
-    
-    # check first element in split is exon or intron
-    if myregion_split[0] == 'exon' or myregion_split[0] == 'intron':
-        pass
-    else:
-        print 'Expected exon or intron in string: %s' %myregion
+    # check first element in split is exon or intron, throw error if not.
+    if myregion_split[0] != 'exon' and myregion_split[0] != 'intron':
+        print 'Expected exon or intron in string: %s' %myregion_split[0]
         sys.exit()
-    
-    # rejoin, removing the last element in list
-    return '_'.join(myregion_split[:-1])
+    # rejoin, removing the last element (incl/excl) in list if 
+    # incl_excl == False. Do not remove anything if incl_excl == True.
+    if incl_excl == False:
+        return '_'.join(myregion_split[:-1])
+    elif incl_excl == True:
+        return '_'.join(myregion_split)
+    else:
+        print 'incl_excl must be True or False. %s found.' %incl_excl
 
 def get_seq_lengths_from_meme_file(meme_file):
     '''
