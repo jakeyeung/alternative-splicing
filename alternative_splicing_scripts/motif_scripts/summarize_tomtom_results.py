@@ -40,7 +40,7 @@ def get_n_sites_from_meme(meme_file):
     {motif_1: {n_sites: 27} ...}
     '''
     # define colnames
-    n_sites_str, _, _, _, _ = get_subkeys()
+    n_sites_str, _, _, _, _, _ = get_subkeys()
     
     # init dic
     n_sites_dic = {}
@@ -64,11 +64,23 @@ def get_n_sites_from_meme(meme_file):
                 searchstring = '  '.join(['MOTIF', str(motif_count)])
     return n_sites_dic
 
-def get_tomtom_results(tomtom_file):
+def get_incl_or_excl(region):
+    '''
+    From region, determine if it is inclusion or exclusion.
+    Example of region:
+    intron_1_3p_inclusion,
+    Return inclusion in that case.
+    '''
+    return region.split('_')[-1]
+
+def get_tomtom_results(tomtom_file, region):
     '''
     Read TomTom file, create dic of form:
-    {motif_1: {gene: geneA, p-value: X, E-value: Y, q-value: Z}}
+    {motif_1: {gene: geneA, p-value: X, E-value: Y, 
+        q-value: Z, motifid: A, incl_or_excl: incl/excl}}
     #Query ID    Target ID    Optimal offset    p-value    E-value    q-value
+    
+    We need region in input arg to determine if it is inclusion ore xclusion.
     '''
     # define colnames
     pval_colname = 'p-value'
@@ -79,10 +91,15 @@ def get_tomtom_results(tomtom_file):
     
     # define subkey strings
     # prevent confusion by saying gene, not Target ID for subkey
-    _, gene_str, pval_str, eval_str, qval_str = get_subkeys()
+    _, gene_str, pval_str, eval_str, qval_str, incl_or_excl_str = \
+        get_subkeys()
     
     # init outdic
     tomtom_dic = {}
+    gene_dic = {}
+    
+    # Determine if it is inclusion or exclusion from region
+    incl_or_excl = get_incl_or_excl(region)
     
     with open(tomtom_file, 'rb') as myfile:
         myreader = csv.reader(myfile, delimiter='\t')
@@ -92,27 +109,56 @@ def get_tomtom_results(tomtom_file):
             return {}
         for row in myreader:
             motif = row[header.index(motif_colname)]
-            gene = row[header.index(gene_colname)]
+            # convert ELAVL3,M232_0.6,I -> ELAVL3
+            gene = row[header.index(gene_colname)].split(',')[0]
             p_val = row[header.index(pval_colname)]
             e_val = row[header.index(eval_colname)]
             q_val = row[header.index(qval_colname)]
             # Create key, write to dic
             motif_key = create_motif_key(motif)
-            # If motif_key not in tomtom, init subkey with empty lists
-            if motif_key not in tomtom_dic:
-                tomtom_dic[motif_key] = {}
-                for subkey in [pval_str, eval_str, 
-                               qval_str, gene_str]:
-                    tomtom_dic[motif_key][subkey] = []
-            # Append subvals to list in subkey
+            motif_gene_key = ':'.join([motif_key, gene])
+            if motif_gene_key not in gene_dic:
+                gene_dic[motif_gene_key] = {}
+                for subkey in [pval_str, eval_str,
+                               qval_str, gene_str,
+                               incl_or_excl_str]:
+                    gene_dic[motif_gene_key][subkey] = []
+            # Append subvals to list in subkey in gene dic
             for subkey, subval in \
-                zip([pval_str, eval_str, qval_str, gene_str], 
-                    [p_val, e_val, q_val, gene]):
+                zip([pval_str, eval_str, qval_str, gene_str, incl_or_excl_str], 
+                    [p_val, e_val, q_val, gene, incl_or_excl]):
                 # try to save as float, otherwise just append without change.
                 try:
-                    tomtom_dic[motif_key][subkey].append(float(subval))
+                    gene_dic[motif_gene_key][subkey].append(float(subval))
                 except ValueError:
-                    tomtom_dic[motif_key][subkey].append(subval)
+                    gene_dic[motif_gene_key][subkey].append(subval)
+    # Add gene_dic values to tomtom_dic, but take average
+    # significance values in string
+    for motif_gene_key in gene_dic:
+        motif = motif_gene_key.split(':')[0]
+        gene = motif_gene_key.split(':')[1]
+        # If motif_key not in tomtom, init subkey with empty lists
+        if motif not in tomtom_dic:
+            tomtom_dic[motif] = {}
+            for subkey in [pval_str, eval_str, 
+                           qval_str, gene_str, 
+                           incl_or_excl_str]:
+                tomtom_dic[motif][subkey] = []
+        for subkey in [pval_str, eval_str, qval_str]:
+            val_list = gene_dic[motif_gene_key][subkey]
+            avg_val = sum(val_list) / float(len(val_list))
+            tomtom_dic[motif][subkey].append(avg_val)
+        # Add incl or exclusion and gene name to tomtom_dic
+        # Append gene name to tomtom dic
+        gene_list = list(set(gene_dic[motif_gene_key][gene_str]))
+        incl_excl_list = list(set(gene_dic[motif_gene_key][incl_or_excl_str]))
+        for subkey, mylist in zip([gene_str, incl_or_excl_str], 
+                                  [gene_list, incl_excl_list]):
+            # check length of set is 1, append
+            if len(mylist) == 1:
+                tomtom_dic[motif][subkey].append(mylist[0])
+            else:
+                print 'expected list length to be 1: %s' %mylist
     return tomtom_dic
 
 def get_subkeys():
@@ -124,7 +170,9 @@ def get_subkeys():
     pval_str = 'pval'
     eval_str = 'eval'
     qval_str = 'qval'
-    return n_sites_str, gene_str, pval_str, eval_str, qval_str
+    incl_or_excl_str = 'incl_or_excl'
+    return n_sites_str, gene_str, pval_str, \
+            eval_str, qval_str, incl_or_excl_str
     
 def main():
     usage = 'usage: %prog meme_results_file output_file\n'\
@@ -167,11 +215,12 @@ def main():
     null_mode = str_to_boolean(null_mode)
     
     # Define column names
-    n_sites_str, gene_str, pval_str, eval_str, qval_str = get_subkeys()
+    n_sites_str, gene_str, pval_str, eval_str, qval_str, incl_or_excl_str = \
+        get_subkeys()
     motif_str = 'motif_id'
     region_str = 'region'
     subkeys = [gene_str, region_str, motif_str, n_sites_str, pval_str, 
-               eval_str, qval_str]
+               eval_str, qval_str, incl_or_excl_str]
     
     # create list of tomtom paths linking to tomtom files
     # for each intronic and exonic region.
@@ -182,7 +231,6 @@ def main():
         if mydir.startswith('intron_') or mydir.startswith('exon_'):
             tomtom_path = os.path.join(meme_html_dir, mydir, tomtom_filename)
             meme_path = os.path.join(meme_html_dir, mydir, meme_filename)
-            # only append if it is a true path to a file
             if os.path.isfile(tomtom_path) and os.path.isfile(meme_path):
                 # Save as tuple, meme first, tomtom second.
                 paths_tup_list.append((meme_path, tomtom_path))
@@ -198,7 +246,7 @@ def main():
         n_sites_dic = get_n_sites_from_meme(meme_file)
         outdic[region].update(n_sites_dic)
         # get tomtom results
-        tomtom_dic = get_tomtom_results(tomtom_file)
+        tomtom_dic = get_tomtom_results(tomtom_file, region)
         # update dic to include tomtom info
         # use try in case tomtom doesn't have info on that motif.
         for motif in outdic[region]:
@@ -206,6 +254,7 @@ def main():
                 outdic[region][motif].update(tomtom_dic[motif])
             except KeyError:
                 pass
+    
     # Add motif information to outdic by concatenating region with motif
     for region in outdic:
         for motif in outdic[region]:
@@ -227,14 +276,17 @@ def main():
                 # one row per gene hit (for ggplot2)
                 subdic = outdic[region][motif]    # reduces typing later
                 # itereate lists in parallel
-                for gene, pval, e_val, qval in zip(subdic[gene_str], 
-                                                  subdic[pval_str], 
-                                                  subdic[eval_str], 
-                                                  subdic[qval_str]):
+                for gene, pval, e_val, qval, incl_excl in zip(subdic[gene_str], 
+                                                              subdic[pval_str], 
+                                                              subdic[eval_str], 
+                                                              subdic[qval_str],
+                                                              subdic[incl_or_excl_str]):
                     # order must match subkeys() here...
+                    # set region to remove inclusion/exclusion
+                    region_no_inclexcl = '_'.join(region.split('_')[:-1])
                     writerow = []
-                    for val in [gene, region, subdic[motif_str], subdic[n_sites_str], 
-                                pval, e_val, qval]:
+                    for val in [gene, region_no_inclexcl, subdic[motif_str], subdic[n_sites_str], 
+                                pval, e_val, qval, incl_excl]:
                         writerow.append(val)
                     jwriter.writerow(writerow)
                     writecount += 1
