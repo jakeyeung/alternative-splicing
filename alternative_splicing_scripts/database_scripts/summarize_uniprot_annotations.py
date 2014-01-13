@@ -14,6 +14,7 @@ miso summary file.
 
 import sys
 import csv
+from utilities import plot_utils
 from optparse import OptionParser
 
 def get_incl_excl_miso_events(miso_fpath, event_colname,
@@ -115,7 +116,6 @@ def get_features_dic(swissprot_annot_fpath, inclexcl_dic,
             except KeyError:
                 print 'Could not find %s in incl_excl_dic' %event
                 sys.exit()
-            print incl_or_excl
             # put feature into features dic
             if incl_or_excl == incl_str:
                 subdic = count_n_feature(features_dic[incl_str], feature)
@@ -128,14 +128,54 @@ def get_features_dic(swissprot_annot_fpath, inclexcl_dic,
                                                       incl_str, excl_str)
     return features_dic
 
+def prepare_dic_for_barplot(incl_excl_dic):
+    '''
+    From dictionary made from
+    summarize_uniprot_annotations.py,
+    prepare for 0plot barchart to compare inclusion
+    vs exclusion.
+    
+    input dic is of form:
+    {inclusion: {feature1: n1},
+    exclusion: {feature2: n2}}.
+    
+    We want vectors of just features (for x-ticks)
+    and values in each featuer (y-values)
+    '''
+    # Get full list of features, make it non-redundant
+    features_list = []
+    incl_str, excl_str = get_features_dic_keys()
+    incl_excl_list = [incl_str, excl_str]
+    
+    for incl_or_excl in incl_excl_dic:
+        features_list += incl_excl_dic[incl_or_excl].keys()
+    # Remove redundancies.
+    features_list = list(set(features_list))
+    
+    # Build bar heights
+    n_features1 = []
+    n_features2 = []
+    for incl_excl, features_vector in zip(incl_excl_list, 
+                                          [n_features1, 
+                                           n_features2]):
+        for feature in features_list:
+            try:
+                features_vector.append(incl_excl_dic[incl_excl][feature])
+            except KeyError:
+                # key may not be in dic, then just make it 0
+                features_vector.append(0)
+    return features_list, n_features1, n_features2
+
 def main():
     usage = 'usage: %prog [opt] swissprot_annotated_results '\
         'miso_summary output_file'\
         '\nThree arguments must be specified in command line:\n'\
-        '1) swissprot_annotated_results '\
+        '1) swissprot_annotated_results (inclusion exons) '\
         '(output from annotate_genes_with_swissprot.py)\n'\
-        '2) miso_summary_file (bayes or T-Test).\n'\
-        '3) Output file'
+        '2) swissprot_annotaetd_results (exclusion exons) '\
+        '(output from annotate_genes_with_swissprot.py)\n'\
+        '3) miso_summary_file (bayes or T-Test).\n'\
+        '4) Output file'
     parser = OptionParser(usage=usage)
     parser.add_option('--miso_event_colname', dest='miso_event_colname',
                       default='event_name',
@@ -162,31 +202,57 @@ def main():
                       default='feature',
                       help='Swissprot annotated summary feature colname.\n'\
                       'Default: "feature"')
+    parser.add_option('--ylabel', dest='ylabel',
+                      default='Counts',
+                      help='ylabel of plot, defaults to "Counts"')
+    parser.add_option('--title', dest='title',
+                      default='Summary of UnitProt Features',
+                      help='Title of plot. \n'\
+                        'Default "Summary of UnitProt Features')
     (options, args) = parser.parse_args()
-    if len(args) != 3:
+    if len(args) != 4:
         print 'Incorrect number of args specified.\n%s' %usage
         sys.exit()
     # Define positional args
-    swissprot_annot_fpath = args[0]
-    miso_summary_fpath = args[1]
-    output_fpath = args[2]
+    swissprot_annot_fpath_incl = args[0]
+    swissprot_annot_fpath_excl = args[1]
+    miso_summary_fpath = args[2]
+    output_fpath = args[3]
     # Parse options
     miso_event_colname = options.miso_event_colname
     samp1_colname = options.samp1_psi_colname
     samp2_colname = options.samp2_psi_colname
     summary_event_colname = options.summary_event_colname
     feature_colname = options.feature_colname
+    ylabel = options.ylabel
+    title = options.title
     
     # Index miso summary, {misoevent: inclusion/exclusion}
-    # allows separation of swissprot_annot_fpath into incl or excl.
+    # allows separation of swissprot_annot_fpath_incl into incl or excl.
     inclexcl_dic = get_incl_excl_miso_events(miso_summary_fpath, 
                                              miso_event_colname, 
                                              samp1_colname, samp2_colname)
     
+    incl_str, excl_str = get_features_dic_keys()
     # domains_dic {inclusion: {domain: }, exclusion: {domain: }}
-    features_dic = get_features_dic(swissprot_annot_fpath, inclexcl_dic, 
-                                    summary_event_colname, feature_colname)
-    print features_dic
+    features_dic = {incl_str : {}, 
+                    excl_str : {}}
+    for incl_excl, swissprot_path in zip([incl_str, excl_str], 
+                                         [swissprot_annot_fpath_incl, 
+                                          swissprot_annot_fpath_excl]):
+        features_subdic = get_features_dic(swissprot_path, 
+                                           inclexcl_dic, 
+                                           summary_event_colname, 
+                                           feature_colname)
+        features_dic[incl_excl].update(features_subdic[incl_excl])
+        
+    # Prepare features dic for bar plots
+    features_list, incl_count, excl_count = \
+        prepare_dic_for_barplot(features_dic)
+    
+    # Plot bar plots
+    plot_utils.plot_bar_plot(incl_count, excl_count, 
+                             features_list, ylabel, title)
     
 if __name__ == '__main__':
     main()
