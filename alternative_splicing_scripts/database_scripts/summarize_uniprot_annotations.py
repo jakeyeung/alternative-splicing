@@ -174,7 +174,7 @@ def prepare_dic_for_barplot(incl_excl_dic, ignore_list=[]):
                     # key may not be in dic, then just make it 0
                     features_vector.append(0)
             else:
-                print 'Ignoring feature: %s' %feature
+                print 'Ignoring feature in %s: %s' %(incl_excl, feature)
     return out_features_list, n_features1, n_features2
 
 def get_exon_count(protein_summary_file):
