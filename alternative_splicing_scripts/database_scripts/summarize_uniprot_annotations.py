@@ -128,7 +128,7 @@ def get_features_dic(swissprot_annot_fpath, inclexcl_dic,
                                                       incl_str, excl_str)
     return features_dic
 
-def prepare_dic_for_barplot(incl_excl_dic):
+def prepare_dic_for_barplot(incl_excl_dic, ignore_list=[]):
     '''
     From dictionary made from
     summarize_uniprot_annotations.py,
@@ -141,6 +141,8 @@ def prepare_dic_for_barplot(incl_excl_dic):
     
     We want vectors of just features (for x-ticks)
     and values in each featuer (y-values)
+    
+    ignore_list: list of features to ignore.
     '''
     # Get full list of features, make it non-redundant
     features_list = []
@@ -152,6 +154,10 @@ def prepare_dic_for_barplot(incl_excl_dic):
     # Remove redundancies.
     features_list = list(set(features_list))
     
+    # Output features list may be smaller than features_list
+    # due to ignore_list, so init the output features list
+    out_features_list = []
+    
     # Build bar heights
     n_features1 = []
     n_features2 = []
@@ -159,12 +165,32 @@ def prepare_dic_for_barplot(incl_excl_dic):
                                           [n_features1, 
                                            n_features2]):
         for feature in features_list:
-            try:
-                features_vector.append(incl_excl_dic[incl_excl][feature])
-            except KeyError:
-                # key may not be in dic, then just make it 0
-                features_vector.append(0)
-    return features_list, n_features1, n_features2
+            # ignore features in ignore_list
+            if feature not in ignore_list:
+                out_features_list.append(feature)
+                try:
+                    features_vector.append(incl_excl_dic[incl_excl][feature])
+                except KeyError:
+                    # key may not be in dic, then just make it 0
+                    features_vector.append(0)
+            else:
+                print 'Ignoring feature: %s' %feature
+    return out_features_list, n_features1, n_features2
+
+def get_exon_count(protein_summary_file):
+    '''
+    Read protein summary file
+    (e.g. exon_2_exclusion.protein.summary).
+    This is an output from create_dna_protein_summary_file.py
+    '''
+    with open(protein_summary_file, 'rb') as readfile:
+        jreader = csv.reader(readfile, delimiter='\t')
+        # skip header
+        jreader.next()
+        # count rows
+        for rowcount, _ in enumerate(jreader):
+            pass
+    return rowcount
 
 def main():
     usage = 'usage: %prog [opt] swissprot_annotated_results '\
@@ -175,7 +201,11 @@ def main():
         '2) swissprot_annotaetd_results (exclusion exons) '\
         '(output from annotate_genes_with_swissprot.py)\n'\
         '3) miso_summary_file (bayes or T-Test).\n'\
-        '4) Output file'
+        '4) inclusion protein summary (create_dna_protein_summary_file.py '\
+            'output).\n'\
+        '5) exclusion protein summary.(create_dna_protein_summary_file.py '\
+            'output).\n'\
+        '6) Output file\n'
     parser = OptionParser(usage=usage)
     parser.add_option('--miso_event_colname', dest='miso_event_colname',
                       default='event_name',
@@ -209,15 +239,28 @@ def main():
                       default='Summary of UnitProt Features',
                       help='Title of plot. \n'\
                         'Default "Summary of UnitProt Features')
+    parser.add_option('--normalize', dest='normalize',
+                      default=True,
+                      help='Normalize values by number of exons? True/False. '\
+                        'Default True.')
+    parser.add_option('--label1', dest='label1',
+                      default='Inclusion',
+                      help='Legend label 1: default "Inclusion"')
+    parser.add_option('--label2', dest='label2',
+                      default='Exclusion',
+                      help='Legend label 2: default "Exclusion"')
     (options, args) = parser.parse_args()
-    if len(args) != 4:
+    if len(args) != 6:
+        print args
         print 'Incorrect number of args specified.\n%s' %usage
         sys.exit()
     # Define positional args
     swissprot_annot_fpath_incl = args[0]
     swissprot_annot_fpath_excl = args[1]
     miso_summary_fpath = args[2]
-    output_fpath = args[3]
+    incl_proteinsummary = args[3]    # for normalization
+    excl_proteinsummary = args[4]    # for normalization
+    output_fpath = args[5]
     # Parse options
     miso_event_colname = options.miso_event_colname
     samp1_colname = options.samp1_psi_colname
@@ -226,12 +269,31 @@ def main():
     feature_colname = options.feature_colname
     ylabel = options.ylabel
     title = options.title
+    label1 = options.label1
+    label2 = options.label2
+    # parse normalize, convert string to boolean
+    normalize = options.normalize
+    if normalize in ['True', 'TRUE', 'true', 'T', True]:
+        normalize = True
+    elif normalize in ['False', 'FALSE', 'false', 'F', False]:
+        normalize = False
+    else:
+        print '%s must be True or Valse.' %normalize
     
     # Index miso summary, {misoevent: inclusion/exclusion}
     # allows separation of swissprot_annot_fpath_incl into incl or excl.
     inclexcl_dic = get_incl_excl_miso_events(miso_summary_fpath, 
                                              miso_event_colname, 
                                              samp1_colname, samp2_colname)
+    
+    # Determine number of exons by counting rows in protein summary
+    # this is important if you want to normalize results.
+    n_incl = get_exon_count(incl_proteinsummary)
+    n_excl = get_exon_count(excl_proteinsummary)
+    
+    # Add n_incl and n_excl to label1 and label2
+    label1 = ''.join([label1, ' (total DS events: %s)' %n_incl])
+    label2 = ''.join([label2, ' (total DS events: %s)' %n_excl])
     
     incl_str, excl_str = get_features_dic_keys()
     # domains_dic {inclusion: {domain: }, exclusion: {domain: }}
@@ -247,12 +309,19 @@ def main():
         features_dic[incl_excl].update(features_subdic[incl_excl])
         
     # Prepare features dic for bar plots
+    ignore_list = ['VAR_SEQ', 'CHAIN']
     features_list, incl_count, excl_count = \
-        prepare_dic_for_barplot(features_dic)
+        prepare_dic_for_barplot(features_dic, ignore_list)
+    
+    if normalize:
+        # normalize by incl excl counts
+        incl_count = [100 * float(i) / n_incl for i in incl_count]
+        excl_count = [100 * float(i) / n_excl for i in excl_count]
     
     # Plot bar plots
     plot_utils.plot_bar_plot(incl_count, excl_count, 
-                             features_list, ylabel, title)
+                             features_list, ylabel, title, 
+                             label1, label2, width=0.4)
     
 if __name__ == '__main__':
     main()
