@@ -7,7 +7,8 @@ Created on 2014-01-13
 import matplotlib.pyplot as plt
 import numpy as np
 
-def plot_bar_plot(vector1, vector2, xticks_vector, ylabel, title, width=0.35):
+def plot_bar_plot(vector1, vector2, xticks_vector, ylabel, title,
+                  label1, label2, width=0.35, text_pos=0.2):
     '''
     Plots barplot, bars stick together by xticks.
     
@@ -17,6 +18,9 @@ def plot_bar_plot(vector1, vector2, xticks_vector, ylabel, title, width=0.35):
     xticks_vector: xticks label, should match vector1 and vector2.
     ylabel: string to label y axis
     title: string to label title
+    
+    width: width of bars
+    text_pos: how high from top of rectangle shoudl text be
     '''
     # make sure lenghts of vec1 vec2 xticks are the same
     for _, _, _ in zip(vector1, vector2, xticks_vector):
@@ -31,14 +35,17 @@ def plot_bar_plot(vector1, vector2, xticks_vector, ylabel, title, width=0.35):
     # add some
     ax.set_ylabel(ylabel)
     ax.set_title(title)
-    ax.set_xticks(ind+width)
+    ax.set_xticks(ind+width/2)
     ax.set_xticklabels(xticks_vector)
+    
+    # add legend
+    ax.legend((rects1[0], rects2[0]), (label1, label2))
     
     def autolabel(rects):
         # attach some text labels
         for rect in rects:
             height = rect.get_height()
-            ax.text(rect.get_x()+rect.get_width()/2., 1.05*height, '%d'%int(height),
+            ax.text(rect.get_x()+rect.get_width()/2, text_pos + height, '%.0f'%float(height),
                     ha='center', va='bottom')
     
     autolabel(rects1)
