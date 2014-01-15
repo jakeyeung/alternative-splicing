@@ -56,7 +56,16 @@ def index_gene_exprs(gene_exprs_fname, gene_list, group_1, group_2,
         myreader = csv.reader(readfile, delimiter='\t')
         header = myreader.next()    # has a header.
         for row in myreader:
-            row_gene = row[header.index(gene_colname)]
+            # Check gene colname is in header, if not, throw error
+            try:
+                row_gene = row[header.index(gene_colname)]
+            except ValueError:
+                print 'Error: %s not found in column names. '\
+                    'Check column name of '\
+                    'expression file, \n'\
+                    'make sure the option flag --gene_colname '\
+                    'matches column name.' %gene_colname
+                sys.exit()
             '''
             # Put gene expression into respective group 1 and group 2.
             # Be warned, if you specified gene list, then row_gene
