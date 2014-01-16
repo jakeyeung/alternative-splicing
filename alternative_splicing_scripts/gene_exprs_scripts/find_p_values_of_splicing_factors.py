@@ -135,6 +135,7 @@ def write_outdic_to_file(mydic, outfile, shape='long'):
     # Define keys in dic
     vpc_str = 'vpc'
     beltran_str = 'beltran'
+    foldchange_key = 'foldchange'
     
     if shape == 'long':
         with open(outfile, 'wb') as writefile:
@@ -152,9 +153,14 @@ def write_outdic_to_file(mydic, outfile, shape='long'):
             # write dic info
             rowcount = 0
             for vpc_gene, beltran_gene in zip(mydic[vpc_str], mydic[beltran_str]):
+                avg_fc = mydic[foldchange_key][fc_str]
+                # We want avg_fc, absolute value
+                abs_avg_fc = abs(avg_fc)
+                '''
                 vpc_fc = mydic[vpc_str][vpc_gene][fc_str]
                 beltran_fc = mydic[beltran_str][beltran_gene][fc_str]
                 avg_fc = sum([vpc_fc, beltran_fc]) / 2 
+                '''
                 # We want -log 10 pvalue
                 vpc_pval = mydic[vpc_str][vpc_gene][pval_str]
                 beltran_pval = mydic[beltran_str][beltran_gene][pval_str]
@@ -162,11 +168,9 @@ def write_outdic_to_file(mydic, outfile, shape='long'):
                 beltran_pval_neglog = neg_log_scale(beltran_pval)
                 # We want direction, +1 means g2 > g1, -1 means g1 > g2
                 if avg_fc >= 0:
-                    direction = 1
+                    direction = 'Overexpressed'
                 elif avg_fc < 0:
-                    direction = -1
-                # We want avg_fc, absolute value
-                abs_avg_fc = abs(avg_fc)
+                    direction = 'Underexpressed'
                 # Write row, must match myheader
                 if vpc_gene == beltran_gene:
                     mywriter.writerow([vpc_gene, vpc_pval_neglog,
@@ -174,19 +178,52 @@ def write_outdic_to_file(mydic, outfile, shape='long'):
                                        direction])
                     rowcount += 1
                 else:
-                    print 'Error: %s not matching %s' %(vpc_gene, beltran_gene)
-                    sys.exit()
+                    print 'Warning: %s not matching %s' %(vpc_gene, beltran_gene)
+                    pass
     print '%s rows written to: %s' %(rowcount, outfile)
     return None
     
-
+def get_fc_from_file(fold_change_filepath,
+                    group1_fc_colname,
+                    group2_fc_colname,
+                    gene_fc_colname):
+    '''
+    fold_change_filepath: filepath containing expressions used for fold change
+    group1_fc_colname: column name containing expressions for fold change calc1
+    group2_fc_colname coulmn name containing expressions for fold change calc2
+    gene_fc_colname: colum name containing gene name.
+    
+    Fold change is in log2 scale.
+    
+    Output dic of form:
+    {gene: log2fc: 5}
+    '''
+    # def constants and dic
+    _, gene_str, fold_change_str, _, _, _, _ = get_dic_keynames()
+    outdic = {}
+    # open file, iterate rows
+    with open(fold_change_filepath, 'rb') as readfile:
+        myreader = csv.reader(readfile, delimiter='\t')
+        myheader = myreader.next()
+        for row in myreader:
+            gene = row[myheader.index(gene_fc_colname)]
+            exprs1 = row[myheader.index(group1_fc_colname)]
+            exprs2 = row[myheader.index(group2_fc_colname)]
+            # calculate fold change
+            fc = calculate_fold_change(exprs1, exprs2, log2=False)
+            if gene not in outdic:
+                outdic[gene] = {}
+                outdic[gene][fold_change_str] = fc
+    return outdic 
+            
 def main():
     usage = 'usage: %prog vpc_gene_exprs_file '\
         'beltran_t_test_file output_file\n'\
         'Requires four input arguments:\n'\
         '1) Text file of VPC cohort gene exprs\n'\
         '2) Text file of Beltran cohort gene exprs\n'\
-        '3) Output file.\n'
+        '3) Text file containing exprs of 2 samples/groups for fold change\n'\
+        '4) Output file.\n'
     parser = OptionParser(usage=usage)
     parser.add_option('--pval_colname', dest='pval_colname',
                       default='pval',
@@ -204,20 +241,24 @@ def main():
                         'Default "group2".')
     (options, args) = parser.parse_args()
     
-    if len(args) < 3:
-        print 'Three arguments need to be specified in command line.\n'
+    if len(args) < 4:
+        print 'Four arguments need to be specified in command line.\n'
         print usage
         sys.exit()
     vpc_filepath = args[0]
     beltran_filepath = args[1]
-    output_filepath = args[2]
+    fold_change_filepath = args[2]
+    output_filepath = args[3]
     
     group1_colname = options.group1_colname
     group2_colname = options.group2_colname
     pval_colname = options.pval_colname
     gene_colname = options.gene_colname
+    group1_fc_colname = 'LTL331'
+    group2_fc_colname = 'LTL331_R'
+    gene_fc_colname = 'gene_name'
     
-    # store pvals and fold change (fc) to a dic.
+    # store pvals to a dic.
     pval_fc_dic = {}
     for cohort, filepath in zip(['vpc', 'beltran'], 
                                 [vpc_filepath, beltran_filepath]):
@@ -228,6 +269,14 @@ def main():
                                                 pval_colname)
         pval_fc_dic[cohort] = pval_fc_subdic
     
+    # Add fold change to dic
+    pval_fc_subdic = get_fc_from_file(fold_change_filepath,
+                                      group1_fc_colname,
+                                      group2_fc_colname,
+                                      gene_fc_colname)
+    pval_fc_dic['foldchange'] = pval_fc_subdic
+    
+
     # Write dic to file
     write_outdic_to_file(pval_fc_dic, output_filepath, shape='long')
 
