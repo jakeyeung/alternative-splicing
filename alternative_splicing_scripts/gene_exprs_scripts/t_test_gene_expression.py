@@ -46,10 +46,8 @@ def index_gene_exprs(gene_exprs_fname, gene_list, group_1, group_2,
     # gene_colname = 'gene'
     passcount = 0
     
-    # Initialize keynames as gene names.
+    # Initialize empty dic
     gene_exprs_dic = {}
-    for g in gene_list:
-        gene_exprs_dic[g] = {'group1':[], 'group2':[]}
     
     # Initialize read object for gene exprs..
     with open(gene_exprs_fname, 'rb') as readfile:
@@ -75,7 +73,13 @@ def index_gene_exprs(gene_exprs_fname, gene_list, group_1, group_2,
             Convert exprs to log2 if convert_to_log2 is True.
             Add 1 to exprs to prevent infinities.
             '''
-            if row_gene in gene_exprs_dic:
+            
+            # if row_gene in gene_exprs_dic:
+            if row_gene in gene_list:
+                # Init empty list in dic
+                if row_gene not in gene_exprs_dic:
+                    gene_exprs_dic[row_gene] = {'group1': [], 
+                                                'group2': []}
                 for samp in group_1:
                     exprs = float(row[header.index(samp)])
                     if convert_to_log2:
@@ -88,6 +92,7 @@ def index_gene_exprs(gene_exprs_fname, gene_list, group_1, group_2,
                     gene_exprs_dic[row_gene]['group2'].append(exprs)
             else:
                 passcount += 1
+            
     print '%s genes not considered in this t-test.' %passcount
     return gene_exprs_dic
 
