@@ -21,6 +21,7 @@ import sys
 import csv
 from optparse import OptionParser
 import matplotlib.pyplot as plt
+from utilities import miso_events
 
 def get_regions(meme_header):
     '''
@@ -68,19 +69,29 @@ def main():
         'Requires two input arguments:\n'\
         '1) textfile output from '\
             'summarize_meme_results_with_gerp_scores\n'\
-        '2) Output filepath.\n'
+        '2) inclusion fasta file\n'\
+        '3) exclusion fasta file\n'
     parser = OptionParser(usage=usage)    
     (_, args) = parser.parse_args()
     
-    if len(args) < 2:
-        print 'Two arguments need to be specified in command line.\n'
+    if len(args) < 3:
+        print 'Three arguments need to be specified in command line.\n'
         print usage
         sys.exit()
     meme_summarypath = args[0]
+    incl_fasta = args[1]
+    excl_fasta = args[2]
     
     # define column name suffix (string after colon in colname)
     gerp_str = 'avg_rs_score'
     motif_numb_str = 'motif_number'
+    # miso event has no col name suffix, this is entire colname
+    miso_colname = 'miso_event'
+    
+    # get dictionary containing inclusion and exclusion for miso event
+    incl_excl_dic = miso_events.get_inclusion_exclusion(incl_file=incl_fasta, 
+                                                        excl_file=excl_fasta)
+    print incl_excl_dic
     
     region_gerp_scores = {}    # gerp scores, indexed by region.
     with open(meme_summarypath, 'rb') as readfile:
@@ -100,17 +111,20 @@ def main():
                 motif_numb_colname = ':'.join([region, motif_numb_str])
                 gerp_score = row[header.index(gerp_colname)]
                 motif_numb = row[header.index(motif_numb_colname)]
+                miso_event = row[header.index(miso_colname)]
+                incl_or_excl = incl_excl_dic[miso_event]
+                motif_id = ' '.join(['Motif', motif_numb, incl_or_excl])
                 if gerp_score is not '':
-                    if motif_numb not in subdic:
-                        subdic[motif_numb] = []
-                    subdic[motif_numb].append(float(gerp_score))                    
+                    if motif_id not in subdic:
+                        subdic[motif_id] = []
+                    subdic[motif_id].append(float(gerp_score))                    
 
     # Plot histogram of average scores.
     for region in region_gerp_scores:
-        for motif_numb in region_gerp_scores[region]:
-            avg_scores = region_gerp_scores[region][motif_numb]
+        for motif_id in region_gerp_scores[region]:
+            avg_scores = region_gerp_scores[region][motif_id]
             plot_histogram(avg_scores, n_bins=25, 
-                           mytitle=region, mylabel=''.join(['Motif', motif_numb]))
+                           mytitle=region, mylabel=motif_id)
         plt.legend()
         plt.show()
 
