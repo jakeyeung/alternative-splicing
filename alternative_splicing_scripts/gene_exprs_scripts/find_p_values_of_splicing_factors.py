@@ -288,6 +288,18 @@ def main():
                       default='group2',
                       help='Column name containing group2 exprs values. '\
                         'Default "group2".')
+    parser.add_option('--group1_fc_colname', dest='group1_fc_colname',
+                      default='LTL331',
+                      help='Column name of group1 exprs values in FC file. '\
+                        'Default: "LTL331"')
+    parser.add_option('--group2_fc_colname', dest='group2_fc_colname',
+                      default='LTL331_R',
+                      help='Column name of group1 exprs values in FC file. '\
+                        'Default: "LTL331_R"')
+    parser.add_option('--fc_gene_colname', dest='fc_gene_colname',
+                      default='gene_name',
+                      help='Column name of gene names in FC file. '\
+                        'Default: "gene_name"')
     (options, args) = parser.parse_args()
     
     if len(args) < 4:
@@ -303,8 +315,8 @@ def main():
     group2_colname = options.group2_colname
     pval_colname = options.pval_colname
     gene_colname = options.gene_colname
-    group1_fc_colname = 'LTL331'
-    group2_fc_colname = 'LTL331_R'
+    group1_fc_colname = options.group1_fc_colname
+    group2_fc_colname = options.group2_fc_colname
     gene_fc_colname = 'gene_name'
     
     # store pvals to a dic.
