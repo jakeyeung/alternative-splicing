@@ -317,7 +317,7 @@ def main():
     gene_colname = options.gene_colname
     group1_fc_colname = options.group1_fc_colname
     group2_fc_colname = options.group2_fc_colname
-    gene_fc_colname = 'gene_name'
+    gene_fc_colname = options.fc_gene_colname
     
     # store pvals to a dic.
     pval_fc_dic = {}
