@@ -44,7 +44,7 @@ def get_dic_keynames():
     return cohort_str, gene_str, fold_change_str, p_value_str, \
             group1_exprs_str, group2_exprs_str, fc_dir_str
 
-def calculate_fold_change(group1_exprs, group2_exprs, log2=True):
+def calculate_fold_change(group1_exprs, group2_exprs, log_scale=True):
     '''
     Calculate fold change between two groups.
     
@@ -56,14 +56,29 @@ def calculate_fold_change(group1_exprs, group2_exprs, log2=True):
     
     Therefore, output if log2 == True returns log2 fold change
     Output if log2 == False returns fold change on linear scale.
-    '''
-    group1_mean = float(sum(group1_exprs)) / len(group1_exprs)
-    group2_mean = float(sum(group2_exprs)) / len(group2_exprs)
     
-    if log2 == True:
-        foldchange = group2_mean - group1_mean
-    elif log2 == False:
-        foldchange = group2_mean / group1_mean
+    Input can be either list or a float.
+    If it is a list, then get mean each list before calculating
+    fold change.
+    If it is a float, go straight to calculating fold change.
+    if it is a string, try to convert to float.
+    '''
+    if type(group1_exprs) is list and type(group2_exprs) is list:
+        group1_exprs = float(sum(group1_exprs)) / len(group1_exprs)
+        group2_exprs = float(sum(group2_exprs)) / len(group2_exprs)
+    elif type(group1_exprs) is str and type(group2_exprs) is str:
+        group1_exprs = float(group1_exprs)
+        group2_exprs = float(group2_exprs)
+    elif type(group1_exprs) is float and type(group2_exprs) is float:
+        pass
+    else:
+        print 'Error: Expected group1 (type: %s) and group2 (type: %s) '\
+            'to be both list or str.' %(type(group1_exprs), type(group2_exprs))
+        sys.exit()
+    if log_scale == True:
+        foldchange = group2_exprs - group1_exprs
+    elif log_scale == False:
+        foldchange = group2_exprs / group1_exprs
     return foldchange
 
 def get_pvals_fc_from_file(t_test_textfile, group1_colname, 
@@ -96,7 +111,7 @@ def get_pvals_fc_from_file(t_test_textfile, group1_colname,
             g2_csv = row[header.index(group2_colname)]
             g2 = convert_csv_to_list(g2_csv, convert_to_float=True)
             # Calculate fold change from g1 and g2 exprs
-            fold_change = calculate_fold_change(g1, g2, log2=True)
+            fold_change = calculate_fold_change(g1, g2, log_scale=True)
             # Store info to dic
             if gene_name not in outdic:
                 outdic[gene_name] = {}
@@ -152,18 +167,40 @@ def write_outdic_to_file(mydic, outfile, shape='long'):
             mywriter.writerow(myheader)
             # write dic info
             rowcount = 0
-            for vpc_gene, beltran_gene in zip(mydic[vpc_str], mydic[beltran_str]):
-                avg_fc = mydic[foldchange_key][fc_str]
+            # Get non-redundant list of genes by adding up genes from
+            # the two t-test cohort.
+            # Fold change cohort not included because there are >20000 genes
+            all_genes = list(set(mydic[vpc_str].keys() + \
+                mydic[beltran_str].keys()))
+            # for vpc_gene, beltran_gene in zip(mydic[vpc_str], mydic[beltran_str]):
+            for gene_count, gene in enumerate(all_genes):
+                # check three cohorts to see if gene is in each of the cohorts.
+                # if not, skip to next gene.
+                try:
+                    avg_fc = mydic[foldchange_key][gene][fc_str]
+                except KeyError:
+                    print 'Warning: fold change not found for %s' %gene
+                    print 'Skipping to next gene...'
+                    continue
+                try:
+                    vpc_pval = mydic[vpc_str][gene][pval_str]
+                except KeyError:
+                    print 'Warning: gene %s not found in cohort %s' \
+                        %(gene, vpc_str)
+                    print 'Skipping to next gene...'
+                    continue
+                try:
+                    beltran_pval = mydic[beltran_str][gene][pval_str]
+                except KeyError:
+                    print 'Warning: gene %s not found in cohort %s' \
+                        %(gene, beltran_str)
+                    print 'Skipping to next gene...'
+                    continue
                 # We want avg_fc, absolute value
                 abs_avg_fc = abs(avg_fc)
-                '''
-                vpc_fc = mydic[vpc_str][vpc_gene][fc_str]
-                beltran_fc = mydic[beltran_str][beltran_gene][fc_str]
-                avg_fc = sum([vpc_fc, beltran_fc]) / 2 
-                '''
                 # We want -log 10 pvalue
-                vpc_pval = mydic[vpc_str][vpc_gene][pval_str]
-                beltran_pval = mydic[beltran_str][beltran_gene][pval_str]
+                # vpc_pval = mydic[vpc_str][vpc_gene][pval_str]
+                # beltran_pval = mydic[beltran_str][beltran_gene][pval_str]
                 vpc_pval_neglog = neg_log_scale(vpc_pval)
                 beltran_pval_neglog = neg_log_scale(beltran_pval)
                 # We want direction, +1 means g2 > g1, -1 means g1 > g2
@@ -171,32 +208,31 @@ def write_outdic_to_file(mydic, outfile, shape='long'):
                     direction = 'Overexpressed'
                 elif avg_fc < 0:
                     direction = 'Underexpressed'
-                # Write row, must match myheader
-                if vpc_gene == beltran_gene:
-                    mywriter.writerow([vpc_gene, vpc_pval_neglog,
-                                       beltran_pval_neglog, abs_avg_fc, 
-                                       direction])
-                    rowcount += 1
-                else:
-                    print 'Warning: %s not matching %s' %(vpc_gene, beltran_gene)
-                    pass
+                mywriter.writerow([gene, vpc_pval_neglog,
+                                   beltran_pval_neglog, abs_avg_fc, 
+                                   direction])
+                rowcount += 1
+    print '%s total genes iterated. %s had data in all 3 cohorts.' %(gene_count, rowcount)
     print '%s rows written to: %s' %(rowcount, outfile)
     return None
     
 def get_fc_from_file(fold_change_filepath,
                     group1_fc_colname,
                     group2_fc_colname,
-                    gene_fc_colname):
+                    gene_fc_colname, convert_to_logscale=True):
     '''
     fold_change_filepath: filepath containing expressions used for fold change
     group1_fc_colname: column name containing expressions for fold change calc1
     group2_fc_colname coulmn name containing expressions for fold change calc2
     gene_fc_colname: colum name containing gene name.
     
-    Fold change is in log2 scale.
-    
     Output dic of form:
-    {gene: log2fc: 5}
+    {gene: logfc: 5}
+    
+    Convert to logscale is boolean input, True or False.
+    If True, converts to log2
+    If False, does not convert to logscale
+    
     '''
     # def constants and dic
     _, gene_str, fold_change_str, _, _, _, _ = get_dic_keynames()
@@ -207,13 +243,26 @@ def get_fc_from_file(fold_change_filepath,
         myheader = myreader.next()
         for row in myreader:
             gene = row[myheader.index(gene_fc_colname)]
-            exprs1 = row[myheader.index(group1_fc_colname)]
-            exprs2 = row[myheader.index(group2_fc_colname)]
+            exprs1 = float(row[myheader.index(group1_fc_colname)])
+            exprs2 = float(row[myheader.index(group2_fc_colname)])
+            # Convert exprs1 and exprs2 to logscale if prompted...
+            if convert_to_logscale:
+                # converts to log2. Don't see any reason to
+                # convert to any other scale at the moment.
+                exprs1 = log(exprs1 + 1, 2)    # + 1 prevents domain errors
+                exprs2 = log(exprs2 + 1, 2)    # + 1 prevents domain errors
+            elif not convert_to_logscale:
+                pass
+            else:
+                print 'convert_to_logscale (=%s) expected to be True or False.'\
+                    %convert_to_logscale
+                
             # calculate fold change
-            fc = calculate_fold_change(exprs1, exprs2, log2=False)
+            fc = calculate_fold_change(exprs1, exprs2, log_scale=True)
             if gene not in outdic:
                 outdic[gene] = {}
                 outdic[gene][fold_change_str] = fc
+            
     return outdic 
             
 def main():
