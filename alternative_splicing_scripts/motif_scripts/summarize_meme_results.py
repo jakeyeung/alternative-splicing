@@ -403,6 +403,10 @@ def update_dic_with_motifs(outdic, meme_html_path, region_of_interest,
     null_mode: option flag to not retrieve motif start and ends, but rather
     only the fasta seq start and ends. This is useful if you want to 
     do some null distribution of gerp scores.
+    
+    Null mode: two things change: relative start/end and motif start/end.
+    Relative start/end is entire intronic region (e.g. 0 to 100)
+    Motif start/end is sequence start end.
     '''
     # Get subkeys list
     subkeys_list = get_dic_subkeys()
@@ -441,8 +445,15 @@ def update_dic_with_motifs(outdic, meme_html_path, region_of_interest,
                     miso_event = get_motif_name_from_motif_line(motif_line)
                     strand = get_strand_from_miso_event(miso_event)
                     # motif start/end, relative to beginning of fasta sequence
-                    motif_rel_start, motif_rel_end = \
-                        get_motif_start_end(motif_line)
+                    if not null_mode:
+                        motif_rel_start, motif_rel_end = \
+                            get_motif_start_end(motif_line)
+                    else:
+                        # In null mode: grab whole intron from 0 to 
+                        # length of intron (found in seq_lengths_dic)
+                        motif_rel_start = 0
+                        motif_rel_end = seq_lengths_dic[miso_event]
+                        
                     chromo, seq_start, seq_end = \
                         get_seq_start_end_from_miso_event(miso_event, 
                                                           region_of_interest,
@@ -464,6 +475,7 @@ def update_dic_with_motifs(outdic, meme_html_path, region_of_interest,
                     else:
                         motif_start = seq_start
                         motif_end = seq_end
+                    
                     # Concatenate to get genomic coordinate with chromo
                     genomic_coord = ':'.join([chromo, str(motif_start), 
                                               str(motif_end)])
@@ -669,7 +681,10 @@ def main():
     # parse null mode options
     null_mode = options.null_mode
     null_mode = str_to_boolean(null_mode)
-        
+    
+    # Tell user if they are in null mode
+    if null_mode:
+        print 'Processing in NULL mode (takes entire fasta sequence)'
     
     # create list of meme html paths linking to meme.html files
     # for each intronic and exonic region.
