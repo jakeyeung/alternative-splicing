@@ -19,8 +19,11 @@ distribution of conservation for these motifs.
 
 import sys
 import csv
+import os
 from optparse import OptionParser
 import matplotlib.pyplot as plt
+from scipy.stats import gaussian_kde
+import numpy as np
 from utilities import miso_events
 
 def get_regions(meme_header):
@@ -64,35 +67,79 @@ def plot_histogram(values_list, n_bins, mytitle, mylabel):
              label=mylabel)
     plt.title(mytitle)
 
+def plot_density(values_list, mytitle, mylabel):
+    '''
+    Given list of values, plot histogram.
+    '''
+    density = gaussian_kde(values_list)
+    xs = np.linspace(-7, 7, 200)
+    plt.plot(xs, density(xs), label=mylabel)
+    '''
+    plt.hist(values_list, n_bins, histtype='step', 
+             stacked=False, fill=True, alpha=0.5,
+             label=mylabel)
+    '''
+    plt.title(mytitle)
+    
+def create_tomtom_key(motif_id, region):
+    '''
+    Given region and motif id, recreate a key
+    that will allow access to tomtom
+    
+    motif_id looks like: 
+    Motif 2 inclusion
+    
+    region looks like:
+    intron_2_3p
+    
+    We want to return a tomtom key...
+    tomtom keys look lke:
+    Motif 2 intron 2 5p inclusion
+    '''
+    # split into lists
+    region = region.split('_')
+    motif_id = motif_id.split(' ')
+    
+    # insert region into second 3rd position in list (index 2)
+    # we iterate the region so that we don't get a list within a list.
+    for piece in region:
+        motif_id.insert(-1, piece)
+    
+    # Join with spaces
+    return ' '.join(motif_id)
+
 def main():
     usage = 'usage: %prog meme_gerp_genename_filepath output_filepath\n'\
         'Requires two input arguments:\n'\
         '1) textfile output from '\
             'summarize_meme_results_with_gerp_scores\n'\
         '2) inclusion fasta file\n'\
-        '3) exclusion fasta file\n'
+        '3) exclusion fasta file\n'\
+        '4) meme dir containing meme results\n'
     parser = OptionParser(usage=usage)    
     (_, args) = parser.parse_args()
     
-    if len(args) < 3:
-        print 'Three arguments need to be specified in command line.\n'
+    if len(args) < 4:
+        print 'Four arguments need to be specified in command line.\n'
         print usage
         sys.exit()
     meme_summarypath = args[0]
     incl_fasta = args[1]
     excl_fasta = args[2]
+    meme_dir = args[3]
     
     # define column name suffix (string after colon in colname)
     gerp_str = 'avg_rs_score'
     motif_numb_str = 'motif_number'
     # miso event has no col name suffix, this is entire colname
     miso_colname = 'miso_event'
+    # define rel path to tomtom files from meme dir
+    rel_path = os.path.join('rbp_matches', 'candidate_rbps.txt')
     
     # get dictionary containing inclusion and exclusion for miso event
     incl_excl_dic = miso_events.get_inclusion_exclusion(incl_file=incl_fasta, 
                                                         excl_file=excl_fasta)
-    print incl_excl_dic
-    
+    tomtom_dic = miso_events.get_tomtom_hits(meme_dir, rel_path)
     region_gerp_scores = {}    # gerp scores, indexed by region.
     with open(meme_summarypath, 'rb') as readfile:
         myreader = csv.reader(readfile, delimiter='\t')
@@ -117,16 +164,28 @@ def main():
                 if gerp_score is not '':
                     if motif_id not in subdic:
                         subdic[motif_id] = []
-                    subdic[motif_id].append(float(gerp_score))                    
-
+                    subdic[motif_id].append(float(gerp_score))          
+                    
+    avg_scores_in_tomtom = []
+    avg_scores_not_in_tomtom = []
     # Plot histogram of average scores.
     for region in region_gerp_scores:
         for motif_id in region_gerp_scores[region]:
-            avg_scores = region_gerp_scores[region][motif_id]
-            plot_histogram(avg_scores, n_bins=25, 
-                           mytitle=region, mylabel=motif_id)
-        plt.legend()
-        plt.show()
+            tomtom_key = create_tomtom_key(motif_id, region)
+            if tomtom_key in tomtom_dic:
+                avg_scores_in_tomtom += region_gerp_scores[region][motif_id]
+            else:
+                avg_scores_not_in_tomtom += region_gerp_scores[region][motif_id]
+    
+    mytitle = 'GERP score comparison'
+    for avg_scores, mylabel in zip([avg_scores_in_tomtom, 
+                                    avg_scores_not_in_tomtom], 
+                                   ['Motif with matching RBPs', 
+                                    'Motif without matching RBPs']):         
+        plot_density(avg_scores, mytitle=mytitle, mylabel=mylabel)
+        # plot_histogram(avg_scores, n_bins=25, mytitle=region, mylabel=mylabel)
+    plt.legend()
+    plt.show()
 
 if __name__ == '__main__':
     main()
