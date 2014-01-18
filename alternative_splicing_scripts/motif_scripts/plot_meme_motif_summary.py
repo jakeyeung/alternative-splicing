@@ -22,9 +22,7 @@ import csv
 import os
 from optparse import OptionParser
 import matplotlib.pyplot as plt
-from scipy.stats import gaussian_kde
-import numpy as np
-from utilities import miso_events
+from utilities import miso_events, plot_functions
 
 def get_regions(meme_header):
     '''
@@ -57,29 +55,6 @@ def get_regions(meme_header):
 
 def get_avg_rs_scores_as_dic():
     pass
-
-def plot_histogram(values_list, n_bins, mytitle, mylabel):
-    '''
-    Given list of values, plot histogram.
-    '''
-    plt.hist(values_list, n_bins, histtype='step', 
-             stacked=False, fill=True, alpha=0.5,
-             label=mylabel)
-    plt.title(mytitle)
-
-def plot_density(values_list, mytitle, mylabel):
-    '''
-    Given list of values, plot histogram.
-    '''
-    density = gaussian_kde(values_list)
-    xs = np.linspace(-7, 7, 200)
-    plt.plot(xs, density(xs), label=mylabel)
-    '''
-    plt.hist(values_list, n_bins, histtype='step', 
-             stacked=False, fill=True, alpha=0.5,
-             label=mylabel)
-    '''
-    plt.title(mytitle)
     
 def create_tomtom_key(motif_id, region):
     '''
@@ -115,11 +90,11 @@ def main():
             'summarize_meme_results_with_gerp_scores\n'\
         '2) inclusion fasta file\n'\
         '3) exclusion fasta file\n'\
-        '4) meme dir containing meme results\n'
+        '4) meme dir containing meme results'
     parser = OptionParser(usage=usage)    
     (_, args) = parser.parse_args()
     
-    if len(args) < 4:
+    if len(args) < 5:
         print 'Four arguments need to be specified in command line.\n'
         print usage
         sys.exit()
@@ -135,6 +110,8 @@ def main():
     miso_colname = 'miso_event'
     # define rel path to tomtom files from meme dir
     rel_path = os.path.join('rbp_matches', 'candidate_rbps.txt')
+    # define plot title
+    mytitle = 'GERP Score Comparison: Hits vs Non-Hits'
     
     # get dictionary containing inclusion and exclusion for miso event
     incl_excl_dic = miso_events.get_inclusion_exclusion(incl_file=incl_fasta, 
@@ -177,13 +154,22 @@ def main():
             else:
                 avg_scores_not_in_tomtom += region_gerp_scores[region][motif_id]
     
-    mytitle = 'GERP score comparison'
+    conserved_counts_in_tomtom = 0
+    conserved_counts_not_in_tomtom = 0
+    for s in avg_scores_in_tomtom:
+        if s >= 2:
+            conserved_counts_in_tomtom += 1
+    for s in avg_scores_not_in_tomtom:
+        if s >= 2:
+            conserved_counts_not_in_tomtom += 1
+    
     for avg_scores, mylabel in zip([avg_scores_in_tomtom, 
                                     avg_scores_not_in_tomtom], 
                                    ['Motif with matching RBPs', 
                                     'Motif without matching RBPs']):         
-        plot_density(avg_scores, mytitle=mytitle, mylabel=mylabel)
-        # plot_histogram(avg_scores, n_bins=25, mytitle=region, mylabel=mylabel)
+        plot_functions.plot_density(avg_scores, 
+                                    mytitle=mytitle, 
+                                    mylabel=mylabel)
     plt.legend()
     plt.show()
 
