@@ -12,6 +12,7 @@ import pickle
 from scipy.stats import fisher_exact
 import matplotlib.pyplot as plt
 from motif_scripts.utilities import plot_functions, gerp_utilities
+from database_scripts.utilities.plot_utils import plot_bar_plot
 
 def get_dic_from_pklpath(pklpath):
     '''
@@ -81,6 +82,7 @@ def main():
     # plot distributions
     mylabels = ['Meme Motifs', 'Intronic Region']
     mytitle = 'MEME motifs conservation compared to intronic region'
+    
     for gerp_scores, mylabel in zip([non_null_gerp_scores, 
                                      null_gerp_scores], 
                                     mylabels):
@@ -88,7 +90,15 @@ def main():
     plt.legend()
     plt.show()
     
+    
+    '''
     # Plot bargraphs
+    frac_conserved_meme = float(n_conserved_in_meme) / n_total_in_meme
+    frac_conserved_null = float(n_conserved_in_null) / n_total_in_null
+    myvals = [frac_conserved_meme, frac_conserved_null]
+    plot_functions.plot_barplot(myvals, mytitle, mylabels, ylabel='Fraction of conserved elements', width=0.1)
+    plt.show()
+    '''
     
 if __name__ == '__main__':
     main()
