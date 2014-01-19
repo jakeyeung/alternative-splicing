@@ -27,19 +27,21 @@ def plot_density(values_list, mytitle, mylabel):
     plt.plot(xs, density(xs), label=mylabel)
     plt.title(mytitle)
     
-def plot_barplot(values_list, mytitle, mylabels, ylabel, width=0.35):
+def plot_barplot(values_list, mytitle, mylabels, ylabel, 
+                 mytext1, mytext2, ymin, ymax, width=0.35):
     '''
-    Plot barplot
+    Plot barplot. Works for two bars at the moment.
     '''
-    # ind = np.arange(len(values_list))    # x locations for groups
+    ind = np.arange(len(values_list)) + width
+    plt.bar(ind, values_list, width=width, facecolor='#777777', 
+            ecolor='black')
+    plt.xticks(ind + width/2, mylabels)
+    plt.xlim(0, ind[-1] + width*2)
+    plt.ylabel(ylabel)
+    plt.title(mytitle)
+    plt.ylim(ymin, ymax)
+    plt.text(ind[0] + width/2, values_list[0]*1.05, mytext1, 
+             ha='center', va='bottom')
+    plt.text(ind[1] + width/2, values_list[1]*1.05, mytext2,
+             ha='center', va='bottom')
     
-    _, ax = plt.subplots()
-    ind = [1, 10, 15, 20]
-    values_list.insert(0, sys.float_info.epsilon)
-    values_list.append(sys.float_info.epsilon)
-    print ind, values_list
-    plt.bar(ind, values_list)
-    ax.set_xticklabels(mylabels)
-    ax.set_ylabel(ylabel)
-    ax.set_title(mytitle)
-    # ax.legend(values_list, mylabels)
