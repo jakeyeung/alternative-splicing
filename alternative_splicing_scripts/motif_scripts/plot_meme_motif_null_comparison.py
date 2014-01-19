@@ -12,7 +12,6 @@ import pickle
 from scipy.stats import fisher_exact
 import matplotlib.pyplot as plt
 from motif_scripts.utilities import plot_functions, gerp_utilities
-from database_scripts.utilities.plot_utils import plot_bar_plot
 
 def get_dic_from_pklpath(pklpath):
     '''
@@ -39,6 +38,15 @@ def get_gerp_scores(summary_dic, gerpkey='avg_rs_score'):
             rs_scores += summary_dic[event][region][gerpkey]
     return rs_scores
 
+def plot_distributions(meme_gerp_scores, null_gerp_scores, mylabels, mytitle):
+    
+    for gerp_scores, mylabel in zip([meme_gerp_scores, 
+                                     null_gerp_scores], 
+                                    mylabels):
+        plot_functions.plot_density(gerp_scores, mytitle, mylabel)
+    plt.legend()
+    plt.show()
+    
 def main():
     usage = 'usage: %prog meme_gerp_genename_filepath output_filepath\n'\
         'Requires two input arguments:\n'\
@@ -81,24 +89,20 @@ def main():
     
     # plot distributions
     mylabels = ['Meme Motifs', 'Intronic Region']
-    mytitle = 'MEME motifs conservation compared to intronic region'
-    
-    for gerp_scores, mylabel in zip([non_null_gerp_scores, 
-                                     null_gerp_scores], 
-                                    mylabels):
-        plot_functions.plot_density(gerp_scores, mytitle, mylabel)
-    plt.legend()
-    plt.show()
-    
-    
-    '''
+    mytitle = 'Fraction of conserved motifs compared to intronic region'
     # Plot bargraphs
     frac_conserved_meme = float(n_conserved_in_meme) / n_total_in_meme
     frac_conserved_null = float(n_conserved_in_null) / n_total_in_null
     myvals = [frac_conserved_meme, frac_conserved_null]
-    plot_functions.plot_barplot(myvals, mytitle, mylabels, ylabel='Fraction of conserved elements', width=0.1)
+    plot_functions.plot_barplot(myvals, mytitle, mylabels, 
+                                ylabel='Fraction of conserved elements', 
+                                mytext1="Fisher's Exact Test\nP-value: %.2e\n%i/%i" \
+                                    %(pvalue, n_conserved_in_meme, n_total_in_meme),
+                                mytext2='%i/%i' %(n_conserved_in_null, n_total_in_null),
+                                ymin=0,
+                                ymax=1,
+                                width=0.5)
     plt.show()
-    '''
     
 if __name__ == '__main__':
     main()
