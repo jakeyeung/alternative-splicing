@@ -103,4 +103,3 @@ def get_tomtom_hits(meme_dir, rel_path):
                 if gene not in outdic[key]:    # no redundant genes
                     outdic[key].append(gene)
     return outdic
-                
