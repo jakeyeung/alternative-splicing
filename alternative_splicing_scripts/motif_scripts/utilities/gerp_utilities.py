@@ -114,4 +114,20 @@ def get_avg_rs_score_multithread(gerp_scores_dir, genome_coords_dic):
     '''
     pass
     
+def conserved_regions(gerp_score_list, fraction=True, threshold=2):
+    '''
+    From gerp score list, return how many are above threshold
+    and thus considered conserved.
+    
+    Fraction: True or False, 
+    if True, returns n_conserved/total
+    If False, returns n_conserved
+    '''
+    conserved_count = 0
+    for count, score in enumerate(gerp_score_list):
+        if score >= threshold:
+            conserved_count += 1
+    if fraction:
+        conserved_count = float(conserved_count) / count
+    return conserved_count
 
