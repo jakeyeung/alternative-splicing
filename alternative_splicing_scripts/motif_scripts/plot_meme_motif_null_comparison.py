@@ -88,17 +88,20 @@ def main():
     print oddsratio, pvalue
     
     # plot distributions
-    mylabels = ['Meme Motifs', 'Intronic Region']
-    mytitle = 'Fraction of conserved motifs compared to intronic region'
+    mylabels = ['Meme motifs', 'Control region']
+    mytitle = 'Fraction of conserved motifs compared to control region'
     # Plot bargraphs
     frac_conserved_meme = float(n_conserved_in_meme) / n_total_in_meme
     frac_conserved_null = float(n_conserved_in_null) / n_total_in_null
     myvals = [frac_conserved_meme, frac_conserved_null]
     plot_functions.plot_barplot(myvals, mytitle, mylabels, 
                                 ylabel='Fraction of conserved elements', 
-                                mytext1="Fisher's Exact Test\nP-value: %.2e\n%i/%i" \
-                                    %(pvalue, n_conserved_in_meme, n_total_in_meme),
-                                mytext2='%i/%i' %(n_conserved_in_null, n_total_in_null),
+                                mytext1="%i/%i" \
+                                    %(n_conserved_in_meme, 
+                                      n_total_in_meme),
+                                mytext2='%i/%i' %(n_conserved_in_null, 
+                                                  n_total_in_null),
+                                mytext3="*Fisher's Exact Test\nP-value=%.2e" %pvalue,
                                 ymin=0,
                                 ymax=1,
                                 width=0.5)

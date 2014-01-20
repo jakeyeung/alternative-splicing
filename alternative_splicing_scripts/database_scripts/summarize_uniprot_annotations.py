@@ -192,6 +192,40 @@ def get_exon_count(protein_summary_file):
             pass
     return rowcount
 
+def get_features_annotations(features_list):
+    '''
+    Create features dic linking features list
+    to a more detailed description.
+    '''
+    # hard code features into a dic
+    features_dic = {'DOMAIN': 'Domain',
+                    'DNA_BIND': 'DNA binding',
+                    'BINDING': 'Binding site',
+                    'HELIX': 'Helix',
+                    'PROPEP': 'Propeptide',
+                    'INIT_MET': 'Init methionine',
+                    'NP_BIND': 'NP binding',
+                    'MOTIF': 'Motif',
+                    'TURN': 'Turn',
+                    'TRANSIT': 'Transit',
+                    'CARBOHYD': 'Glycosylation',
+                    'REPEAT': 'Repeat',
+                    'TRANSMEM': 'Transmembrane',
+                    'METAL': 'Metal binding',
+                    'SITE': 'Site',
+                    'ZN_FING': 'Zinc finger',
+                    'DISULFID': 'Disulfide bond',
+                    'CROSSLNK': 'Cross-link',
+                    'TOPO_DOM': 'Topological domain',
+                    'STRAND': 'Beta strand',
+                    'MOD_RES': 'Modified residue',
+                    'SIGNAL': 'Signal',
+                    'ACT_SITE': 'Active site',
+                    'COILED': 'Coiled',
+                    'REGION': 'Region',
+                    'DOMAIN': 'Domain'}
+    return features_dic
+
 def main():
     usage = 'usage: %prog [opt] swissprot_annotated_results '\
         'miso_summary output_file'\
@@ -307,21 +341,30 @@ def main():
                                            summary_event_colname, 
                                            feature_colname)
         features_dic[incl_excl].update(features_subdic[incl_excl])
-        
+    
     # Prepare features dic for bar plots
-    ignore_list = ['VAR_SEQ', 'CHAIN']
+    ignore_list = ['VAR_SEQ', 'CHAIN', 'CONFLICT', 'VARIANT', 'MUTAGEN', 'COMPBIAS']
     features_list, incl_count, excl_count = \
         prepare_dic_for_barplot(features_dic, ignore_list)
-    
+        
     if normalize:
         # normalize by incl excl counts
         incl_count = [100 * float(i) / n_incl for i in incl_count]
         excl_count = [100 * float(i) / n_excl for i in excl_count]
     
+    # Convert features key to full description
+    annot_dic = get_features_annotations(features_list)
+    descrip_list = []
+    for feature in features_list:
+        try:
+            descrip_list.append(annot_dic[feature])
+        except KeyError:
+            descrip_list.append(feature)
+    
     # Plot bar plots
     plot_utils.plot_bar_plot(incl_count, excl_count, 
-                             features_list, ylabel, title, 
-                             label1, label2, width=0.4)
+                             descrip_list, ylabel, title, 
+                             label1, label2, width=0.9)
     
 if __name__ == '__main__':
     main()

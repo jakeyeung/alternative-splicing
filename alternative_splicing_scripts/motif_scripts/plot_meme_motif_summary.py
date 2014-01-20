@@ -166,7 +166,7 @@ def main():
     for avg_scores, mylabel in zip([avg_scores_in_tomtom, 
                                     avg_scores_not_in_tomtom], 
                                    ['Motif with matching RBPs', 
-                                    'Motif without matching RBPs']):         
+                                    'Motif without matching RBPs']):     
         plot_functions.plot_density(avg_scores, 
                                     mytitle=mytitle, 
                                     mylabel=mylabel)
