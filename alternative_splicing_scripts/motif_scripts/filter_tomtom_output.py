@@ -60,7 +60,11 @@ def filter_tomtom_output(tomtom_path, output_path, qval_cutoff,
     with open(tomtom_path, 'rb') as readfile:
         jreader = csv.reader(readfile, delimiter='\t')
         # Read header, write to file
-        header = jreader.next()
+        try:
+            header = jreader.next()
+        except StopIteration:
+            print 'TomTom file empty, exiting...'
+            return None
         jwriter.writerow(header)
         # Iterate read rows, filter rows.
         for readcount, row in enumerate(jreader):
