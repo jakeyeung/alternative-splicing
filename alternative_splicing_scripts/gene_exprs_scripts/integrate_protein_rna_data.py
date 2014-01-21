@@ -279,7 +279,7 @@ def write_lfq_mrna_data_to_file(lfq_mrna_dic, out_fname, options):
     print '%s rows written to: %s' %(rowcount, out_fname)
     return None
     
-def scatter_plot_lfq_mrna(lfq_mrna_dic, spliced_genes):
+def scatter_plot_lfq_mrna(lfq_mrna_dic, spliced_genes, spliced_only=False):
     '''
     Plots log2 fold change with lfq difference. 
     '''
@@ -293,16 +293,28 @@ def scatter_plot_lfq_mrna(lfq_mrna_dic, spliced_genes):
     mrna_diff_vector = []
     color_vector = []    # blue if not spliced, red if spliced.
     for gene in lfq_mrna_dic:
+        if spliced_only:
+            if gene not in spliced_genes:
+                continue
         if lfq_diff_key in lfq_mrna_dic[gene] and \
             mrna_log2_fc_key in lfq_mrna_dic[gene]:
             try:
                 # Since these are lists of length 1, take the first element [0]
-                lfq_diff = float(lfq_mrna_dic[gene][lfq_diff_key][0])
+                if len(lfq_mrna_dic[gene][lfq_diff_key]) == 1:
+                    lfq_diff = float(lfq_mrna_dic[gene][lfq_diff_key][0])
+                else:
+                    print 'Expected %s to be of length 1.'\
+                        %lfq_mrna_dic[gene][lfq_diff_key]
             except ValueError:
                 continue
             try:
                 # Since these are lists of length 1, take the first element [0]
-                mrna_diff = float(lfq_mrna_dic[gene][mrna_log2_fc_key][0])
+                if len(lfq_mrna_dic[gene][mrna_log2_fc_key]) == 1:
+                        mrna_diff = \
+                            float(lfq_mrna_dic[gene][mrna_log2_fc_key][0])
+                else:
+                    print 'Expected %s to be of length 1.'\
+                        %lfq_mrna_dic[gene][mrna_log2_fc_key]
             except ValueError:
                 continue
             
@@ -415,6 +427,10 @@ def main():
     parser.add_option('--samp2_exprs_colname', dest='samp2_exprs_colname',
                       default='LTL331_R',
                       help='Column name of gene exprs for sample 2')
+    parser.add_option('--spliced_only', dest='spliced_only',
+                      default='False',
+                      help='True or False. True shows only spliced genes. '\
+                        'False shows all. Default is False.')
     (options, args) = parser.parse_args()
     
     if len(args) < 3:
@@ -423,8 +439,19 @@ def main():
     
     lfq_filename = args[0]
     gene_exprs_filename = args[1]
-    out_filename = args[2]
-    miso_filename = args[3]
+    miso_filename = args[2]
+    
+    # parse options
+    spliced_only = options.spliced_only
+    if spliced_only in ['True', 'true', 'T', 'TRUE']:
+        spliced_only = True
+    elif spliced_only in ['False', 'false', 'F', 'FALSE']:
+        spliced_only = False
+    else:
+        print 'Spliced only option must be True or False. %s found.' \
+            %spliced_only
+        sys.exit()
+    print 'splicing_only: %s' %spliced_only
     
     lfq_mrna_dic = {}
     
@@ -474,7 +501,7 @@ def main():
         slope, intercept, r_value, p_value, std_err = stats.linregress(mrna_diff_vector,lfq_diff_vector)
         print 'slope: %s\nintercept: %s\nr_value: %s\nstd_error: %s' %(slope, intercept, r_value, std_err)
     # Scatterplot data
-    scatter_plot_lfq_mrna(lfq_mrna_dic, spliced_genes)
+    scatter_plot_lfq_mrna(lfq_mrna_dic, spliced_genes, spliced_only=spliced_only)
     
     
 if __name__ == '__main__':
