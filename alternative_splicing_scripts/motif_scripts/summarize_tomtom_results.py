@@ -22,7 +22,12 @@ def get_sites_from_line(line):
     Return 20
     '''
     # Double split to get n_sites
-    n_sites = line.split("sites =")[1].split('   ')[0]
+    try:
+        n_sites = int(line.split("sites =")[1].split('   ')[0])
+    except ValueError:
+        # If n_sites < 10, you need to get first index, since 0th
+        # index would be ''
+        n_sites = int(line.split("sites =")[1].split('   ')[1])
     return int(n_sites)
 
 def create_motif_key(motif_number):
