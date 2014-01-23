@@ -502,7 +502,7 @@ def extract_coordinates_from_miso_bf(miso_file, bed_dir,
             
             # Get exon and intron coordinates
             exon_starts, exon_ends = \
-                create_exon_coords(event_name)        
+                create_exon_coords(event_name)
             intron_starts, intron_ends = \
                 create_intron_coords_from_exon_coords(exon_starts, exon_ends, strand)
 
