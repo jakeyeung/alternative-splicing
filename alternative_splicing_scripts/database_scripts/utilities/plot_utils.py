@@ -38,7 +38,7 @@ def plot_bar_plot(vector1, vector2, xticks_vector, ylabel, title,
     
     fig = plt.figure()
     # Fill whitespace in the margins by adjusting subplot
-    fig.subplots_adjust(bottom=0.17)
+    fig.subplots_adjust(bottom=0.25)
     fig.subplots_adjust(left=0.04)
     fig.subplots_adjust(right=0.99)
     fig.subplots_adjust(top=0.95)
@@ -57,9 +57,9 @@ def plot_bar_plot(vector1, vector2, xticks_vector, ylabel, title,
     # Adjust yaxis and title to 25 font
     for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
         item.set_fontsize(25)
-    # Adjust xtick labels to 15 font
+    # Adjust xtick labels to 25 font
     for i in ax.get_xticklabels():
-        i.set_fontsize(15)
+        i.set_fontsize(25)
     
     # add legend
     ax.legend((rects1[0], rects2[0]), (label1, label2), loc='upper left')
