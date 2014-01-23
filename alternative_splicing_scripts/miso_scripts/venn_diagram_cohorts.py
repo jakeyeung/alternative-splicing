@@ -42,6 +42,9 @@ def main():
     parser.add_option('-2', '--colname2', dest='events_colname2',
                       default='event',
                       help='Colname containing events in cohort2')
+    parser.add_option('-t', '--title', dest='title',
+                      default='Plot title',
+                      help='Plot title.')
     # Parse options
     (options, args) = parser.parse_args()
     
@@ -55,16 +58,21 @@ def main():
     # Define relevant colnames of cohorts from options
     colname1 = options.events_colname1
     colname2 = options.events_colname2
+    title = options.title
+    print title
     
     # get set of events
     cohort1_events = get_events(cohort1_fname, colname=colname1)
     cohort2_events = get_events(cohort2_fname, colname=colname2)
     
-    print cohort1_events & cohort2_events
+    print 'Overlapping genes: %s' %(cohort1_events & cohort2_events)
+    for gene in (cohort1_events | cohort2_events):
+        print gene
     
     plot_utils.plot_two_set_venn(cohort1_events, cohort2_events, 
+                                 mycolors=('c', 'y'),
                                  mylabels=['Xenografts: 331, 331R', 
-                                           'Patient-Tumour Samples'])
-
+                                           'Patient-tumour samples'],
+                                 title=title)
 if __name__ == '__main__':
     main()
