@@ -51,37 +51,41 @@ def get_start_end_strand(coord_id, include_chr_prefix=False):
     
     return chromo, start, end, strand
 
-def get_flanking_introns(exon_start, exon_end, strand, length):
+def get_flanking_introns(exon_start, exon_end, strand, length, location):
     '''
     Given exon start, end and strand, retrieve upstream and
     downstream flanking introns, set by user-defined length.
     
     Strand is important here.
     
-    Returns:
-    upstream_intron_start
-    upstream_intron_end
-    downstream_intron_start
-    downstream_intron_end
+    If location=='upstream', return:
+        upstream_intron_start
+        upstream_intron_end
+    if location=='downstream', return:
+        downstream_intron_start
+        downstream_intron_end
     '''
     if strand == '+':
-        # minus 1 to exclude first bp in exon start
-        upstream_intron_end = exon_start - 1    
-        upstream_intron_start = upstream_intron_end - length
+        if location=='upstream':
+            # minus 1 to exclude first bp in exon start
+            intron_end = exon_start - 1    
+            intron_start = intron_end - length
         # add 1 to exclude last bp in exon_end
-        downstream_intron_start = exon_end + 1
-        downstream_intron_end = downstream_intron_start + length
+        elif location=='downstream':
+            intron_start = exon_end + 1
+            intron_end = intron_start + length
     elif strand == '-':
-        # in negative strand, everything is reversed.
-        upstream_intron_start = exon_start + 1
-        upstream_intron_end = upstream_intron_start + length
-        downstream_intron_end = exon_end - 1
-        downstream_intron_start = downstream_intron_end - length
+        if location=='upstream':
+            # in negative strand, everything is reversed.
+            intron_start = exon_start + 1
+            intron_end = intron_start + length
+        elif location=='downstream':
+            intron_end = exon_end - 1
+            intron_start = intron_end - length
     else:
         print 'Strand must be + or -, %s found.' %strand
         sys.exit()
-    return upstream_intron_start, upstream_intron_end, \
-            downstream_intron_start, downstream_intron_end
+    return intron_start, intron_end
 
 def main():
     usage = 'usage: %prog input output_bed\n'\
@@ -102,6 +106,11 @@ def main():
                       default=False,
                       help='Include chr prefix in chromosome name or not. '\
                         'True or False. Default False.')
+    parser.add_option('--location', dest='location',
+                      default='upstream',
+                      help='Get upstream intron, downstream '\
+                        'intron or exon from file.\n Must be upstream, '\
+                            'downstream or exon. Default upstream')
     (options, args) = parser.parse_args()
     if len(args) < 2:
         print 'Incorrect number of parameters specified.'
@@ -110,7 +119,7 @@ def main():
     # parse args
     input_path = args[0]
     output_path = args[1]
-    # parse options
+    # BEGIN: parse options
     try:
         column_index = int(options.column_index)
     except ValueError:
@@ -131,8 +140,16 @@ def main():
     else:
         print '--include_chr_prefix must be True or False. %s found.' \
             %include_chr_prefix
+    location = options.location
+    if location not in ['upstream', 'downstream', 'exon']:
+        print '--location must be upstream, downstream or exon. %s found.' \
+            %location
+        sys.exit()
+    # END: parse options
     
-    print 'Creating bed files of intronic regions, length: %s' %length
+    print 'Output path: %s' %output_path
+    print 'Location: %s' %location
+    print 'Intron length (if applicable): %s' %length
     
     # init output
     output_file = open(output_path, 'wb')
@@ -151,26 +168,29 @@ def main():
             '''
             coord_id = row[column_index]
             # parse coord_id to get start, end
-            chromo, exon_start, exon_end, strand = get_start_end_strand(coord_id)
+            chromo, exon_start, exon_end, strand = \
+                get_start_end_strand(coord_id)
             
-            # get upstream and downstream introns from exon
-            up_intron_start, up_intron_end, \
-                down_intron_start, down_intron_end = \
-                    get_flanking_introns(exon_start, exon_end, strand, length)
+            if location == 'exon':
+                # start, ends are exon start ends
+                start = exon_start
+                end = exon_end
+            elif location == 'upstream' or location == 'downstream':
+                # get upstream and downstream introns from exon
+                start, end= get_flanking_introns(exon_start, 
+                                                 exon_end, 
+                                                 strand, 
+                                                 length, 
+                                                 location)
             
             # create new ID to indicate upstream and downstream intron
-            upstream_bed_id = ':'.join([coord_id, 'upstream_intron'])
-            downstream_bed_id = ':'.join([coord_id, 'downstream_intron'])
+            bed_id = ':'.join([coord_id, location])
             
             # write two rows per event, one upstream one downstream
             # write to file: chromosome, start, end, ID, score, strand
-            upstream_row = [chromo, up_intron_start, up_intron_end, 
-                            upstream_bed_id, bed_score, strand]
-            downstream_row = [chromo, down_intron_start, down_intron_end, 
-                            downstream_bed_id, bed_score, strand]
-            for row in [upstream_row, downstream_row]:
-                jwriter.writerow(row)
-                writecount += 1
+            row = [chromo, start, end, bed_id, bed_score, strand]
+            jwriter.writerow(row)
+            writecount += 1
     output_file.close()
     
     print '%s rows read, %s rows written to:\n%s' %(rowcount, writecount, output_path) 
