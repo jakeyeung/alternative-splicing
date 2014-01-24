@@ -341,9 +341,11 @@ def split_bed_by_inclusion_exclusion(bed_path, misobf_path,
                 '''
                 rw_obj.writer2.writerow(bed_row)
             else:
+                print 'WARNING'
                 print('Expected psi_diff to be greater/less than 0')
                 print('incl_o_excl_str: %s' %incl_or_excl_str)
-                sys.exit()
+                print 'Considering event as inclusion...'
+                rw_obj.writer1.writerow(bed_row)
 
 def main():
     
