@@ -17,6 +17,7 @@ OPTIONS:
    -e   E-value threshold for MEME motif discovery, default none.
    -q   Q-value threshold for TomTom motif comparison, default 1.
    -d   Database to match discoverd motifs, default is ray2013_rbp database.
+   -M   Maximum size, default 200000
 EOF
 }
 
@@ -35,9 +36,9 @@ do
 	# Only put -evt option if it is not empty.
 	if [ -z "$evt" ]
 	then 
-		meme $f -mod $mod -dna -nmotifs $nmotifs -minw $minw -maxw $maxw -o $output_dir/$basename &
+		meme $f -mod $mod -dna -nmotifs $nmotifs -minw $minw -maxw $maxw -maxsize $maxsize -o $output_dir/$basename &
 	else
-		meme $f -mod $mod -dna -nmotifs $nmotifs -minw $minw -maxw $maxw -evt $evt -o $output_dir/$basename &
+		meme $f -mod $mod -dna -nmotifs $nmotifs -minw $minw -maxw $maxw -maxsize $maxsize -evt $evt -o $output_dir/$basename &
 	fi
 done
 wait
@@ -64,8 +65,9 @@ minw=7
 maxw=8
 evt=
 thresh=1
+maxsize=200000
 db="/home/jyeung/meme/db/motif_databases/ray2013_rbp.meme"
-while getopts “hm:n:w:W:q:d:e:” OPTION
+while getopts “hm:n:w:W:q:d:e:M:” OPTION
 do
      case $OPTION in
          m)
@@ -89,6 +91,9 @@ do
 		 e)
 			 evt=$OPTARG
 			 ;;
+		 M)
+			 maxsize=$OPTARG
+			 ;;
          ?)
              usage
              exit
@@ -110,6 +115,7 @@ echo "Maximum width of motifs: $maxw"
 echo "E-value threshold for MEME: $evt"
 echo "Q value threshold for TomTom motif comparison: $thresh"
 echo "Database used for TomTom motif comparison: $db"
+echo "Maximum size: $maxsize"
 
 # Discover motifs with MEME
 # Run meme on all fasta files in directory.
