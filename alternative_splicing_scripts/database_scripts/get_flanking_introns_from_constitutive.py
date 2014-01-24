@@ -48,11 +48,11 @@ def get_start_end_strand(coord_id, include_chr_prefix=False):
         sys.exit()
     # Get start and end by checking strand
     if strand == '+':
-        start = coord_id_split[2]
-        end = coord_id_split[1]
-    else:
         start = coord_id_split[1]
         end = coord_id_split[2]
+    else:
+        start = coord_id_split[2]
+        end = coord_id_split[1]
         
     # convert start, end to integer
     start = int(start)
@@ -181,7 +181,8 @@ def main():
             coord_id = row[column_index]
             # parse coord_id to get start, end
             chromo, exon_start, exon_end, strand = \
-                get_start_end_strand(coord_id)
+                get_start_end_strand(coord_id, 
+                                     include_chr_prefix=include_chr_prefix)
                 
             # make sure chromosome is in chr_list
             if chromo not in chr_list:
@@ -189,8 +190,17 @@ def main():
             
             if location == 'exon':
                 # start, ends are exon start ends
-                start = exon_start
-                end = exon_end
+                # end > start always, so strand matters here
+                if strand == '+':
+                    start = exon_start
+                    end = exon_end
+                elif strand == '-':
+                    start = exon_end
+                    end = exon_start
+                else:
+                    print 'Strand must be + or -. %s found.' %strand
+                    sys.exit()
+                
             elif location == 'upstream' or location == 'downstream':
                 # get upstream and downstream introns from exon
                 start, end= get_flanking_introns(exon_start, 
@@ -198,6 +208,10 @@ def main():
                                                  strand, 
                                                  length, 
                                                  location)
+            # complain if start > end
+            if start > end:
+                print 'Error: start > end (%s > %s)' %(start, end)
+                sys.exit()
             
             # create new ID to indicate upstream and downstream intron
             bed_id = ':'.join([coord_id, location])
