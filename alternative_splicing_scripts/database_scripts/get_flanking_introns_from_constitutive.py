@@ -9,6 +9,15 @@ import sys
 import csv
 from optparse import OptionParser
 
+def get_chr_list(include_chr_prefix=False):
+    '''
+    Get list of chromosomes
+    '''
+    chr_list = [str(i) for i in range(1, 23)] + ['X', 'Y']
+    if include_chr_prefix:
+        chr_list = [''.join(['chr', i]) for i in chr_list]
+    return chr_list
+
 def get_start_end_strand(coord_id, include_chr_prefix=False):
     '''
     Coord id of form: chr7:95063412:95063861:-1
@@ -158,6 +167,9 @@ def main():
     # define bed score, a shading used for visualization
     bed_score = 999
     
+    # define chromosomes, I want 1-22, X, Y only.
+    chr_list = get_chr_list(include_chr_prefix=include_chr_prefix)
+    
     # Read file
     writecount = 0
     with open(input_path, 'rb') as readfile:
@@ -170,6 +182,10 @@ def main():
             # parse coord_id to get start, end
             chromo, exon_start, exon_end, strand = \
                 get_start_end_strand(coord_id)
+                
+            # make sure chromosome is in chr_list
+            if chromo not in chr_list:
+                continue
             
             if location == 'exon':
                 # start, ends are exon start ends
