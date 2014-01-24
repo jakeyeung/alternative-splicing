@@ -26,6 +26,9 @@ def get_start_end_strand(coord_id, include_chr_prefix=False):
     
     If remove_chr == True: returns 7
     if remove_chr == False: returns chr7
+    
+    Starts must de-incremented by 1 in order to match
+    UCSC.
     '''
     coord_id_split = coord_id.split(':')
     chromo = coord_id_split[0]
@@ -57,6 +60,9 @@ def get_start_end_strand(coord_id, include_chr_prefix=False):
     # convert start, end to integer
     start = int(start)
     end = int(end)
+    
+    # Deincrement start by 1
+    start -= 1
     
     return chromo, start, end, strand
 
