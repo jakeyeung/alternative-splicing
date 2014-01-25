@@ -18,6 +18,7 @@ OPTIONS:
    -q   Q-value threshold for TomTom motif comparison, default 1.
    -d   Database to match discoverd motifs, default is ray2013_rbp database.
    -M   Maximum size, default 200000
+   -p   psp file, from psp-gen output. Corrects against background.
 EOF
 }
 
@@ -31,14 +32,15 @@ echo $fasta_dir
 cd $fasta_dir
 for f in `ls *.fasta`
 do
+	echo "Fasta file: $f, PSP file: $psp_dir/$f"
 	# Get filename without .fasta extension
 	basename="${f%%.*}"
 	# Only put -evt option if it is not empty.
 	if [ -z "$evt" ]
 	then 
-		meme $f -mod $mod -dna -nmotifs $nmotifs -minw $minw -maxw $maxw -maxsize $maxsize -o $output_dir/$basename &
+		meme $f -mod $mod -dna -nmotifs $nmotifs -psp $psp_dir/$f -minw $minw -maxw $maxw -maxsize $maxsize -o $output_dir/$basename &
 	else
-		meme $f -mod $mod -dna -nmotifs $nmotifs -minw $minw -maxw $maxw -maxsize $maxsize -evt $evt -o $output_dir/$basename &
+		meme $f -mod $mod -dna -nmotifs $nmotifs -psp $psp_dir/$f -minw $minw -maxw $maxw -maxsize $maxsize -evt $evt -o $output_dir/$basename &
 	fi
 done
 wait
@@ -67,7 +69,7 @@ evt=
 thresh=1
 maxsize=200000
 db="/home/jyeung/meme/db/motif_databases/ray2013_rbp.meme"
-while getopts “hm:n:w:W:q:d:e:M:” OPTION
+while getopts “hm:n:w:W:q:d:e:M:p:” OPTION
 do
      case $OPTION in
          m)
@@ -93,6 +95,9 @@ do
 			 ;;
 		 M)
 			 maxsize=$OPTARG
+			 ;;
+		 p)
+			 psp_dir=$OPTARG
 			 ;;
          ?)
              usage
