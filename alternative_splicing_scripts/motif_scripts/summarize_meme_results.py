@@ -392,8 +392,63 @@ def get_csv_from_list(mylist):
     mylist = [str(i) for i in mylist]
     return ','.join(mylist)
 
+def get_tomtom_motifs(tomtom_dic, meme_html_path):
+    '''
+    Inputs:
+        tomtom_dic: contains motif matches given region
+        meme_html_path: can be parsed to get region
+        
+    Output:
+        list of motif numbers that correspond to a tomtom match.
+    '''
+    region = \
+        get_region_of_interest_from_filepath(meme_html_path, incl_excl=True)
+    motif_matches = tomtom_dic[region]['motif_number']
+    if len(motif_matches) > 1:
+        motif_matches = motif_matches.sort()
+    # order in ascending order, might be important.
+    return motif_matches
+
+def store_info_to_output_dic(outdic, miso_event, region_of_interest, 
+                             subkeys_list, motif_info_list):
+    '''
+    Do two checks: one if miso_event is initialized,
+    second if region_of_interest
+    Rationale:
+        if we loop across many meme outputs, we will
+        need dictionary to hold a summary of miso events
+        across all regions of interest.
+        
+    ALSO do one more check:
+    if in TomTom mode, make sure current motif number
+    is in list of motif numbers matching to TomTom.
+    If it does not, then do not write to dic.
+    '''
+    if miso_event not in outdic:
+        # intiialize if miso_event not yet a key
+        outdic[miso_event] = {}
+        outdic[miso_event][region_of_interest] = {}
+    elif region_of_interest not in outdic[miso_event]:
+        # initialize only region of interest if not yet subkey
+        outdic[miso_event][region_of_interest] = {}
+    else:
+        pass
+    # create key:empty lists
+    outdic[miso_event][region_of_interest] = \
+        init_dic(outdic[miso_event][region_of_interest], 
+                 subkeys_list)
+    '''
+    # Add motif information to output dic in lists
+    # in case multiple motifs matching to same event
+    '''
+    for subkey, subval in zip(subkeys_list, motif_info_list):
+        # append subval to subkey list
+        outdic[miso_event][region_of_interest][subkey].\
+            append(subval)
+
 def update_dic_with_motifs(outdic, meme_html_path, region_of_interest, 
-                           seq_lengths_dic, null_mode=False):
+                           seq_lengths_dic, null_mode=False, tomtom_mode=False,
+                           tomtom_dic=None):
     '''
     Loop through meme html file, for every motif in meme html file, retrieve
     all the miso events that match the motif as well as
@@ -407,6 +462,10 @@ def update_dic_with_motifs(outdic, meme_html_path, region_of_interest,
     Null mode: two things change: relative start/end and motif start/end.
     Relative start/end is entire intronic region (e.g. 0 to 100)
     Motif start/end is sequence start end.
+    
+    Tomtom mode: if tomtom mode is True, tomtom_dic cannot be None.
+    We will check motif to see if motif matches a tomtom motif, if it
+    does not, then we skip it.
     '''
     # Get subkeys list
     subkeys_list = get_dic_subkeys()
@@ -424,6 +483,13 @@ def update_dic_with_motifs(outdic, meme_html_path, region_of_interest,
     
     # define endline
     endline = '//'    # last line signaling end of motif information
+    
+    # if tomtom mode, get a list of motifs that correspond to tomtom motifs
+    if tomtom_mode:
+        if tomtom_dic is None:
+            print 'Error: In Tomtom mode: Tomtom dic cannot be None.'
+            sys.exit()
+        tomtom_motif_numbers = get_tomtom_motifs(tomtom_dic, meme_html_path)
     
     # Read meme html path, retrieve genomic coordinates of the motif region
     # Create search string to match 
@@ -498,35 +564,17 @@ def update_dic_with_motifs(outdic, meme_html_path, region_of_interest,
                                        genomic_coord, motif_seq, 
                                        motif_number]
                     # BEGIN: store information to output dic
-                    '''
-                    Do two checks: one if miso_event is initialized,
-                    second if region_of_interest
-                    Rationale:
-                        if we loop across many meme outputs, we will
-                        need dictionary to hold a summary of miso events
-                        across all regions of interest.
-                    '''
-                    if miso_event not in outdic:
-                        # intiialize if miso_event not yet a key
-                        outdic[miso_event] = {}
-                        outdic[miso_event][region_of_interest] = {}
-                    elif region_of_interest not in outdic[miso_event]:
-                        # initialize only region of interest if not yet subkey
-                        outdic[miso_event][region_of_interest] = {}
+                    if tomtom_mode:
+                        if motif_number in tomtom_motif_numbers:
+                            store_info_to_output_dic(outdic, miso_event, 
+                                                     region_of_interest, 
+                                                     subkeys_list, 
+                                                     motif_info_list)
                     else:
-                        pass
-                    # create key:empty lists
-                    outdic[miso_event][region_of_interest] = \
-                        init_dic(outdic[miso_event][region_of_interest], 
-                                 subkeys_list)
-                    '''
-                    # Add motif information to output dic in lists
-                    # in case multiple motifs matching to same event
-                    '''
-                    for subkey, subval in zip(subkeys_list, motif_info_list):
-                        # append subval to subkey list
-                        outdic[miso_event][region_of_interest][subkey].\
-                            append(subval)
+                        store_info_to_output_dic(outdic, miso_event, 
+                                                 region_of_interest, 
+                                                 subkeys_list, 
+                                                 motif_info_list)
                     # END: store information to output dic
                     motif_line = readfile.next()
                 # Out of while loop, means we should increment motif number 
@@ -633,7 +681,46 @@ def str_to_boolean(mystr):
     else:
         print 'Error: expected %s to be True or False.' %mystr
         return None
-
+    
+def get_motif_numb_from_id(motif_id):
+    '''
+    Input a string like: intron_2_3p_inclusion:motif_1
+    Return 1, as an integer.
+    '''
+    motif_str = motif_id.split(':')[1]
+    motif_numb = motif_str.split('_')[1]
+    return int(motif_numb)
+    
+def get_tomtom_dic(tomtom_path):
+    '''
+    Read tomtom summary, retrieve dictionary of form:
+    {intron_2_3p_inclusion: {region: intron_2_3p, 
+                            incl_excl = inclusion, 
+                            motif_number: [1]},...,}
+    '''
+    tomtom_dic = {}
+    with open(tomtom_path, 'rb') as readfile:
+        jreader = csv.reader(readfile, delimiter='\t')
+        header = jreader.next()
+        for row in jreader:
+            region = row[header.index('region')]    # does not hv incl/excl
+            incl_excl = row[header.index('incl_or_excl')]
+            # combine region with incl_excl to get region_incl
+            full_region = '_'.join([region, incl_excl])
+            # get motif from motif_id
+            motif_id = row[header.index('motif_id')]
+            motif_numb = get_motif_numb_from_id(motif_id)
+            # update tomtom if not yet updated
+            if full_region not in tomtom_dic:
+                tomtom_dic[full_region] = {}
+                tomtom_dic[full_region]['region'] = region
+                tomtom_dic[full_region]['incl_excl'] = incl_excl
+                tomtom_dic[full_region]['motif_number'] = []
+            # Append motif number to list if not in list
+            if motif_numb not in tomtom_dic[full_region]['motif_number']:
+                tomtom_dic[full_region]['motif_number'].append(motif_numb)
+    return tomtom_dic
+            
 def main():
     usage = 'usage: %prog meme_results_file output_file\n'\
         'Two args must be specified in commandline: \n'\
@@ -663,6 +750,11 @@ def main():
                         'coordinate rather than motif genomic coordinate.\n'\
                         'Useful for obtaining a null distribution of gerp '\
                         'scores.')
+    parser.add_option('-t', '--tomtom_summarypath', dest='tomtom_path',
+                      default=None,
+                      help='Reads from tomtom summary (summarize_tomtom_results.py).\n'\
+                        'Summarizes meme results only for hits in TomTom summary.\n'\
+                        'Input a filepath to tomtom summary to activate this option.')
     (options, args) = parser.parse_args()
     if len(args) < 2:
         print 'Incorrect number of parameters specified.'
@@ -681,10 +773,22 @@ def main():
     # parse null mode options
     null_mode = options.null_mode
     null_mode = str_to_boolean(null_mode)
+    # parse tomtom option
+    tomtom_path = options.tomtom_path
+    if tomtom_path is None:
+        tomtom_mode = False
+    else:
+        tomtom_mode = True
     
     # Tell user if they are in null mode
     if null_mode:
         print 'Processing in NULL mode (takes entire fasta sequence)'
+        
+    # Tell user if they are in tomtom mode, then get tomtom dic
+    if tomtom_mode:
+        print 'Only considering motifs that match tomtom summary.'
+        print 'Tomtom summary file: %s' %tomtom_path
+        tomtom_dic = get_tomtom_dic(tomtom_path)
     
     # create list of meme html paths linking to meme.html files
     # for each intronic and exonic region.
@@ -693,6 +797,11 @@ def main():
     # include only dirs starting wih intron_ and maybe exon_ 
     # depending on option flags
     for mydir in all_dirs:
+        # If in TomTom mode, chec, if dir is in tomtom dic, if not then
+        # ignore it. This limits paths to only ones matching to tomtom motifs
+        if tomtom_mode:
+            if mydir not in tomtom_dic:
+                continue
         if include_exons == False:
             if mydir.startswith('intron_'):
                 # append path to dir
@@ -730,7 +839,9 @@ def main():
         # Fill dic with motif info
         outdic = update_dic_with_motifs(outdic, meme_html_path, 
                                         region_of_interest, seq_lengths_dic,
-                                        null_mode=null_mode)
+                                        null_mode=null_mode,
+                                        tomtom_mode=tomtom_mode,
+                                        tomtom_dic=tomtom_dic)
     
     subkeys_list = get_dic_subkeys()
     write_outdic_to_file(outdic, output_path, subkeys_list)
