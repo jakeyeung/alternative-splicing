@@ -789,6 +789,8 @@ def main():
         print 'Only considering motifs that match tomtom summary.'
         print 'Tomtom summary file: %s' %tomtom_path
         tomtom_dic = get_tomtom_dic(tomtom_path)
+    else:
+        tomtom_dic = None
     
     # create list of meme html paths linking to meme.html files
     # for each intronic and exonic region.
