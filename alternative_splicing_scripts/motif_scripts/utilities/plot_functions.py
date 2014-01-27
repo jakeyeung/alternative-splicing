@@ -41,37 +41,38 @@ def plot_barplot(values_list, mytitle, mylabels, ylabel,
     ax.p1 = plt.bar(ind, values_list, width=width, facecolor='#777777', 
                     ecolor='black')
     # Fill whitespace in the margins by adjusting subplot
-    fig.subplots_adjust(bottom=0.04)
-    fig.subplots_adjust(left=0.05)
+    fig.subplots_adjust(bottom=0.08)
+    fig.subplots_adjust(left=0.08)
     fig.subplots_adjust(right=0.99)
-    fig.subplots_adjust(top=0.95)
+    fig.subplots_adjust(top=0.92)
     
     # Add grid
     ax.grid(True)
     
     # Set labels and title
-    plt.xticks(ind + width/2, mylabels, fontsize=25)
+    size=50
+    plt.xticks(ind + width/2, mylabels, fontsize=size)
     plt.xlim(0, ind[-1] + width*2)
-    plt.ylabel(ylabel, fontsize=25)
-    plt.title(mytitle, fontsize=25)
+    plt.ylabel(ylabel, fontsize=size)
+    plt.title(mytitle, fontsize=size)
     plt.ylim(ymin, ymax)
-    plt.yticks(fontsize=25)
+    plt.yticks(fontsize=size)
     plt.text(ind[0] + width/2, values_list[0]*1.05, mytext1, 
-             ha='center', va='bottom', fontsize=25)
+             ha='center', va='bottom', fontsize=size)
     plt.text(ind[1] + width/2, values_list[1]*1.05, mytext2,
-             ha='center', va='bottom', fontsize=25)
+             ha='center', va='bottom', fontsize=size)
 
     # Function for creating p-value comparison
-    def label_diff(i, j, text, X, Y, width, fsize=25):
+    def label_diff(i, j, text, X, Y, width, fsize=size):
         #x = (X[i]+X[j])/2
         y = 1.1*max(Y[i], Y[j])
         #dx = abs(X[i]-X[j])
         props = {'connectionstyle':'bar','arrowstyle':'-',\
-                     'shrinkA':20,'shrinkB':20,'lw':2}
+                     'shrinkA':20,'shrinkB':20,'lw':6}
         ax.annotate(text, xy=(X[i] + width, y + 0.27), zorder=10, fontsize=fsize)
         ax.annotate('', xy=(X[i] + width, y), xytext=(X[j] + width, y), arrowprops=props)
     
     # Call the function
-    label_diff(0, 1, mytext3, ind, values_list, width=width/2, fsize=25)
+    label_diff(0, 1, mytext3, ind, values_list, width=width/2, fsize=size)
     
     
