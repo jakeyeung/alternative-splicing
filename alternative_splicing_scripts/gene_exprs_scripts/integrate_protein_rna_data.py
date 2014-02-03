@@ -332,10 +332,20 @@ def scatter_plot_lfq_mrna(lfq_mrna_dic, spliced_genes, spliced_only=False):
     
     # Create bubble size
     
-    plot_utils.plot_bubble_plot(mrna_diff_vector, lfq_diff_vector, color_vector, 
-                     bubble_annotations, 'mRNA Log 2 Fold Change', 
-                     'LFQ Intensity Difference', 
-                     '331 vs 331R: RNA-Seq and LFQ Data')
+    if spliced_only:
+        plot_utils.plot_bubble_plot(mrna_diff_vector, lfq_diff_vector, color_vector, 
+                         bubble_annotations, xlabel='mRNA Log 2 Fold Change', 
+                         ylabel='Protein Log 2 Fold Change', 
+                         title='331 vs 331R: RNA-Seq and LFQ Data', 
+                         legend=['AS Genes'],
+                         saveplot=False, output_fullpath=None)
+    else:
+        plot_utils.plot_bubble_plot(mrna_diff_vector, lfq_diff_vector, color_vector, 
+                         bubble_annotations, xlabel='mRNA Log 2 Fold Change', 
+                         ylabel='Protein Log 2 Fold Change', 
+                         title='331 vs 331R: RNA-Seq and LFQ Data', 
+                         legend=['Genes', 'AS Genes'],
+                         saveplot=False, output_fullpath=None)
     
 def get_spliced_genes(miso_filename):
     '''
@@ -500,6 +510,7 @@ def main():
             %(splice_status, spearmanr, spearmanpval)
         slope, intercept, r_value, p_value, std_err = stats.linregress(mrna_diff_vector,lfq_diff_vector)
         print 'slope: %s\nintercept: %s\nr_value: %s\nstd_error: %s' %(slope, intercept, r_value, std_err)
+        
     # Scatterplot data
     scatter_plot_lfq_mrna(lfq_mrna_dic, spliced_genes, spliced_only=spliced_only)
     
