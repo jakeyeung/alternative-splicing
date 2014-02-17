@@ -168,7 +168,8 @@ def index_lfq_data(lfq_filename, mydic, options, filter_out_missing_data=False):
     print '%s non-NA genes (from LFQ data) stored in dic' %index_count
     return mydic
 
-def index_mrna_data(mrna_filename, mydic, options, filter_na=False):
+def index_mrna_data(mrna_filename, mydic, options, filter_na=False,
+                    convert_to_log2=True):
     '''
     Read mRNA exprs data, and add gene exprs levels to dic.
     {genename: {"gene_exprs": gene_exprs_foldchange}}
@@ -188,8 +189,14 @@ def index_mrna_data(mrna_filename, mydic, options, filter_na=False):
         myheader = myreader.next()
         for row in myreader:
             gene = row[myheader.index(gene_colname)]
-            samp1_exprs = float(row[myheader.index(samp1_exprs_colname)])
-            samp2_exprs = float(row[myheader.index(samp2_exprs_colname)])
+            # gene may be a semicolon separated value, 
+            # so split by ;, take first element
+            gene = gene.split(';')[0]
+            try:
+                samp1_exprs = float(row[myheader.index(samp1_exprs_colname)])
+                samp2_exprs = float(row[myheader.index(samp2_exprs_colname)])
+            except ValueError:
+                continue    # skip
             
             # If either gene exprs are zero, go to next.
             if samp1_exprs == 0 or samp2_exprs == 0:
@@ -198,8 +205,11 @@ def index_mrna_data(mrna_filename, mydic, options, filter_na=False):
                 elif filter_na==True:
                     continue
             else:
-                foldchange_log2 = \
-                    math.log(float(samp2_exprs) / float(samp1_exprs), 2)
+                if convert_to_log2:
+                    foldchange_log2 = \
+                        math.log(float(samp2_exprs) / float(samp1_exprs), 2)
+                else:    # else, assumes it is already in log2 scale.
+                    foldchange_log2 = float(samp2_exprs) - float(samp1_exprs)
             try:
                 mydic[gene].update({mrna_log2_fc_key: [foldchange_log2], 
                                     mrna_data_key: [samp1_exprs, samp2_exprs]})
@@ -279,7 +289,9 @@ def write_lfq_mrna_data_to_file(lfq_mrna_dic, out_fname, options):
     print '%s rows written to: %s' %(rowcount, out_fname)
     return None
     
-def scatter_plot_lfq_mrna(lfq_mrna_dic, spliced_genes, spliced_only=False):
+def scatter_plot_lfq_mrna(lfq_mrna_dic, spliced_genes, spliced_only=False,
+                          title='title', xlabel='x-axis', ylabel='y-axis',
+                          annotated_gene_list=None):
     '''
     Plots log2 fold change with lfq difference. 
     '''
@@ -334,19 +346,21 @@ def scatter_plot_lfq_mrna(lfq_mrna_dic, spliced_genes, spliced_only=False):
     
     if spliced_only:
         plot_utils.plot_bubble_plot(mrna_diff_vector, lfq_diff_vector, color_vector, 
-                         bubble_annotations, xlabel='mRNA Log 2 Fold Change', 
-                         ylabel='Protein Log 2 Fold Change', 
-                         title='331 vs 331R: RNA-Seq and LFQ Data', 
+                         bubble_annotations, xlabel=xlabel, 
+                         ylabel=ylabel, 
+                         title=title, 
                          legend=['AS Genes'],
-                         saveplot=False, output_fullpath=None)
+                         saveplot=False, output_fullpath=None,
+                         annotated_gene_list=annotated_gene_list)
     else:
         plot_utils.plot_bubble_plot(mrna_diff_vector, lfq_diff_vector, color_vector, 
-                         bubble_annotations, xlabel='mRNA Log 2 Fold Change', 
-                         ylabel='Protein Log 2 Fold Change', 
-                         title='331 vs 331R: RNA-Seq and LFQ Data', 
+                         bubble_annotations, xlabel=xlabel, 
+                         ylabel=ylabel, 
+                         title=title, 
                          legend=['Genes', 'AS Genes'],
-                         saveplot=False, output_fullpath=None)
-    
+                         saveplot=False, output_fullpath=None,
+                         annotated_gene_list=annotated_gene_list)
+ 
 def get_spliced_genes(miso_filename):
     '''
     Get list of spliced genes from miso
@@ -441,6 +455,23 @@ def main():
                       default='False',
                       help='True or False. True shows only spliced genes. '\
                         'False shows all. Default is False.')
+    parser.add_option('--convert_to_log2', dest='convert_to_log2',
+                      default='True',
+                      help='True or False, converts mRNA exprs data to to log2'\
+                        ' scale. Default True.')
+    parser.add_option('--title', dest='title',
+                      default='Plot title',
+                      help='Title of plot.')
+    parser.add_option('--xlabel', dest='xlabel',
+                      default='x axis',
+                      help='X axis label of plot')
+    parser.add_option('--ylabel', dest='ylabel',
+                      default='y axis',
+                      help='Y axis label of plot')
+    parser.add_option('--annotate_genes', dest='annotate_genes',
+                      default=None,
+                      help='CSV list of genes to be annotated.\n'\
+                        'Default is None, allowing mouse click annotation.')
     (options, args) = parser.parse_args()
     
     if len(args) < 3:
@@ -452,6 +483,7 @@ def main():
     miso_filename = args[2]
     
     # parse options
+    # splicing only option
     spliced_only = options.spliced_only
     if spliced_only in ['True', 'true', 'T', 'TRUE']:
         spliced_only = True
@@ -462,6 +494,26 @@ def main():
             %spliced_only
         sys.exit()
     print 'splicing_only: %s' %spliced_only
+    # log2 conversion option
+    convert_to_log2 = options.convert_to_log2
+    if convert_to_log2 in ['True', 'T']:
+        convert_to_log2 = True
+    elif convert_to_log2 in ['False', 'F']:
+        convert_to_log2 = False
+    else:
+        print '--convert_to_log2 must be True or False. %s found.'\
+            %convert_to_log2
+    print 'Convert to log2: %s' %convert_to_log2
+    # xlabel, ylabel, title options
+    xlabel = options.xlabel
+    ylabel = options.ylabel
+    title = options.title
+    # annotate genes options
+    if options.annotate_genes is not None:
+        annotated_gene_list = options.annotate_genes.split(',')
+    else:
+        annotated_gene_list = options.annotate_genes
+    
     
     lfq_mrna_dic = {}
     
@@ -472,7 +524,8 @@ def main():
     
     # Add gene exprs to dic
     lfq_mrna_dic = index_mrna_data(gene_exprs_filename, lfq_mrna_dic, options,
-                                   filter_na=True)
+                                   filter_na=True, 
+                                   convert_to_log2=convert_to_log2)
     print 'mrna data indexed from file: %s' %gene_exprs_filename
     
     # Write dic to file
@@ -511,8 +564,21 @@ def main():
         slope, intercept, r_value, p_value, std_err = stats.linregress(mrna_diff_vector,lfq_diff_vector)
         print 'slope: %s\nintercept: %s\nr_value: %s\nstd_error: %s' %(slope, intercept, r_value, std_err)
         
+        # calculate concordants
+        concord_count = 0
+        all_count = 0
+        for mrna, lfq in zip(mrna_diff_vector, lfq_diff_vector):
+            if mrna * lfq >= 0:    # means concordant
+                concord_count += 1
+            all_count += 1
+        frac_concord = float(concord_count) / all_count
+        print 'Gene set:%s\nConcordance:%s/%s, %s' %(splice_status, concord_count, all_count, frac_concord)
+                
+        
     # Scatterplot data
-    scatter_plot_lfq_mrna(lfq_mrna_dic, spliced_genes, spliced_only=spliced_only)
+    scatter_plot_lfq_mrna(lfq_mrna_dic, spliced_genes, spliced_only=spliced_only,
+                          title=title, xlabel=xlabel, ylabel=ylabel,
+                          annotated_gene_list=annotated_gene_list)
     
     
 if __name__ == '__main__':

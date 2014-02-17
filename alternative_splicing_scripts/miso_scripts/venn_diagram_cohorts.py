@@ -62,6 +62,25 @@ def parse_labels_csv(labels_option):
             sys.exit()
     return labels_dic
 
+def index_event_gsymbol(event_gsymbol_dic, 
+                        cohort_fname, 
+                        event_colname='event_name', 
+                        gene_colname='gsymbol'):
+    '''
+    Update a dic (allows many fnames to be used)
+    to get dic:
+    {event: gsymbol, ...}
+    '''
+    with open(cohort_fname) as readfile:
+        myreader = csv.reader(readfile, delimiter='\t')
+        header = myreader.next()
+        for row in myreader:
+            event = row[header.index(event_colname)]
+            gene = row[header.index(gene_colname)]
+            if event not in event_gsymbol_dic:
+                event_gsymbol_dic[event] = gene
+    return event_gsymbol_dic
+
 def main():
     usage = 'usage: %prog [opts] cohort1 cohort2 cohort3\n'\
         'Two args must be specified in commandline: \n'\
@@ -135,7 +154,16 @@ def main():
     if three_cohorts:
         cohort3_events = get_events(cohort3_fname, colname=colname3)
     
+    # store dic of events:gsymbol
+    event_gsymbol_dic = {}
+    event_gsymbol_dic = index_event_gsymbol(event_gsymbol_dic, 
+                                            cohort1_fname, event_colname=colname1, 
+                                            gene_colname='gsymbol')
+    
     if three_cohorts:
+        print 'Overlapping genes:'
+        for g in (cohort1_events & cohort2_events & cohort3_events):
+            print event_gsymbol_dic[g]
         plot_utils.plot_three_set_venn(cohort1_events, 
                                        cohort2_events, 
                                        cohort3_events,
@@ -147,6 +175,9 @@ def main():
                                        title=title)
     
     else:
+        print 'Overlapping genes:'
+        for g in (cohort1_events & cohort2_events):
+            print event_gsymbol_dic[g]
         plot_utils.plot_two_set_venn(cohort1_events, 
                                      cohort2_events, 
                                      mycolors=('c', 'y'),
