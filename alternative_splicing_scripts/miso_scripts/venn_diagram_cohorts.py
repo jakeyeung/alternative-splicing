@@ -159,6 +159,9 @@ def main():
     event_gsymbol_dic = index_event_gsymbol(event_gsymbol_dic, 
                                             cohort1_fname, event_colname=colname1, 
                                             gene_colname='gsymbol')
+    event_gsymbol_dic = index_event_gsymbol(event_gsymbol_dic,
+                                            cohort2_fname, event_colname=colname2,
+                                            gene_colname='gsymbol')
     
     if three_cohorts:
         print 'Overlapping genes:'
@@ -176,7 +179,7 @@ def main():
     
     else:
         print 'Overlapping genes:'
-        for g in (cohort1_events & cohort2_events):
+        for g in (cohort2_events):
             print event_gsymbol_dic[g]
         plot_utils.plot_two_set_venn(cohort1_events, 
                                      cohort2_events, 
