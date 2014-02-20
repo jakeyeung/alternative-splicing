@@ -294,7 +294,6 @@ def main():
     miso_summary_fpath = args[2]
     incl_proteinsummary = args[3]    # for normalization
     excl_proteinsummary = args[4]    # for normalization
-    output_fpath = args[5]
     # Parse options
     miso_event_colname = options.miso_event_colname
     samp1_colname = options.samp1_psi_colname
