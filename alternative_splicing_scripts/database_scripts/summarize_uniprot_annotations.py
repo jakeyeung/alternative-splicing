@@ -284,7 +284,7 @@ def main():
                       default='Exclusion',
                       help='Legend label 2: default "Exclusion"')
     (options, args) = parser.parse_args()
-    if len(args) != 6:
+    if len(args) != 5:
         print args
         print 'Incorrect number of args specified.\n%s' %usage
         sys.exit()
