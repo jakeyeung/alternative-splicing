@@ -4,6 +4,8 @@ Created on 2014-01-23
 @author: jyeung
 
 Reads file, gets a random subset of lines, then writes to file.
+
+Random seed set to 0.
 '''
 
 import sys
@@ -69,4 +71,6 @@ def main():
     print 'Output file: %s' %output_file
     
 if __name__ == '__main__':
+    # set global random seed
+    random.seed(0)
     main()
