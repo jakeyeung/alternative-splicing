@@ -295,7 +295,9 @@ def main():
         else:
             failcount += 1
     print '\n'    # adds carriage return to Printer output only after loop.
-    print '%s files failed to run anchor.' %failcount
+    if failcount > 0:
+        # inform user of any failures if any.
+        print '%s files failed to run anchor.' %failcount
     
     # Parse ANCHOR outputs
     for output_file in anchor_outputs:
