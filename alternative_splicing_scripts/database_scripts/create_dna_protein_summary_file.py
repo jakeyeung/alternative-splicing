@@ -10,6 +10,7 @@ Code adotped from cbayly
 import pickle
 import sys 
 import csv
+from optparse import OptionParser
 
 def get_chromosome_list(add_chr_prefix=False):
     '''
@@ -269,19 +270,69 @@ def extract_location_from_miso_event(miso_event, exon_number):
     # Get exon number, since index starts at 0, subtract exon_number by 1.
     return miso_coords_list[exon_number -1]
 
-def main():
-    ensdictionary = sys.argv[1]
-    dna_fasta = sys.argv[2]
-    try:
-        exon_isoform_number = int(sys.argv[3])    # exon 1, 2 or 3...
-    except ValueError:
-        print '3rd argument must be integer, eg 1 2 or 3 (exon number)'
-        sys.exit()
-    summary_output_path = sys.argv[4]
+def extract_location_from_constitutive_header(fasta_header):
+    '''
+    given constitutive fasta header (e.g.:
+    chr3:171683797:171684005:-1:exon
+    Return
+    chr3:171683797:171684005:-
+    So that it matches the output of 
+    extract_location_from_miso_event
+    '''
+    coords = fasta_header.split(':')[0:3]
+    # strand is -1 or +1. Convert to - or + by taking only [0]
+    strand = fasta_header.split(':')[3][0]
+    # combine coords with strand to get ID.
+    # coords is a list, strand is not, so [strand] makes it a list.
+    return ':'.join(coords + [strand])
     
-    if len(sys.argv) < 5:
-        print '4 arguments must be specified in command line.'
+def str2bool(v):
+    if v.lower() in ['yes', 'true', 't', '1']:
+        return True
+    elif v.lower() in ['no', 'false', 'f', '0']:
+        return False
+    else:
+        print 'Expected %s to be True or False. %s found.' %v
         sys.exit()
+
+def main():
+    usage = 'usage: %prog [opt] ensembl_dic_pickle '\
+        'dna_fasta exon_number(1|2|3) outpath'\
+        '\nFour arguments must be specified in command line:\n'\
+        '1) Ensembl dictionary in pkl format '\
+            '(created from index_exon_info_to_pkl.py)\n'\
+        '2) DNA fasta file containing sequences to '\
+            'be translated to amino acids\n'\
+        '3) Exon number: possibilities: 1 2 3. Represents '\
+            'upstream, alternative and downstream for cassette exon events.\n'\
+        '4) Output path\n'
+    parser = OptionParser(usage=usage)
+    
+    # parse options
+    parser.add_option('-c', '--constitutive_exons', dest='constitutive_exons',
+                      default=False,
+                      help='True/False: if True. Goes into '\
+                        'constitutive exon mode.\n'\
+                        'Extracts identifiers differently from if it was a \n'\
+                            'cassette exon event, since the ID headers are '\
+                                'different in the fasta file.\n'\
+                                    ' Ignores exon_number if True.')
+    (options, args) = parser.parse_args()
+    if len(args) < 4:
+        print 'Not enough args specified.\n%s' %usage
+        sys.exit()
+    
+    constitutive_exon_mode = str2bool(options.constitutive_exons)
+    ensdictionary = args[0]
+    dna_fasta = args[1]
+    if not constitutive_exon_mode:
+        # only care about this if constitutive_exon_mode is False.
+        try:
+            exon_isoform_number = int(args[2])    # exon 1, 2 or 3...
+        except ValueError:
+            print '3rd argument must be integer, eg 1 2 or 3 (exon number)'
+            sys.exit()
+    summary_output_path = args[3]
     
     print 'Loading dictionary from %s' %ensdictionary
     ensembl_dic = pickle.load(open(ensdictionary, "rb"))
@@ -319,9 +370,15 @@ def main():
             line = line.strip()
             if line.startswith('>'):    # header of fasta...
                 miso_event = line[1:]    # removes first '>' in header
-                location = \
-                    extract_location_from_miso_event(miso_event, 
-                                                          exon_isoform_number)
+                # getting locations differs 
+                # depending on if constitutive mode or not
+                if not constitutive_exon_mode:
+                    location = \
+                        extract_location_from_miso_event(miso_event, 
+                                                         exon_isoform_number)
+                else:
+                    location = \
+                        extract_location_from_constitutive_header(miso_event)
                     
                 # Get reading frames (as a list) and get all possible
                 # translations.
