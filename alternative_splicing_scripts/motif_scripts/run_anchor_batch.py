@@ -27,7 +27,6 @@ import sys
 import os
 import csv
 from optparse import OptionParser
-import subprocess
 from utilities.anchor import AnchorOutput
 
 class Printer():
@@ -112,11 +111,13 @@ def run_anchor(input_file, output_file):
     Needs PATH and ANCHOR_PATH variables set already.
     '''
     anchor_command = ' '.join(['anchor', input_file, '>', output_file])
-    process = subprocess.Popen(['/bin/bash'], 
-                               shell=False, 
-                               stdin=subprocess.PIPE, 
-                               stdout=subprocess.PIPE)
-    process.stdin.write(anchor_command)
+    os.system(anchor_command)
+    # check output file was created
+    if not os.path.exists(output_file):
+        print '%s did not get created.' %output_file
+        #print 'Error in running command:\n%s\nSkipping...' %anchor_command
+        return None
+    return output_file
     
 def get_basename(mypath, remove_ext=True):
     '''
@@ -278,21 +279,27 @@ def main():
     print 'Created %s input files for ANCHOR.' %n_inputs
     
     anchor_count = 0
+    failcount = 0
     anchor_outputs = []
     for input_file in anchor_inputs:
         # create corresponding outputfile, store in list for later retrieval
         output_file = get_corresponding_output(input_file, 
                                                anchor_output_dir, 
                                                ext=out_ext)
-        anchor_outputs.append(output_file)
-        run_anchor(input_file, output_file)
-        anchor_count += 1
-        output = 'ANCHOR outputs: %s/%s' %(anchor_count, n_inputs)
-        Printer(output)
+        output_file = run_anchor(input_file, output_file)
+        if output_file is not None:    # if None: anchor failed to run.
+            anchor_outputs.append(output_file)
+            anchor_count += 1
+            output = 'ANCHOR outputs: %s/%s' %(anchor_count, n_inputs)
+            Printer(output)
+        else:
+            failcount += 1
     print '\n'    # adds carriage return to Printer output only after loop.
+    print '%s files failed to run anchor.' %failcount
     
     # Parse ANCHOR outputs
     for output_file in anchor_outputs:
+        print output_file
         anchor = AnchorOutput(output_file)
         binding_regions_dic = anchor.binding_regions()
         # append to existing dic
