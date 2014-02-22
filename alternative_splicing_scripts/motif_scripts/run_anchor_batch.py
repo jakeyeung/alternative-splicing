@@ -299,7 +299,6 @@ def main():
     
     # Parse ANCHOR outputs
     for output_file in anchor_outputs:
-        print output_file
         anchor = AnchorOutput(output_file)
         binding_regions_dic = anchor.binding_regions()
         # append to existing dic
