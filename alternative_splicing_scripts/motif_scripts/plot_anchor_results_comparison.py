@@ -35,14 +35,25 @@ def main():
         '1) Interesting anchor results, output from run_anchor_batch.py\n'\
         '2) Null anchor results, output from run_anchor_batch.py\n'
     parser = OptionParser(usage=usage)    
-    (_, args) = parser.parse_args()
-    
+    parser.add_option('-1', '--exon_label1', dest='exon_label1',
+                      default='Exon label 1',
+                      help='Exon label of anchor_results.txt.')
+    parser.add_option('-2', '--exon_label2', dest='exon_label2',
+                      default='Exon label 2',
+                      help='Exon label of anchor_results_null.txt')
+    parser.add_option('-t', '--title', dest='title',
+                      default='Fraction of exons with predicted binding regions',
+                      help='Title of plot.')
+    (options, args) = parser.parse_args()
     if len(args) != 2:
         print 'Two arguments need to be specified in command line.\n'
         print usage
         sys.exit()
     anchor_results_path = args[0]
     anchor_results_null_path = args[1]
+    exon_label1 = options.exon_label1
+    exon_label2 = options.exon_label2
+    mytitle = options.title
     
     # init dic with keys and empty lists
     anchor_dic = {}
@@ -62,8 +73,7 @@ def main():
     print 'oddsratio: %s\npvalue: %s' %(oddsratio, pvalue)
     
     # plot distributions (from plot_meme_motif_null_comparison.py)
-    mylabels = ['Included Cassettes', 'Constitutives']
-    mytitle = 'Fraction of exons with predicted binding motif.'
+    mylabels = [exon_label1, exon_label2]
     # Plot bargraphs
     frac_binding = float(anchor_dic['binding'][0]) / anchor_dic['total'][0]
     frac_binding_null = float(anchor_dic['binding'][1]) / anchor_dic['total'][1]
