@@ -13,6 +13,7 @@ Currently only works for miso events from cassette exons!
 import sys
 import os
 import csv
+import random
 from optparse import OptionParser
 import pickle
 
@@ -218,9 +219,19 @@ def get_intron_starts_ends(miso_event,
         
 def get_exon_starts_ends(miso_event, exon_number, seq_length):
     '''
-    #TODO
+    Given:
+    chr22:19964938:19965109:-@chr22:19964229:19964246:-@chr22:19963209:19963280:-
+    
+    if exon_number == 2:
+    Return 
+    exon_start = 19964229
+    exon_end = 19964246
     '''
-    pass
+    exon_index = exon_number - 1    # starts at 0
+    exon_coords = miso_event.split('@')[exon_index].split(':')
+    exon_start = int(exon_coords[1])
+    exon_end = int(exon_coords[2])
+    return exon_start, exon_end
     
 def get_seq_start_end_from_miso_event(miso_event, region_of_interest, 
                                       seq_lengths_dic):
@@ -245,7 +256,8 @@ def get_seq_start_end_from_miso_event(miso_event, region_of_interest,
     
     # check if exon or intron
     if exon_or_intron == 'exon':
-        start, end = get_exon_starts_ends(miso_event, strand)
+        exon_number = int(region_split[1])
+        start, end = get_exon_starts_ends(miso_event, exon_number, strand)
     elif exon_or_intron == 'intron':
         # check which intron number and 3p or 5p
         try:
@@ -447,7 +459,10 @@ def store_info_to_output_dic(outdic, miso_event, region_of_interest,
             append(subval)
 
 def update_dic_with_motifs(outdic, meme_html_path, region_of_interest, 
-                           seq_lengths_dic, null_mode=False, tomtom_mode=False,
+                           seq_lengths_dic, 
+                           null_mode=False,
+                           null_length=9,
+                           tomtom_mode=False,
                            tomtom_dic=None):
     '''
     Loop through meme html file, for every motif in meme html file, retrieve
@@ -460,8 +475,9 @@ def update_dic_with_motifs(outdic, meme_html_path, region_of_interest,
     do some null distribution of gerp scores.
     
     Null mode: two things change: relative start/end and motif start/end.
-    Relative start/end is entire intronic region (e.g. 0 to 100)
-    Motif start/end is sequence start end.
+    Relative start/end is randomly chosen intronic region
+    rel_start: random number btwn 0 to seq_length-null_length
+    rel_end: rel_start + null_length
     
     Tomtom mode: if tomtom mode is True, tomtom_dic cannot be None.
     We will check motif to see if motif matches a tomtom motif, if it
@@ -515,10 +531,14 @@ def update_dic_with_motifs(outdic, meme_html_path, region_of_interest,
                         motif_rel_start, motif_rel_end = \
                             get_motif_start_end(motif_line)
                     else:
-                        # In null mode: grab whole intron from 0 to 
-                        # length of intron (found in seq_lengths_dic)
-                        motif_rel_start = 0
-                        motif_rel_end = seq_lengths_dic[miso_event]
+                        # In null mode: randomly pick number as
+                        # start (bounded by seq_length).
+                        # end is start + null_length
+                        lower_bnd = 0
+                        upper_bnd = seq_lengths_dic[miso_event] - null_length + 1
+                        motif_rel_start = \
+                            random.randrange(lower_bnd, upper_bnd)
+                        motif_rel_end = motif_rel_start + null_length
                         
                     chromo, seq_start, seq_end = \
                         get_seq_start_end_from_miso_event(miso_event, 
@@ -529,18 +549,12 @@ def update_dic_with_motifs(outdic, meme_html_path, region_of_interest,
                         print 'Error: expected end(%s) > start(%s).'
                         sys.exit()
                     # Get motif start and end genomic coordinates.
-                    # if null_mode, motif_start and end == seq_start, seq_end
-                    # if not null_mode, get motif start ends from rel start/end
-                    if not null_mode:
-                        motif_start, motif_end = \
-                            get_motif_start_end_coordinates(seq_start, 
-                                                            seq_end,
-                                                            motif_rel_start,
-                                                            motif_rel_end, 
-                                                            strand)
-                    else:
-                        motif_start = seq_start
-                        motif_end = seq_end
+                    motif_start, motif_end = \
+                        get_motif_start_end_coordinates(seq_start, 
+                                                        seq_end,
+                                                        motif_rel_start,
+                                                        motif_rel_end, 
+                                                        strand)
                     
                     # Concatenate to get genomic coordinate with chromo
                     genomic_coord = ':'.join([chromo, str(motif_start), 
@@ -755,6 +769,9 @@ def main():
                       help='Reads from tomtom summary (summarize_tomtom_results.py).\n'\
                         'Summarizes meme results only for hits in TomTom summary.\n'\
                         'Input a filepath to tomtom summary to activate this option.')
+    parser.add_option('--null_length', dest='null_length',
+                      default=9,
+                      help='Length of "null" motifs. Default is 9.')
     (options, args) = parser.parse_args()
     if len(args) < 2:
         print 'Incorrect number of parameters specified.'
@@ -779,10 +796,14 @@ def main():
         tomtom_mode = False
     else:
         tomtom_mode = True
+    # parse null length option
+    null_length = int(options.null_length)
     
     # Tell user if they are in null mode
     if null_mode:
         print 'Processing in NULL mode (takes entire fasta sequence)'
+        # Set random seed for getting random intronic region
+        random.seed(0)
         
     # Tell user if they are in tomtom mode, then get tomtom dic
     if tomtom_mode:
@@ -842,6 +863,7 @@ def main():
         outdic = update_dic_with_motifs(outdic, meme_html_path, 
                                         region_of_interest, seq_lengths_dic,
                                         null_mode=null_mode,
+                                        null_length=null_length,
                                         tomtom_mode=tomtom_mode,
                                         tomtom_dic=tomtom_dic)
     
