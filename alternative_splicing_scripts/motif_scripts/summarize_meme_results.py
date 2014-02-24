@@ -801,7 +801,8 @@ def main():
     
     # Tell user if they are in null mode
     if null_mode:
-        print 'Processing in NULL mode (takes entire fasta sequence)'
+        print 'Processing in NULL mode '\
+            '(takes a random region of length %s)' %null_length
         # Set random seed for getting random intronic region
         random.seed(0)
         
