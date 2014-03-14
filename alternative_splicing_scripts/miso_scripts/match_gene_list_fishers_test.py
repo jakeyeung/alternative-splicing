@@ -32,9 +32,13 @@ def main():
                       default='gsymbol',
                       help='Colname containing events in cohort3. Required if '\
                         '--filename3 is not None')
-    parser.add_option('-n', '--n_bg_genes', dest='n_bg',
-                      default=42485,
-                      help='Number of background genes. Default 42485')
+    parser.add_option('-n', '--n_bg_matched', dest='n_bg_matched',
+                      default=29,
+                      help='Number of background genes matched to genelist2. '\
+                        'Default 29 for SE.')
+    parser.add_option('-N', '--n_bg_total_genes', dest='n_bg_total',
+                      default=8863,
+                      help='Number of background genes. Default 8863 for SE.')
     # Parse options
     (options, args) = parser.parse_args()
     
@@ -43,7 +47,8 @@ def main():
     
     colname1 = options.colname1
     colname2 = options.colname2
-    n_bg = int(options.n_bg)
+    n_bg_matched = int(options.n_bg_matched)
+    n_bg_total = int(options.n_bg_total)
     filename3 = options.filename3
     colname3 = options.colname3
     
@@ -63,13 +68,19 @@ def main():
     # if gene_list3 exists, find intersection with genelist1, then rename it
     # as genelist1.
     if filename3 is not None:
+        '''
+        Uncommment this to find out your total background genes
+        and background genes that match to genelist2.
+        print 'Total gene set: %s' %len(gene_list1 | gene_list3)
+        gene_list1 = gene_list1 | gene_list3
+        '''
         gene_list1 = gene_list1 & gene_list3
     
     n_in_reg = len(gene_list2 & gene_list1)
     n_not_in_reg = len(gene_list1) - n_in_reg
     
-    n_in_reg_bg = len(gene_list2) - n_in_reg
-    n_not_in_reg_bg = n_bg - len(gene_list1) - n_in_reg
+    n_in_reg_bg = n_bg_matched
+    n_not_in_reg_bg = n_bg_total - n_bg_matched
     
     _, pvalue = stats.fisher_exact([[n_in_reg, n_not_in_reg], [n_in_reg_bg, n_not_in_reg_bg]])
     
