@@ -30,6 +30,8 @@ batch_meme()
 mkdir $output_dir
 echo $fasta_dir
 cd $fasta_dir
+# Intialize count
+count=0
 for f in `ls *.fasta`
 do
 	echo "Fasta file: $f, PSP file: $psp_dir/$f"
@@ -38,9 +40,16 @@ do
 	# Only put -evt option if it is not empty.
 	if [ -z "$evt" ]
 	then 
+		#meme $f -mod $mod -dna -nmotifs $nmotifs -psp $psp_dir/$f -minw $minw -maxw $maxw -maxsize $maxsize -o $output_dir/$basename &
 		meme $f -mod $mod -dna -nmotifs $nmotifs -psp $psp_dir/$f -minw $minw -maxw $maxw -maxsize $maxsize -o $output_dir/$basename &
+		let count+=1
+		[[ $((count%7)) -eq 0 ]] && wait
+		
 	else
+		#meme $f -mod $mod -dna -nmotifs $nmotifs -psp $psp_dir/$f -minw $minw -maxw $maxw -maxsize $maxsize -evt $evt -o $output_dir/$basename &
 		meme $f -mod $mod -dna -nmotifs $nmotifs -psp $psp_dir/$f -minw $minw -maxw $maxw -maxsize $maxsize -evt $evt -o $output_dir/$basename &
+		let count+=1
+		[[ $((count%7)) -eq 0 ]] && wait
 	fi
 done
 wait
