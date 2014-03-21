@@ -179,7 +179,7 @@ def main():
     
     else:
         print 'Overlapping genes:'
-        for g in (cohort2_events):
+        for g in (cohort1_events & cohort2_events):
             print event_gsymbol_dic[g]
         plot_utils.plot_two_set_venn(cohort1_events, 
                                      cohort2_events, 
