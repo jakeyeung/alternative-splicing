@@ -535,6 +535,7 @@ def update_dic_with_motifs(outdic, meme_html_path, region_of_interest,
                         # start (bounded by seq_length).
                         # end is start + null_length
                         lower_bnd = 0
+                        #TODO: upper_bnd cannot be negative!
                         upper_bnd = seq_lengths_dic[miso_event] - null_length + 1
                         motif_rel_start = \
                             random.randrange(lower_bnd, upper_bnd)
