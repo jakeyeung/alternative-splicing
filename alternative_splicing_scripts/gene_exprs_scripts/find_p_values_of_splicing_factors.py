@@ -104,7 +104,10 @@ def get_pvals_fc_from_file(t_test_textfile, group1_colname,
             # Get gene name
             gene_name = row[header.index(gene_colname)]
             # Get pval, as float.
-            pval = float(row[header.index(pval_colname)])
+            try:
+                pval = float(row[header.index(pval_colname)])
+            except ValueError:
+                continue
             # get g1, g2, convert the CSV to a list then to float for each i.
             g1_csv = row[header.index(group1_colname)]
             g1 = convert_csv_to_list(g1_csv, convert_to_float=True)
