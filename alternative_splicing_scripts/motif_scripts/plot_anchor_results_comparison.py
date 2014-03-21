@@ -79,7 +79,7 @@ def main():
     frac_binding_null = float(anchor_dic['binding'][1]) / anchor_dic['total'][1]
     myvals = [frac_binding, frac_binding_null]
     plot_barplot(myvals, mytitle, mylabels, 
-                 ylabel='Fraction of conserved elements', 
+                 ylabel='Fraction predicted binding regions', 
                  mytext1="%i/%i" \
                     %(anchor_dic['binding'][0], 
                       anchor_dic['total'][0]),
