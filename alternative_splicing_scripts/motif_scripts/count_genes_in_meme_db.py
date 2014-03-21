@@ -28,7 +28,8 @@ def main():
     genes = list(set(genes))
     
     print '%s genes in meme database.' %len(genes)
-    print genes
+    for gene in genes:
+        print gene
 
 if __name__ == '__main__':
     main()
