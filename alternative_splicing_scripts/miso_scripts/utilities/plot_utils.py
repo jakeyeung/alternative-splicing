@@ -21,6 +21,7 @@ def plot_three_set_venn(set1, set2, set3,
     '''
     # Set matplotlib font size globally
     font = {'family': 'sans',
+            'sans-serif': 'Arial',
             'weight': 'bold',
             'size': 25}
     matplotlib.rc('font', **font)
@@ -62,6 +63,7 @@ def plot_two_set_venn(set1, set2, mycolors=('r', 'g'),
     '''
     # Set matplotlib font size globally
     font = {'family': 'sans',
+            'sans-serif': 'Arial',
             'weight': 'bold',
             'size': 25}
     matplotlib.rc('font', **font)
