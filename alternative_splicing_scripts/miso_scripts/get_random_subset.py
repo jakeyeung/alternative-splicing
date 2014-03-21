@@ -28,7 +28,14 @@ def main():
                       dest='n_rows',
                       help='Number of rows to extract from input. Default 548.',
                       default=548)
+    parser.add_option('-s', '--seed', 
+                      dest='seed',
+                      help='Manually set the seed. Default 0',
+                      default=0)
     (options, args) = parser.parse_args()
+    
+    # set global random seed
+    random.seed(int(options.seed))
     
     # Convert n_rows to integer
     try:
@@ -71,6 +78,4 @@ def main():
     print 'Output file: %s' %output_file
     
 if __name__ == '__main__':
-    # set global random seed
-    random.seed(0)
     main()
