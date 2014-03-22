@@ -102,7 +102,8 @@ def get_pvals_fc_from_file(t_test_textfile, group1_colname,
         header = myreader.next()
         for row in myreader:
             # Get gene name
-            gene_name = row[header.index(gene_colname)]
+            #bugfix: make it case insensitive
+            gene_name = row[header.index(gene_colname)].upper()
             # Get pval, as float.
             try:
                 pval = float(row[header.index(pval_colname)])
@@ -211,6 +212,7 @@ def write_outdic_to_file(mydic, outfile, shape='long'):
                     direction = 'Overexpressed'
                 elif avg_fc < 0:
                     direction = 'Underexpressed'
+                #bugfix: write to uppercase
                 mywriter.writerow([gene, vpc_pval_neglog,
                                    beltran_pval_neglog, abs_avg_fc, 
                                    direction])
@@ -245,7 +247,8 @@ def get_fc_from_file(fold_change_filepath,
         myreader = csv.reader(readfile, delimiter='\t')
         myheader = myreader.next()
         for row in myreader:
-            gene = row[myheader.index(gene_fc_colname)]
+            #bugfix: make it case insensitive
+            gene = row[myheader.index(gene_fc_colname)].upper()
             exprs1 = float(row[myheader.index(group1_fc_colname)])
             exprs2 = float(row[myheader.index(group2_fc_colname)])
             # Convert exprs1 and exprs2 to logscale if prompted...

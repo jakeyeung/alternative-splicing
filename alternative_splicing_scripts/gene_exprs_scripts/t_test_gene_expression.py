@@ -56,7 +56,8 @@ def index_gene_exprs(gene_exprs_fname, gene_list, group_1, group_2,
         for row in myreader:
             # Check gene colname is in header, if not, throw error
             try:
-                row_gene = row[header.index(gene_colname)]
+                #bugfix: make it case insensitive
+                row_gene = row[header.index(gene_colname)].upper()
             except ValueError:
                 print 'Error: %s not found in column names. '\
                     'Check column name of '\
@@ -219,6 +220,9 @@ def main():
                                         column_index_to_extract=0, 
                                         header=True)
     print '%s genes to be tested for differential expression' %len(gene_list)
+    
+    #bugfix: make it case insensitive
+    gene_list = [g.upper() for g in gene_list]
     
     # Grab group 1 and group 2 sample names as a list.
     group_1 = extract_column_from_table(group_1_samps_fname, 
