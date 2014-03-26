@@ -5,6 +5,7 @@ Created on 2014-01-13
 '''
 
 import sys
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -23,6 +24,11 @@ def plot_bar_plot(vector1, vector2, xticks_vector, ylabel, title,
     width: width of bars
     text_pos: how high from top of rectangle shoudl text be
     '''
+    # Set matplotlib font size globally
+    font = {'family': 'sans',
+            'sans-serif': 'Arial'}
+    matplotlib.rc('font', **font)
+    
     # make sure lenghts of vec1 vec2 xticks are the same
     for _, _, _ in zip(vector1, vector2, xticks_vector):
         pass
