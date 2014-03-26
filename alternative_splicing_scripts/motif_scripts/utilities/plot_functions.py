@@ -4,6 +4,7 @@ Created on 2014-01-18
 @author: jyeung
 '''
 
+import matplotlib
 import matplotlib.pyplot as plt
 from scipy.stats import gaussian_kde
 import numpy as np
@@ -35,6 +36,11 @@ def plot_barplot(values_list, mytitle, mylabels, ylabel,
     
     Even creates a nice p-value comparison between the two bars
     '''
+    # Set matplotlib font size globally
+    font = {'family': 'sans',
+            'sans-serif': 'Arial'}
+    matplotlib.rc('font', **font)
+    
     ind = np.arange(len(values_list)) + width
     
     fig, ax = plt.subplots()
