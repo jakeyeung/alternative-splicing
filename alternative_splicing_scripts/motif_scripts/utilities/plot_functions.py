@@ -10,6 +10,7 @@ from scipy.stats import gaussian_kde
 import numpy as np
 import sys
 
+
 def plot_histogram(values_list, n_bins, mytitle, mylabel):
     '''
     Given list of values, plot histogram.
@@ -19,14 +20,31 @@ def plot_histogram(values_list, n_bins, mytitle, mylabel):
              label=mylabel)
     plt.title(mytitle)
 
-def plot_density(values_list, mytitle, mylabel):
+def plot_density(values_lists, mytitle='mytitle', mylabel='mylabel',
+                 xlabel='xlabel', ylabel='ylabel'):
     '''
     Given list of values, plot histogram.
+    Takes as input a list of lists, and each 
+    sublist will be a density plot.
     '''
-    density = gaussian_kde(values_list)
-    xs = np.linspace(-7, 7, 200)
-    plt.plot(xs, density(xs), label=mylabel)
-    plt.title(mytitle)
+    # Set matplotlib font size globally
+    font = {'family': 'sans',
+            'sans-serif': 'Arial'}
+    matplotlib.rc('font', **font)
+    size=50    # fontsize
+    
+    for values_list in values_lists:
+        density = gaussian_kde(values_list)
+        density.covariance_factor = lambda : 0.2
+        density._compute_covariance()
+        xs = np.linspace(0, 400, 200)
+        plt.plot(xs, density(xs), label=mylabel)
+        plt.title(mytitle, fontsize=size)
+        plt.ylabel(ylabel, fontsize=size)
+        plt.xlabel(xlabel, fontsize=size)
+        plt.xticks(fontsize=size)
+        plt.yticks(fontsize=size)
+    plt.show()
     
 def plot_barplot(values_list, mytitle, mylabels, ylabel, 
                  mytext1, mytext2, mytext3, 

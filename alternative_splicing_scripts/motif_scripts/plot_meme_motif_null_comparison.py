@@ -89,13 +89,13 @@ def main():
     
     # plot distributions
     mylabels = ['Meme motifs', 'Control region']
-    mytitle = 'Fraction conserved motifs compared to control region'
+    mytitle = 'Fraction of elements conserved compared to control region'
     # Plot bargraphs
     frac_conserved_meme = float(n_conserved_in_meme) / n_total_in_meme
     frac_conserved_null = float(n_conserved_in_null) / n_total_in_null
     myvals = [frac_conserved_meme, frac_conserved_null]
     plot_functions.plot_barplot(myvals, mytitle, mylabels, 
-                                ylabel='Fraction conserved elements', 
+                                ylabel='Fraction of elements conserved', 
                                 mytext1="%i/%i" \
                                     %(n_conserved_in_meme, 
                                       n_total_in_meme),
