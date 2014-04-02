@@ -82,16 +82,30 @@ def init_gerp_dic(motif_dic):
     print '%s coordinates stored into gerp_dic.' %coord_count
     return gerp_dic
 
-def get_gerp_fpath(chromosome, gerp_dir):
+def get_gerp_fpath(chromosome, gerp_dir, cons_type='rs'):
     '''
     Given chromosome and gerp directory, return full path
     to open the RS scores file.
+    
+    # Updated: April 1 2014, can accept type "rs" or "phastcons"
+    Default is "rs"
     '''
-    rs_scores_fname = '.'.join([chromosome, 'maf', 'rates'])
-    rs_scores_fpath = os.path.join(gerp_dir, rs_scores_fname)
+    if cons_type == "rs":
+        # filename example: chr1.maf.rates
+        rs_scores_fname = '.'.join([chromosome, 'maf', 'rates'])
+        rs_scores_fpath = os.path.join(gerp_dir, rs_scores_fname)
+    elif cons_type == "phastcons":
+        # Filename example: chr18.phyloP46way.placental.wigFix
+        rs_scores_fname = '.'.join([chromosome, 'phyloP46way', 
+                                    'placental', 'wigFix'])
+        rs_scores_fpath = os.path.join(gerp_dir, rs_scores_fname)
+    else:
+        print 'Type must be "rs" or "phastcons". %s found.' %cons_type
+        sys.exit()
     return rs_scores_fpath
 
-def add_rs_scores_to_gerp_dic(gerp_dic, chromo, gerp_dir, queue_obj):
+def add_rs_scores_to_gerp_dic(gerp_dic, chromo, gerp_dir, queue_obj,
+                              cons_type='rs'):
     '''
     ***THIS IS USED WITH MULTIPROCESSING*** That's why queue_obj.put()
     is there instead of returning a dic.
@@ -111,10 +125,16 @@ def add_rs_scores_to_gerp_dic(gerp_dic, chromo, gerp_dir, queue_obj):
     
     Updating gerp_dic will result in "Nones" in a lot of RS scores
     that are not in respective chromosome.  
+    
+    # Update April 1 2014
+    Adding two types: RS scores as well as phastCons scores.
+    Adding type to be "rs" or "phastcons". "rs" should run
+    just as default.
+    "phastcons" is the new feature.
     '''
     
     # Get gerp fpath
-    gerp_fpath = get_gerp_fpath(chromo, gerp_dir)
+    gerp_fpath = get_gerp_fpath(chromo, gerp_dir, cons_type=cons_type)
     
     '''
     Find max in coordinates, so we know when to
@@ -138,13 +158,37 @@ def add_rs_scores_to_gerp_dic(gerp_dic, chromo, gerp_dir, queue_obj):
     genomic coordinate.
     '''
     update_count = 0
+    print 'Trying to open file: %s' %gerp_fpath
     with open(gerp_fpath, 'rb') as gerp_file:
         rs_scores_reader = csv.reader(gerp_file, delimiter='\t')
+        if cons_type=='phastcons':
+            # phastcons has a header as first row with important info
+            header = rs_scores_reader.next()
+            '''
+            header looks like:
+            ['fixedStep chrom=chr4 start=16385 step=1']
+            We want to extract 16385 (the start offset)
+            from this. Use the one liner below.
+            '''
+            offset = int(header[0].split(' ')[2].split('=')[1])
+        elif cons_type == 'rs':
+            # RS files have no header, set offset to 0.
+            offset = 0
+        else:
+            print 'Type must be "rs" or "phastcons". %s found.' %cons_type
+            sys.exit()
         for coordinate, row in enumerate(rs_scores_reader):
+            coordinate += offset   # Offset = 0 in RS. > 0 if phastcons.
             if coordinate in gerp_dic[chromo]:
                 # coordinate matches coordinate in gerpdic, 
                 # retrieve its RS score.
-                rs_score = float(row[1])
+                if cons_type == 'rs':
+                    rs_score = float(row[1])
+                elif cons_type == 'phastcons':
+                    rs_score = float(row[0])
+                else:
+                    print 'Type must be "rs" or "phastcons". %s found.' %cons_type
+                    sys.exit()
                 # Update coordinat gerp dic with rs score
                 gerp_dic[chromo][coordinate] = rs_score
                 update_count += 1
@@ -235,6 +279,9 @@ def main():
                       help='Filename to updated meme_summary.pkl'
                         ' with gerp scores,\n'\
                         'Default "meme_summary.gerp_updated.pkl"')
+    parser.add_option('-t', '--conservation_type', dest='cons_type',
+                      default='rs',
+                      help='Either "rs" or "phastcons"')
     (options, args) = parser.parse_args()
     if len(args) < 2:
         print 'Incorrect number of parameters specified.'
@@ -248,6 +295,11 @@ def main():
     gerp_pickle_fname = options.gerp_pickle_fname
     gerp_presaved_pkl_path = options.gerp_presaved_path
     updated_dic_fname = options.updated_dic_fname
+    cons_type = options.cons_type
+    if cons_type not in ['rs', 'phastcons']:
+        print 'Conservation type must be "rs" or "phastcons". %s found.' \
+            %cons_type
+        sys.exit()
     
     # Load motif dic, obtained from summarize_meme_results
     pickle_file = open(motif_pickle_path, 'rb')
@@ -272,7 +324,7 @@ def main():
         for chromosome in chr_list:
             print 'Calculating RS scores for %s' %chromosome
             p = Process(target=add_rs_scores_to_gerp_dic,
-                        args=(gerp_dic, chromosome, gerp_dir, q))
+                        args=(gerp_dic, chromosome, gerp_dir, q, cons_type))
             process_list.append(p)
             p.start()
         
