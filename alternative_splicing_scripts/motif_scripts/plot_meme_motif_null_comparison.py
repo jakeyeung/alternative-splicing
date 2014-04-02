@@ -52,15 +52,19 @@ def main():
         'Requires two input arguments:\n'\
         '1) pkl file from summarize_meme_results: non-null\n'\
         '2) pkl file from summarize_meme_results: null-mode\n'
-    parser = OptionParser(usage=usage)    
-    (_, args) = parser.parse_args()
-    
+    parser = OptionParser(usage=usage)   
+    parser.add_option('-t', '--threshold', dest='score_threshold',
+                      default=2.0,
+                      help='Float, threshold for what one considers conserved.') 
+    (options, args) = parser.parse_args()
     if len(args) < 2:
         print 'Two arguments need to be specified in command line.\n'
         print usage
         sys.exit()
     non_null_pklpath = args[0]
     null_pklpath = args[1]
+    # parse ops
+    score_threshold = float(options.score_threshold)
     
     # get dics from pkl 
     non_null_dic = get_dic_from_pklpath(non_null_pklpath)
@@ -69,23 +73,35 @@ def main():
     non_null_gerp_scores = get_gerp_scores(non_null_dic, gerpkey='avg_rs_score')
     null_gerp_scores = get_gerp_scores(null_dic, gerpkey='avg_rs_score')
     
+    plot_functions.plot_density([non_null_gerp_scores, null_gerp_scores], 
+                                mytitle='Density plot of conservation scores', 
+                                labels_lists=['MEME motifs', 'Controls'],
+                                xlabel='GERP conservation score',
+                                ylabel='Density',
+                                xmin=-4, xmax=4,
+                                smoothness=0.15,
+                                drawvline=score_threshold)
+    
     # find how many conserved regions are in each.
     n_conserved_in_meme = \
-        gerp_utilities.conserved_regions(non_null_gerp_scores, fraction=False, threshold=2)
+        gerp_utilities.conserved_regions(non_null_gerp_scores, fraction=False, threshold=score_threshold)
     n_conserved_in_null = \
-        gerp_utilities.conserved_regions(null_gerp_scores, fraction=False, threshold=2)
+        gerp_utilities.conserved_regions(null_gerp_scores, fraction=False, threshold=score_threshold)
     n_total_in_meme = len(non_null_gerp_scores)
     n_total_in_null = len(null_gerp_scores)
     n_not_conserved_in_meme = n_total_in_meme - n_conserved_in_meme
     n_not_conserved_in_null = n_total_in_null - n_conserved_in_null
     
-    print n_conserved_in_meme, n_conserved_in_null
+    print 'Threshold: %s' %score_threshold
+    print 'Number of conserved elements: %s' %n_conserved_in_meme
+    print 'Number of conserved elements found in control: %s' %n_conserved_in_null
+    
     # Perform fisher's exact test
     oddsratio, pvalue = fisher_exact([[n_conserved_in_meme, 
                                        n_conserved_in_null], 
                                       [n_not_conserved_in_meme, 
                                        n_not_conserved_in_null]])
-    print oddsratio, pvalue
+    print 'Fishers Exact Test, Oddsratio: %s. Pvalue: %s' %(oddsratio, pvalue)
     
     # plot distributions
     mylabels = ['Meme motifs', 'Control region']

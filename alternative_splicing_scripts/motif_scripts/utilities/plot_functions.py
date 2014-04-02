@@ -20,12 +20,17 @@ def plot_histogram(values_list, n_bins, mytitle, mylabel):
              label=mylabel)
     plt.title(mytitle)
 
-def plot_density(values_lists, mytitle='mytitle', mylabel='mylabel',
-                 xlabel='xlabel', ylabel='ylabel'):
+def plot_density(values_lists, mytitle='mytitle', labels_lists=['lab1', 'lab2'],
+                 xlabel='xlabel', ylabel='ylabel',
+                 xmin=0, xmax=400,
+                 smoothness=0.2,
+                 drawvline=False):
     '''
     Given list of values, plot histogram.
     Takes as input a list of lists, and each 
     sublist will be a density plot.
+    
+    drawvline: option to draw dotted verticle line at x=drawvline
     '''
     # Set matplotlib font size globally
     font = {'family': 'sans',
@@ -33,17 +38,23 @@ def plot_density(values_lists, mytitle='mytitle', mylabel='mylabel',
     matplotlib.rc('font', **font)
     size=50    # fontsize
     
-    for values_list in values_lists:
+    colors = ['blue', 'green']
+    for values_list, mylabel, color in zip(values_lists, labels_lists, colors):
         density = gaussian_kde(values_list)
-        density.covariance_factor = lambda : 0.2
+        density.covariance_factor = lambda : smoothness
         density._compute_covariance()
-        xs = np.linspace(0, 400, 200)
-        plt.plot(xs, density(xs), label=mylabel)
-        plt.title(mytitle, fontsize=size)
-        plt.ylabel(ylabel, fontsize=size)
-        plt.xlabel(xlabel, fontsize=size)
-        plt.xticks(fontsize=size)
-        plt.yticks(fontsize=size)
+        xs = np.linspace(xmin, xmax, 200)
+        plt.plot(xs, density(xs), antialiased=True, label=mylabel, color=color)
+        plt.fill_between(xs, density(xs), alpha=0.5, zorder=5, antialiased=True, color=color)
+    plt.title(mytitle, fontsize=size)
+    plt.ylabel(ylabel, fontsize=size)
+    plt.xlabel(xlabel, fontsize=size)
+    plt.xticks(fontsize=size)
+    plt.yticks(fontsize=size)
+    plt.legend(loc=2, prop={'size': size})
+    # Draw dotted vertical line, optional
+    if drawvline is not False:
+        plt.axvline(x=drawvline, color='black', linestyle='dashed')
     plt.show()
     
 def plot_barplot(values_list, mytitle, mylabels, ylabel, 
