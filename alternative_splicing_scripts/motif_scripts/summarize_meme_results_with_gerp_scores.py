@@ -104,6 +104,16 @@ def get_gerp_fpath(chromosome, gerp_dir, cons_type='rs'):
         sys.exit()
     return rs_scores_fpath
 
+def get_offset_from_header(header):
+    '''
+    header looks like:
+    ['fixedStep chrom=chr4 start=16385 step=1']
+    We want to extract 16385 (the start offset)
+    from this. Use the one liner below.
+    '''
+    offset = int(header[0].split(' ')[2].split('=')[1])    
+    return offset
+
 def add_rs_scores_to_gerp_dic(gerp_dic, chromo, gerp_dir, queue_obj,
                               cons_type='rs'):
     '''
@@ -146,9 +156,9 @@ def add_rs_scores_to_gerp_dic(gerp_dic, chromo, gerp_dir, queue_obj,
     '''
     coords_list = gerp_dic[chromo].keys()
     if len(coords_list) == 0:
-        print 'Empty coordinates list in chromosome: %s\nSkipping...\n' %chromo
         queue_obj.put((gerp_dic[chromo], chromo))
-        return
+        print 'Empty coordinates list in chromosome: %s\nSkipping...\n' %chromo
+        return None
     else:
         max_coord = max(coords_list)
     
@@ -161,24 +171,17 @@ def add_rs_scores_to_gerp_dic(gerp_dic, chromo, gerp_dir, queue_obj,
     print 'Trying to open file: %s' %gerp_fpath
     with open(gerp_fpath, 'rb') as gerp_file:
         rs_scores_reader = csv.reader(gerp_file, delimiter='\t')
-        if cons_type=='phastcons':
-            # phastcons has a header as first row with important info
-            header = rs_scores_reader.next()
-            '''
-            header looks like:
-            ['fixedStep chrom=chr4 start=16385 step=1']
-            We want to extract 16385 (the start offset)
-            from this. Use the one liner below.
-            '''
-            offset = int(header[0].split(' ')[2].split('=')[1])
-        elif cons_type == 'rs':
-            # RS files have no header, set offset to 0.
-            offset = 0
-        else:
-            print 'Type must be "rs" or "phastcons". %s found.' %cons_type
-            sys.exit()
-        for coordinate, row in enumerate(rs_scores_reader):
-            coordinate += offset   # Offset = 0 in RS. > 0 if phastcons.
+        coordinate = 0    # rowcount
+        for row in rs_scores_reader:
+            # get offset, if possible
+            if cons_type == 'phastcons':
+                try:
+                    coordinate = get_offset_from_header(row)
+                    continue    # go to next row
+                except IndexError:
+                    # row is not a header, continue with
+                    # checking coordinate.
+                    pass
             if coordinate in gerp_dic[chromo]:
                 # coordinate matches coordinate in gerpdic, 
                 # retrieve its RS score.
@@ -191,15 +194,19 @@ def add_rs_scores_to_gerp_dic(gerp_dic, chromo, gerp_dir, queue_obj,
                     sys.exit()
                 # Update coordinat gerp dic with rs score
                 gerp_dic[chromo][coordinate] = rs_score
+                print 'Score %s for coordinate %s' %(rs_score, coordinate)
                 update_count += 1
+                coordinate += 1
             elif coordinate > max_coord:
+                coordinate += 1
                 break    # no need to iterate, we've got all our RS scores.
             else:
+                coordinate += 1
                 continue    # didnt match chromo, but should still iterate.
-    print '%s scores extracted for chromosome: %s' \
-        %(update_count, chromo)  
     queue_obj.put((gerp_dic[chromo], chromo))    # for multiprocessing
-    return
+    print '%s scores extracted for chromosome: %s' \
+        %(update_count, chromo)
+    return None
 
 def get_rs_score_subkey():
     rs_score_subkey = 'avg_rs_score'
@@ -282,6 +289,9 @@ def main():
     parser.add_option('-t', '--conservation_type', dest='cons_type',
                       default='rs',
                       help='Either "rs" or "phastcons"')
+    parser.add_option('-m', '--multiprocessing', dest='multiprocessing',
+                      default=True,
+                      help='True or False. Sets multiprocessing or not.')
     (options, args) = parser.parse_args()
     if len(args) < 2:
         print 'Incorrect number of parameters specified.'
@@ -321,19 +331,22 @@ def main():
         process_list = []
         # For each chromosome, open relevant gerp file and retrieve
         # RS scores associated with the coordinates.
+        print chr_list
         for chromosome in chr_list:
-            print 'Calculating RS scores for %s' %chromosome
             p = Process(target=add_rs_scores_to_gerp_dic,
                         args=(gerp_dic, chromosome, gerp_dir, q, cons_type))
             process_list.append(p)
             p.start()
-        
+            print 'Calculating RS scores for %s' %chromosome
+        print 'Finsihed calculating RS scores.'
         for _ in chr_list:
             # Update dic for every process that started.
             # the actual chromosoem doesn't matter. It's the
             # number of iterations that matter.
             (gerp_dic_chromo, chromo) = q.get()
+            print 'Updating dictionary for chromo: %s' %chromo
             # Find which chromosome this came from by looking at key
+            print gerp_dic_chromo
             gerp_dic[chromo].update(gerp_dic_chromo)
             
         # Wait for all threads to be done before continuing.
