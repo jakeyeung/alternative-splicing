@@ -62,10 +62,12 @@ def plot_bar_plot(vector1, vector2, xticks_vector, ylabel, title,
     
     # Adjust yaxis and title to 25 font
     for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
-        item.set_fontsize(25)
+        item.set_fontsize(50)
+    
     # Adjust xtick labels to 25 font
-    for i in ax.get_xticklabels():
-        i.set_fontsize(25)
+    for i in (ax.get_xticklabels() + [ax.yaxis.label]):
+        i.set_fontsize(30)
+    
     
     # add legend
     ax.legend((rects1[0], rects2[0]), (label1, label2), loc='upper left')
@@ -74,7 +76,7 @@ def plot_bar_plot(vector1, vector2, xticks_vector, ylabel, title,
     ax.grid(True)
     
     # rotate ticks
-    plt.xticks(rotation=70)
+    plt.xticks(rotation=90)
     plt.show()
     
     # optional: add text
