@@ -9,7 +9,25 @@ import matplotlib.pyplot as plt
 from scipy.stats import gaussian_kde
 import numpy as np
 import sys
+import collections
 
+def plot_hline_segments(starts, stops, ypos, colors, labels,
+                        xlim=[-10, 450]):
+    '''
+    Plot horizonatl line segments, start and stops represent
+    lists containing xmin and xmax of line segment.
+    ypos is list of ypositions
+    colors is list of colors
+    xlim is list of length 2 consisting of [xmin, xmax]
+    '''
+    for start, stop, y, label, color in \
+        zip(starts, stops, ypos, labels, colors):
+        plt.hlines(y=y, xmin=start, xmax=stop, label=label, color=color)
+    handles, labels = plt.gca().get_legend_handles_labels()
+    by_label = collections.OrderedDict(zip(labels, handles))
+    plt.legend(by_label.values(), by_label.keys())
+    plt.xlim(xlim)
+    plt.show()
 
 def plot_histogram(values_list, n_bins, mytitle, mylabel):
     '''
@@ -21,10 +39,13 @@ def plot_histogram(values_list, n_bins, mytitle, mylabel):
     plt.title(mytitle)
 
 def plot_density(values_lists, mytitle='mytitle', labels_lists=['lab1', 'lab2'],
+                 colors_list = ['blue', 'green'],
                  xlabel='xlabel', ylabel='ylabel',
                  xmin=0, xmax=400,
                  smoothness=0.2,
-                 drawvline=False):
+                 drawvline=False,
+                 legend_pos=2,
+                 showplot=True):
     '''
     Given list of values, plot histogram.
     Takes as input a list of lists, and each 
@@ -38,8 +59,7 @@ def plot_density(values_lists, mytitle='mytitle', labels_lists=['lab1', 'lab2'],
     matplotlib.rc('font', **font)
     size=50    # fontsize
     
-    colors = ['blue', 'green']
-    for values_list, mylabel, color in zip(values_lists, labels_lists, colors):
+    for values_list, mylabel, color in zip(values_lists, labels_lists, colors_list):
         density = gaussian_kde(values_list)
         density.covariance_factor = lambda : smoothness
         density._compute_covariance()
@@ -51,11 +71,15 @@ def plot_density(values_lists, mytitle='mytitle', labels_lists=['lab1', 'lab2'],
     plt.xlabel(xlabel, fontsize=size)
     plt.xticks(fontsize=size)
     plt.yticks(fontsize=size)
-    plt.legend(loc=2, prop={'size': size})
+    plt.legend(loc=legend_pos, prop={'size': size/2.})
     # Draw dotted vertical line, optional
     if drawvline is not False:
         plt.axvline(x=drawvline, color='black', linestyle='dashed')
-    plt.show()
+    if showplot:
+        plt.show()
+        return None
+    else:
+        return None
     
 def plot_barplot(values_list, mytitle, mylabels, ylabel, 
                  mytext1, mytext2, mytext3, 
