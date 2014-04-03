@@ -73,7 +73,7 @@ def plot_bar_plot(vector1, vector2, xticks_vector, ylabel, title,
     ax.legend((rects1[0], rects2[0]), (label1, label2), loc='upper left')
     
     # add grid
-    ax.grid(True)
+    ax.grid(False)
     
     # rotate ticks
     plt.xticks(rotation=90)
