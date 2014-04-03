@@ -42,7 +42,7 @@ def add_rectangles(rect_start, height=0.002, length=10, color='orange'):
              Path.CLOSEPOLY,
              ]
     path = Path(verts, codes)
-    patch = patches.PathPatch(path, facecolor=color, lw=2)
+    patch = patches.PathPatch(path, facecolor=color, lw=1)
     return patch
 
 def main():
@@ -82,13 +82,13 @@ def main():
     offset_length = 100
     offsets = [0, 110, 230, 340, 450]
     plot_settings_dic = {'intron_1_5p': {'offset': offsets[0], 
-                                         'color': ['green', 'blue', 'cyan']},
+                                         'color': ['green', '#CC6666', 'cyan']},
                          'intron_1_3p': {'offset': offsets[1], 
                                          'color': ['magenta']},
                          'intron_2_5p': {'offset': offsets[2], 
                                          'color': ['red']},
                          'intron_2_3p': {'offset': offsets[3], 
-                                         'color': ['black', 'yellow']}}
+                                         'color': ['#33CCCC', 'black']}}
     # collect plot information: start, end, color, y position
     # into a plot dic.
     
@@ -137,7 +137,8 @@ def main():
             starts_list.append(density_plot_dic[motif_number]['densitystarts'])
         # add number of sites in labels
         labels_with_nsites = []
-        for labellist, startlist in zip(labels_list, starts_list):
+        motif_labels = ['Motif %s' %n for n in range(1, len(starts_list) + 1)]
+        for labellist, startlist in zip(['Motif 1', 'Motif 2'], starts_list):
             n_sites = len(startlist)
             labels_with_nsites.append('%s (%s sites)' %(labellist, n_sites))
         for startlist in starts_list:
@@ -161,12 +162,12 @@ def main():
         iends = [offsets[1] - rect_length, offsets[2] - rect_length, offsets[3] - rect_length, offsets[4] - rect_length]
         for start, end in zip(istarts, iends):
             plt.hlines(y=-rect_height/2., xmin=start, xmax=end, 
-                       color='black', linewidths=5)
+                       color='black', linewidths=1.5)
         # draw vertical lines representing break in intron
         breakstarts = [iends[0], istarts[1], iends[2], istarts[3]]
         for bstart in breakstarts:
             plt.vlines(bstart, ymin=-rect_height, ymax=0, 
-                       color='black', linewidths=3)
+                       color='black', linewidths=1)
         plot_functions.plot_density(values_lists=starts_list,
                                     labels_lists=labels_with_nsites,
                                     colors_list=colors_list,
