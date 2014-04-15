@@ -81,14 +81,19 @@ def main():
     # init offsetters
     offset_length = 100
     offsets = [0, 110, 230, 340, 450]
+    '''
+    Set Motif 1 to #CC6666, Motif 2 to #33CCCC Motif 3 to "green"
+    '''
+    
     plot_settings_dic = {'intron_1_5p': {'offset': offsets[0], 
-                                         'color': ['green', '#CC6666', 'cyan']},
+                                         'color': ['#CC6666', '#CC6666', 'cyan']},
                          'intron_1_3p': {'offset': offsets[1], 
-                                         'color': ['magenta']},
+                                         'color': ['green']},
                          'intron_2_5p': {'offset': offsets[2], 
                                          'color': ['red']},
                          'intron_2_3p': {'offset': offsets[3], 
                                          'color': ['#33CCCC', 'black']}}
+                        
     # collect plot information: start, end, color, y position
     # into a plot dic.
     
@@ -138,7 +143,7 @@ def main():
         # add number of sites in labels
         labels_with_nsites = []
         motif_labels = ['Motif %s' %n for n in range(1, len(starts_list) + 1)]
-        for labellist, startlist in zip(['Motif 1', 'Motif 2'], starts_list):
+        for labellist, startlist in zip(motif_labels, starts_list):
             n_sites = len(startlist)
             labels_with_nsites.append('%s (%s sites)' %(labellist, n_sites))
         for startlist in starts_list:

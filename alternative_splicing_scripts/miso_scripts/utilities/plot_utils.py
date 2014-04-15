@@ -7,6 +7,7 @@ Created on 2014-01-21
 from matplotlib_venn import venn2, venn3
 import matplotlib
 import matplotlib.pyplot as plt
+import numpy as np
 
 def plot_three_set_venn(set1, set2, set3, 
                         adj_params_dic, mycolors=('r', 'g', 'b'), 
@@ -97,6 +98,60 @@ def plot_two_set_venn_diagram(Ab, aB, AB, set_labels=None):
     '''
     venn2(subsets=(Ab, Ab, AB), set_labels=set_labels)
     plt.show()
+    
+def plot_bar_plot(vector1, xticks_vector, colors, ylabel, title,
+                  label1, width=0.35, text_pos=0.2, stacked=True):
+    '''
+    Plots barplot, bars stick together by xticks.
+    
+    Inputs:
+    vector1: vector of floats1
+    vector2: vector of floats2
+    xticks_vector: xticks label, should match vector1 and vector2.
+    ylabel: string to label y axis
+    title: string to label title
+    
+    width: width of bars
+    text_pos: how high from top of rectangle shoudl text be
+    '''
+    # Set matplotlib font size globally
+    font = {'family': 'sans',
+            'sans-serif': 'Arial'}
+    matplotlib.rc('font', **font)
+    
+    ind = np.arange(len(vector1))
+    
+    fig = plt.figure()
+    # Fill whitespace in the margins by adjusting subplot
+    fig.subplots_adjust(bottom=0.33)
+    fig.subplots_adjust(left=0.08)
+    fig.subplots_adjust(right=0.99)
+    fig.subplots_adjust(top=0.95)
+    ax = fig.add_subplot(111)
+    
+    ax.bar(ind, vector1, width, color=colors)
+    # add some
+    ax.set_ylabel(ylabel)
+    ax.set_title(title)
+    ax.set_xticks(ind+width/3.)
+    ax.set_xticklabels(xticks_vector)
+    
+    # Adjust yaxis and title to 25 font
+    for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
+        item.set_fontsize(40)
+    
+    # Adjust xtick labels to 25 font
+    for i in (ax.get_xticklabels() + [ax.yaxis.label]):
+        i.set_fontsize(40)
+    
+    # add grid
+    ax.grid(False)
+    
+    # rotate ticks
+    plt.xticks(rotation=70)
+    plt.show()
+    
+    return None
     
 if __name__ == '__main__':
     #plot_two_set_venn_diagram(3, 2, 1, set_labels=['set1', 'set2'])
