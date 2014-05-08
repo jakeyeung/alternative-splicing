@@ -98,7 +98,9 @@ def try_get_samp_diff(samp1_avg, samp2_avg):
     else:
         return None
 
-def index_lfq_data(lfq_filename, mydic, options, filter_out_missing_data=False):
+def index_lfq_data(lfq_filename, mydic, 
+                   options=None, lfq_colnames=None, 
+                   gene_colname=None, filter_out_missing_data=False):
     '''
     Read lfq filename and store as dictionary.
     dic format:
@@ -109,13 +111,37 @@ def index_lfq_data(lfq_filename, mydic, options, filter_out_missing_data=False):
     filter_out_missing_data = False by default. This means it will
     store data even if it has missing NAs.
     If True, it will only take values when samp_diff returns non-None.
+    
+    *** Column name specifications: either options from optparse
+    OR lfq_colnames, gene_colnames. If you use this function
+    outside of this main() (i.e., you import it to do another thing), 
+    then consider not using options but
+    inputting lfq_colnames and gene_colnames because option lately
+    will raise error. ***
+    
+    #TODO: this is a hack. I will probably not fix this, but it's 
+    an ugly hack.
+    
+    Options is an object from optparse that contains lfq colnames.
+    If you do not put an options (options = None), then you must
+    specify lfq_colnames and gene_colnames.
+    
+    lfq_colnames = [samp1_lfq_colname1, samp1_lfq_colname1,
+         samp2_lfq_colname1, samp2_lfq_colname2]
+    gene_colnames = gene colname 
     '''
-    # Define column names
-    samp1_lfq_colname1, \
-    samp1_lfq_colname2, \
-    samp2_lfq_colname1, \
-    samp2_lfq_colname2, \
-    gene_colname = get_lfq_colnames(options)
+    if options != None:
+        # Define column names
+        samp1_lfq_colname1, \
+        samp1_lfq_colname2, \
+        samp2_lfq_colname1, \
+        samp2_lfq_colname2, \
+        gene_colname = get_lfq_colnames(options)
+    else:
+        samp1_lfq_colname1 = lfq_colnames[0]
+        samp1_lfq_colname2 = lfq_colnames[1]
+        samp2_lfq_colname1 = lfq_colnames[2]
+        samp2_lfq_colname2 = lfq_colnames[3]
     
     # Define keynames
     lfq_data_key, _, lfq_diff_key, _ = \
