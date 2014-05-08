@@ -422,7 +422,7 @@ def main():
         '\nThree arguments must be specified in command line:\n'\
         '1) LFQ filename, containing LFQ intensities and two replicates.\n'\
         '2) Gene exprs filename, read count data.\n'\
-        '3) Output filename\n'
+        '3) AS status of genes (miso output)\n'
     parser = OptionParser(usage=usage)
     
     # colnames for lfq data
