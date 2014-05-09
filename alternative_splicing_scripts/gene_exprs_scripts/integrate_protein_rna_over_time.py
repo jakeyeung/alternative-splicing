@@ -17,6 +17,7 @@ import sys
 from optparse import OptionParser
 import csv
 from gene_exprs_scripts.integrate_protein_rna_data import is_nan
+from gene_exprs_scripts.utilities.plot_utils import plot_arrows
 
 def try_float_check_nan(mystr):
     '''
@@ -52,7 +53,7 @@ def index_lfq_data_over_time(lfq_filepath,
     # Purpose:
     Returns a dictionary of form:
      
-    lfq_dic = {gene: {lfq_subkey: [samp1, samp2, samp3]}...}
+    lfq_dic = {gene: [samp1, samp2, samp3],...}
      
     LFQ data are in duplicates. 3 samples, 2 duplicates.
      
@@ -67,8 +68,8 @@ def index_lfq_data_over_time(lfq_filepath,
     these 'nan' to float unless specified.
     '''
     lfq_dic = {}
-    lfq_subkey = 'lfq_intensity'
      
+    gene_count = 0
     with open(lfq_filepath, 'rb') as lfq_file:
         lfq_reader = csv.reader(lfq_file, delimiter='\t')
         # get headers from first row
@@ -82,7 +83,8 @@ def index_lfq_data_over_time(lfq_filepath,
                     # skip genes that are empty strings.
                     continue
                 # init gene in subdic with empty list
-                lfq_dic[gene] = {lfq_subkey: []}
+                lfq_dic[gene] = []
+                gene_count += 1
                 
                 # get LFQ intensities for each sample. 
                 # note: each sample has 2 duplicates (denoted a, b).
@@ -92,7 +94,8 @@ def index_lfq_data_over_time(lfq_filepath,
                         get_tup_check_nan(row[header.index(col_pair[0])],
                                           row[header.index(col_pair[1])],
                                           nan_to_float=nan_to_float)
-                    lfq_dic[gene][lfq_subkey].append(samp_tup)
+                    lfq_dic[gene].append(samp_tup)
+    print '%s genes indexed to lfq_dic' %gene_count
     return lfq_dic
 
 def index_mrna_data_over_time(mrna_filename,
@@ -102,10 +105,9 @@ def index_mrna_data_over_time(mrna_filename,
     Reads mrna_filename, takes mrna expressions from
     specified columns. Outputs dictionary of form:
     
-    {gene: {subkey: [samp1exprs, samp2exprs, samp3exprs...]}}
+    {gene: [samp1exprs, samp2exprs, samp3exprs...]}
     '''
     outdic = {}
-    subkey = 'mrna_intensity'
      
     with open(mrna_filename, 'rb') as mrna_file:
         mrna_reader = csv.reader(mrna_file, delimiter='\t')
@@ -113,12 +115,12 @@ def index_mrna_data_over_time(mrna_filename,
         for row in mrna_reader:
             gene = row[header.index(gene_colname)]
             # init subdic with empty list inside subkey
-            outdic[gene] = {subkey: []}
+            outdic[gene] = []
             # get exprs from each sample
             for colname in mrna_exprs_colnames:
                 gene_exprs = float(row[header.index(colname)])
                 # put gene exprs into outdic
-                outdic[gene][subkey].append(gene_exprs)
+                outdic[gene].append(gene_exprs)
     return outdic
 
 def count_n_nans(tup):
@@ -191,6 +193,36 @@ def tup_to_avg(tup_lst, assign_nans='NaN'):
         lst.append(avg)
     return lst
 
+def get_arrows(start, end):
+    '''
+    Get coordinates from (start, end) pair
+    and return coordinates that are required for arrows() in matplotlib.
+    
+    arrows() requires start of (x, y) and also (dx, dy).
+    
+    e.g.
+    Given
+    start = (1,4)
+    end = (2,5)
+    Return
+    x = 1, y=4, dx = 1, dy = 1
+    
+    Assumes length of 2 for start and end
+    '''
+    x = start[0]
+    y = start[1]
+    x_end = end[0]
+    y_end = end[1]
+    dx = x_end - x
+    dy = y_end - y
+    return x, y, dx, dy
+
+def centre_exprs(lst, subtract_val=0):
+    '''
+    Takes a lst, and subtracts each element in list by subtract_val
+    '''
+    return [i-subtract_val for i in lst]
+
 def main():
     usage = 'usage: %prog [opt] lfq_filename gene_exprs_filename output_filename'\
         '\nThree arguments must be specified in command line:\n'\
@@ -244,7 +276,7 @@ def main():
     lfq_filename = args[0]
     gene_exprs_filename = args[1]
     
-    # index lfq data
+    #------------------------------------------------------------ index lfq data
     lfq_colnames = [(options.col1a, options.col1b), 
                     (options.col2a, options.col2b), 
                     (options.col3a, options.col3b)]
@@ -254,14 +286,14 @@ def main():
                                        nan_to_float=False)
     print 'lfq data indexed from file: %s' %lfq_filename
     
-    # lfq data is in tupled list, condense it to a single value
+    #--------------- # lfq data is in tupled list, condense it to a single value
     for gene in lfq_dic:
         # overwrite tup_lst into just a list by converting
         # tuples to a single value (the avg)
-        lfq_dic[gene]['lfq_intensity'] = \
-            tup_to_avg(lfq_dic[gene]['lfq_intensity'], assign_nans='NaN')
+        lfq_dic[gene] = \
+            tup_to_avg(lfq_dic[gene], assign_nans='NaN')
             
-    # index mrna data
+    #--------------------------------------------------------- # index mrna data
     gene_mrna_colnames = [options.samp1_mrna_colname, 
                           options.samp2_mrna_colname,
                           options.samp3_mrna_colname]
@@ -270,12 +302,42 @@ def main():
                                          options.mrna_gene_colname)
     print 'mrna data indexed from file: %s' %gene_exprs_filename
     
-    # create x-y coordinates for mrna vs lfq plot (x vs y)
-    for gene in lfq_dic:
+    #-------------------- # create x-y coordinates
+    #-----------------------arrowplot for mrna vs lfq plot (x vs y)
+    arrow_params = []    # store arrow params
+    for genecount, gene in enumerate(lfq_dic):
         # iterate lfq_dic, not mrna_dic because there will be less iterations
         # check mrna_dic contains gene
         if gene not in mrna_dic:
             continue
+        # check no NaNs in protein exprs
+        protein_exprs = lfq_dic[gene]
+        n_nans, numbers_i = count_n_nans(protein_exprs)
+        if n_nans != 0:
+            #TODO: can we get better (more) data by handling NaNs better?
+            continue    # ignore anything with NaNs for now. 
+        mrna_exprs = mrna_dic[gene]
+        
+        # centre exprs so it begins at 0 always. Subtract each element in
+        # list by first element in list.
+        protein_exprs = [i - protein_exprs[0] for i in protein_exprs]
+        mrna_exprs = [i - mrna_exprs[0] for i in mrna_exprs]
+        
+        # n-1 arrows for n expressions, so iterate n-1 times.
+        # store arrows in list
+        arrow_sublst = []
+        for i in xrange(len(mrna_exprs) - 1):
+            xy_start = [mrna_exprs[i], protein_exprs[i]]
+            xy_end = [mrna_exprs[i+1], protein_exprs[i+1]]
+            x, y, dx, dy = get_arrows(xy_start, xy_end)
+            # store arrow parameters in a tuple
+            arrow_sublst.append((x, y, dx, dy))
+        arrow_params.append(arrow_sublst)
+        genecount += 1
+    print 'Gene count: %s' %genecount
+    
+    #--------------------------------------------------------------- plot arrows
+    plot_arrows(arrow_params)
         
     
 if __name__ == '__main__':
