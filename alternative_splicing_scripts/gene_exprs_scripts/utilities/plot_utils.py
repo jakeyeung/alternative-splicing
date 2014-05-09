@@ -7,6 +7,45 @@ Created on 2013-12-17
 import matplotlib.pyplot as plt
 import interactive_plot_utils
 
+def plot_arrows(params_lst):
+    '''
+    Given a list of tuples, each tuple containing x, y, dx, dy
+    draw a plot of arrows.
+    '''
+    plt.xlim(-20, 20)
+    plt.ylim(-10, 10)
+    for tup_lst in params_lst:
+        # tup_lst[0] specifies first arrow
+        # tup_lst[1] specifies second arrow
+        arrow1_params = tup_lst[0]
+        arrow2_params = tup_lst[1]
+        
+        xpos1 = arrow1_params[0]
+        ypos1 = arrow1_params[1]
+        xlength1 = arrow1_params[2]
+        ylength1 = arrow1_params[3]
+        xpos2 = arrow2_params[0]
+        ypos2 = arrow2_params[1]
+        xlength2 = arrow2_params[2]
+        ylength2 = arrow2_params[3]
+        
+        # calculate length of combined arrow, use that to calc alpha value
+        normalize_factor = 30.0
+        arrow_length = \
+            (abs(xlength1) + abs(ylength1) + abs(xlength2) + abs(ylength2)) / normalize_factor
+        
+        if arrow_length < 0.1:
+            alpha = 0
+        else:
+            alpha = arrow_length 
+        
+        # plot first arrow, no head
+        plt.arrow(xpos1, ypos1, xlength1, ylength1, alpha=alpha)
+        # plot second head, with head
+        plt.arrow(xpos2, ypos2, xlength2, ylength2, 
+                  fc='k', ec='k', head_width=0.05, head_length=0.1, alpha=alpha)
+    plt.show()
+
 def plot_bubble_plot(x_vector, y_vector, 
                      color_vector,
                      bubble_annotations,
