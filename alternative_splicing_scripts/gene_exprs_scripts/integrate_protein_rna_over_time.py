@@ -16,6 +16,7 @@ uses functions from integrate_protein_rna_data.py
 import sys
 from optparse import OptionParser
 import csv
+from gene_exprs_scripts.integrate_protein_rna_data import is_nan
 
 def try_float_check_nan(mystr):
     '''
@@ -120,20 +121,75 @@ def index_mrna_data_over_time(mrna_filename,
                 outdic[gene][subkey].append(gene_exprs)
     return outdic
 
-def condense_duplicate(lfq_tup_lst, ignore_nans=True):
+def count_n_nans(tup):
+    '''
+    Given a tuple, count how many 'NaN' are in the tuple.
+    
+    Also return a list of indexes locating the non-NaNs.
+    
+    Given tup:
+    (1, 'NaN')
+    
+    Return:
+    n_nans = 1
+    number_indexes = [0]
+    '''
+    n_nans = 0
+    number_indexes = []
+    
+    for i, t in enumerate(tup):
+        if isinstance(t, float) and not is_nan(t):
+            number_indexes.append(i)
+        elif is_nan(t):
+            n_nans += 1
+        elif isinstance(t, str):
+            if t.lower() == 'nan':
+                n_nans += 1
+        else:
+            print 'Warning: unrecognized input: %s' %t
+            print 'Expected a float, "NaN" or nan'
+    return n_nans, number_indexes
+
+def tup_to_avg(tup_lst, assign_nans='NaN'):
     '''
     LFQ data comes in duplicates for each sample.
     
+    Given
     e.g.: [(samp1_dup1, samp1_dup2),..., (sampN_dup1, sampN_dup2)]
     
-    Condense those duplicates to:
-    [samp1, samp2...]
+    Output
+    [avgsamp1, avgsamp2...]
+    
+    where avgsamp1 = mean(samp1_dup1, samp1_dup2)
     
     this will match what mrna data looks like
-    
     Contains options here to handle 'NaNs'
+    
+    If one of the two in tuple is NaN, then take value of non-NaN as mean
+    
+    If both are NaN, assign it as 'NaN' or a value (like a low exprs).
+    
+    assign_nans is option to assign to 'NaN' or some other value.
     '''
-    pass
+    lst = []
+    for tup in tup_lst:
+        # count number of NaNs in the tup and index of the NaN
+        n_nans, number_i_lst = count_n_nans(tup)
+        
+        # three cases, 0, 1 or 2 NaNs.
+        if n_nans == 0:
+            # take avg
+            avg = sum(tup) / float(len(tup))
+        elif n_nans == 1:
+            # take non-NaN value.
+            avg = tup[number_i_lst[0]]
+        elif n_nans == 2:
+            # assign it as assign_nans
+            avg = assign_nans
+        else:
+            print 'Warning: unknown number of NaNs. Expected 0, 1, 2'
+        lst.append(avg)
+    return lst
 
 def main():
     usage = 'usage: %prog [opt] lfq_filename gene_exprs_filename output_filename'\
@@ -200,10 +256,11 @@ def main():
     
     # lfq data is in tupled list, condense it to a single value
     for gene in lfq_dic:
-        lfq_exprs_duplicates = lfq_dic[gene]['lfq_intensity']
-        lfq_exprs = condense_duplicate(lfq_exprs_duplicates)
-        
-        
+        # overwrite tup_lst into just a list by converting
+        # tuples to a single value (the avg)
+        lfq_dic[gene]['lfq_intensity'] = \
+            tup_to_avg(lfq_dic[gene]['lfq_intensity'], assign_nans='NaN')
+            
     # index mrna data
     gene_mrna_colnames = [options.samp1_mrna_colname, 
                           options.samp2_mrna_colname,
@@ -213,8 +270,13 @@ def main():
                                          options.mrna_gene_colname)
     print 'mrna data indexed from file: %s' %gene_exprs_filename
     
-    
     # create x-y coordinates for mrna vs lfq plot (x vs y)
+    for gene in lfq_dic:
+        # iterate lfq_dic, not mrna_dic because there will be less iterations
+        # check mrna_dic contains gene
+        if gene not in mrna_dic:
+            continue
+        
     
 if __name__ == '__main__':
     main()
