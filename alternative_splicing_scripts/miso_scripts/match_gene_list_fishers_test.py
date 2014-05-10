@@ -119,7 +119,7 @@ def main():
     
     print 'Out of %s genes in genelist1, %s matched to genelist2.\nPvalue: %s' \
         %(len(gene_list1), n_in_reg, pvalue)
-    print 'Matched genes:'
+    print 'Matched genes: %s' %len(gene_list2 & gene_list1)
     for g in gene_list2 & gene_list1:
         print g.upper()
         
