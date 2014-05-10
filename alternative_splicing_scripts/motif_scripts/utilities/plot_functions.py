@@ -41,7 +41,7 @@ def plot_histogram(values_list, n_bins, mytitle, mylabel):
 def plot_density(values_lists, mytitle='mytitle', labels_lists=['lab1', 'lab2'],
                  colors_list = ['blue', 'green'],
                  xlabel='xlabel', ylabel='ylabel',
-                 xmin=0, xmax=400,
+                 xmin=0, xmax=400, ymin=0, ymax=0.03,
                  smoothness=0.2,
                  drawvline=False,
                  legend_pos=2,
@@ -71,6 +71,8 @@ def plot_density(values_lists, mytitle='mytitle', labels_lists=['lab1', 'lab2'],
     plt.xlabel(xlabel, fontsize=size)
     plt.xticks(fontsize=size)
     plt.yticks(fontsize=size)
+    plt.xlim(xmin, xmax)
+    plt.ylim(ymin, ymax)
     plt.legend(loc=legend_pos, prop={'size': size/2.})
     # Draw dotted vertical line, optional
     if drawvline is not False:
