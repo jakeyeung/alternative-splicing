@@ -147,6 +147,7 @@ def index_lfq_data(lfq_filename, mydic,
     lfq_data_key, _, lfq_diff_key, _ = \
         get_lfq_mrna_dic_keys()
     
+    na_count = 0
     index_count = 0
     with open(lfq_filename, 'rb') as readfile:
         myreader = csv.reader(readfile, delimiter='\t')
@@ -189,9 +190,11 @@ def index_lfq_data(lfq_filename, mydic,
                                                  samp1_lfq2, 
                                                  samp2_lfq1, 
                                                  samp2_lfq2]}
+                    na_count += 1
                 else:
                     pass
     print '%s non-NA genes (from LFQ data) stored in dic' %index_count
+    print '%s NA genes (from LFQ data) stored in dic' %na_count
     return mydic
 
 def index_mrna_data(mrna_filename, mydic, options, filter_na=False,
