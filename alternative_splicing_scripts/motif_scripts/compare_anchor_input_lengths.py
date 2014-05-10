@@ -71,8 +71,16 @@ def main():
         print sorted(aa)[len(aa)//2]
         print '[min,max] for %s' %id
         print '[%s,%s]' %(min(aa), max(aa))
-    plot_functions.plot_density([aa_lengths0, aa_lengths1])
-    
+    plot_functions.plot_density([aa_lengths0, aa_lengths1], 
+                                mytitle='Density plot of exon lengths',
+                                xlabel='Nucleotide length',
+                                ylabel='Density',
+                                labels_lists=['Cassette Exons', 
+                                             'Constitutively Exons'],
+                                smoothness=0.1,
+                                legend_pos=1,
+                                ymin=0, ymax=0.025,
+                                xmin=0, xmax=200)
     
 if __name__ == '__main__':
     main()
