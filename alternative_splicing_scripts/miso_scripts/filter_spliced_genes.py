@@ -62,6 +62,7 @@ def plot_readcounts(exprs_dic):
         # Log2 transform
         for rc in readcount_lists:
             # readcounts.append(rc)
+            rc += 1
             readcounts.append(math.log(rc, 2))
         # readcounts += readcount_lists
     density = gaussian_kde(readcounts)

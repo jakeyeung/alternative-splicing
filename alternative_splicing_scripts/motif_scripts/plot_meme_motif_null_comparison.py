@@ -56,6 +56,10 @@ def main():
     parser.add_option('-t', '--threshold', dest='score_threshold',
                       default=2.0,
                       help='Float, threshold for what one considers conserved.') 
+    parser.add_option('-y', '--ymax', dest='ymax',
+                      type='float',
+                      default=0.03,
+                      help='Y max for density plot')
     (options, args) = parser.parse_args()
     if len(args) < 2:
         print 'Two arguments need to be specified in command line.\n'
@@ -79,6 +83,7 @@ def main():
                                 xlabel='GERP conservation score',
                                 ylabel='Density',
                                 xmin=-4, xmax=4,
+                                ymax=options.ymax,
                                 smoothness=0.15,
                                 drawvline=score_threshold)
     

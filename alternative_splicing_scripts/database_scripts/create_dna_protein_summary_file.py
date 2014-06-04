@@ -309,8 +309,9 @@ def main():
     parser = OptionParser(usage=usage)
     
     # parse options
-    parser.add_option('-c', '--constitutive_exons', dest='constitutive_exons',
-                      default=False,
+    parser.add_option('-c', '--constitutive_exons', 
+                      action='store_true',
+                      dest='constitutive_exons',
                       help='True/False: if True. Goes into '\
                         'constitutive exon mode.\n'\
                         'Extracts identifiers differently from if it was a \n'\
@@ -322,7 +323,10 @@ def main():
         print 'Not enough args specified.\n%s' %usage
         sys.exit()
     
-    constitutive_exon_mode = str2bool(options.constitutive_exons)
+    try:
+        constitutive_exon_mode = str2bool(options.constitutive_exons)
+    except AttributeError:
+        constitutive_exon_mode = options.constitutive_exons
     ensdictionary = args[0]
     dna_fasta = args[1]
     if not constitutive_exon_mode:
