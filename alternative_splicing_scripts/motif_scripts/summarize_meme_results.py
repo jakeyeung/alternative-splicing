@@ -417,7 +417,7 @@ def get_tomtom_motifs(tomtom_dic, meme_html_path):
         get_region_of_interest_from_filepath(meme_html_path, incl_excl=True)
     motif_matches = tomtom_dic[region]['motif_number']
     if len(motif_matches) > 1:
-        motif_matches = motif_matches.sort()
+        motif_matches.sort()
     # order in ascending order, might be important.
     return motif_matches
 
