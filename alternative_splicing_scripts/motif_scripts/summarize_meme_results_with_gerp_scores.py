@@ -331,7 +331,6 @@ def main():
         process_list = []
         # For each chromosome, open relevant gerp file and retrieve
         # RS scores associated with the coordinates.
-        print chr_list
         for chromosome in chr_list:
             p = Process(target=add_rs_scores_to_gerp_dic,
                         args=(gerp_dic, chromosome, gerp_dir, q, cons_type))
