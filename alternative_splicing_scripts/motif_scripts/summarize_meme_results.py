@@ -391,9 +391,12 @@ def init_dic(mydic, keys_list):
     '''
     Given a dictionary, create a key:value where
     key is in keys_list and value is empty list.
+    
+    Note: only create an empty list IF key does not exist in dic
     '''
     for key in keys_list:
-        mydic[key] = []
+        if key not in mydic:
+            mydic[key] = []
     return mydic
 
 def get_csv_from_list(mylist):
