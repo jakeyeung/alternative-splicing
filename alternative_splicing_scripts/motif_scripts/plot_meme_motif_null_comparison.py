@@ -11,7 +11,7 @@ from optparse import OptionParser
 import pickle
 from scipy.stats import fisher_exact
 import matplotlib.pyplot as plt
-from motif_scripts.utilities import plot_functions, gerp_utilities
+from utilities import plot_functions, gerp_utilities
 
 def get_dic_from_pklpath(pklpath):
     '''
