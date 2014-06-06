@@ -345,7 +345,6 @@ def main():
             (gerp_dic_chromo, chromo) = q.get()
             print 'Updating dictionary for chromo: %s' %chromo
             # Find which chromosome this came from by looking at key
-            print gerp_dic_chromo
             gerp_dic[chromo].update(gerp_dic_chromo)
             
         # Wait for all threads to be done before continuing.
