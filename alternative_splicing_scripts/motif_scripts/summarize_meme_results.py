@@ -466,7 +466,8 @@ def update_dic_with_motifs(outdic, meme_html_path, region_of_interest,
                            null_mode=False,
                            null_length=9,
                            tomtom_mode=False,
-                           tomtom_dic=None):
+                           tomtom_dic=None,
+                           use_entire_intron=False):
     '''
     Loop through meme html file, for every motif in meme html file, retrieve
     all the miso events that match the motif as well as
@@ -534,16 +535,20 @@ def update_dic_with_motifs(outdic, meme_html_path, region_of_interest,
                         motif_rel_start, motif_rel_end = \
                             get_motif_start_end(motif_line)
                     else:
-                        # In null mode: randomly pick number as
-                        # start (bounded by seq_length).
-                        # end is start + null_length
-                        lower_bnd = 0
-                        #TODO: upper_bnd cannot be negative!
-                        upper_bnd = seq_lengths_dic[miso_event] - null_length + 1
-                        motif_rel_start = \
-                            random.randrange(lower_bnd, upper_bnd)
-                        motif_rel_end = motif_rel_start + null_length
-                        
+                        if use_entire_intron:
+                            motif_rel_start = 0
+                            motif_rel_end = seq_lengths_dic[miso_event]
+                        else:
+                            # In null mode: randomly pick number as
+                            # start (bounded by seq_length).
+                            # end is start + null_length
+                            lower_bnd = 0
+                            #TODO: upper_bnd cannot be negative!
+                            upper_bnd = seq_lengths_dic[miso_event] - null_length + 1
+                            motif_rel_start = \
+                                random.randrange(lower_bnd, upper_bnd)
+                            motif_rel_end = motif_rel_start + null_length
+                            
                     chromo, seq_start, seq_end = \
                         get_seq_start_end_from_miso_event(miso_event, 
                                                           region_of_interest,
@@ -776,6 +781,8 @@ def main():
     parser.add_option('--null_length', dest='null_length',
                       default=9,
                       help='Length of "null" motifs. Default is 9.')
+    parser.add_option('-A', '--use_entire_intron', dest='use_entire_intron',
+                      action="store_true", default=False)
     (options, args) = parser.parse_args()
     if len(args) < 2:
         print 'Incorrect number of parameters specified.'
@@ -870,7 +877,8 @@ def main():
                                         null_mode=null_mode,
                                         null_length=null_length,
                                         tomtom_mode=tomtom_mode,
-                                        tomtom_dic=tomtom_dic)
+                                        tomtom_dic=tomtom_dic,
+                                        use_entire_intron=options.use_entire_intron)
     
     subkeys_list = get_dic_subkeys()
     write_outdic_to_file(outdic, output_path, subkeys_list)
