@@ -179,10 +179,12 @@ def main():
                                     mytitle='Intronic distribution of MEME motifs',
                                     xlabel='Genic region',
                                     ylabel='Density',
-                                    xmin=0,
-                                    xmax=440,
+                                    xmin=-10,
+                                    xmax=450,
                                     smoothness=0.1,
                                     legend_pos=2,
+                                    ymin=-0.01,
+                                    ymax=0.05,
                                     showplot=False)
         # dont show xaxis
         plt.setp(ax.get_xticklabels(), visible=False)
