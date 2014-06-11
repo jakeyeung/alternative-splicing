@@ -80,15 +80,16 @@ def main():
     event_count = 0    # used as y-axis locater...
     # init offsetters
     offset_length = 100
-    offsets = [0, 110, 230, 340, 450]
+    offsets = [0, 110, 220, 330, 440]
     '''
     Set Motif 1 to #CC6666, Motif 2 to #33CCCC Motif 3 to "green"
+    The colors you want will depend on the discovered meme motif number.
     '''
     
     plot_settings_dic = {'intron_1_5p': {'offset': offsets[0], 
-                                         'color': ['#CC6666', '#CC6666', 'cyan']},
+                                         'color': ['#CC6666', '#CC6666', '#CC6666']},
                          'intron_1_3p': {'offset': offsets[1], 
-                                         'color': ['green']},
+                                         'color': ['green', 'black', 'yellow']},
                          'intron_2_5p': {'offset': offsets[2], 
                                          'color': ['red']},
                          'intron_2_3p': {'offset': offsets[3], 
@@ -179,12 +180,12 @@ def main():
                                     mytitle='Intronic distribution of MEME motifs',
                                     xlabel='Genic region',
                                     ylabel='Density',
-                                    xmin=-10,
+                                    xmin=-20,
                                     xmax=450,
                                     smoothness=0.1,
                                     legend_pos=2,
                                     ymin=-0.01,
-                                    ymax=0.05,
+                                    ymax=0.075,
                                     showplot=False)
         # dont show xaxis
         plt.setp(ax.get_xticklabels(), visible=False)
