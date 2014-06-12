@@ -16,7 +16,7 @@ import pickle
 import matplotlib.pyplot as plt
 from matplotlib.path import Path
 import matplotlib.patches as patches
-from motif_scripts.utilities import plot_functions, gerp_utilities
+from utilities import plot_functions, gerp_utilities
 from plot_meme_motif_null_comparison import get_dic_from_pklpath
 
 def add_rectangles(rect_start, height=0.002, length=10, color='orange'):
@@ -53,15 +53,15 @@ def main():
     parser.add_option('-r', '--plot_raw_locations', dest='raw_locations',
                       default=False,
                       help='Boolean value. True=horizontal '\
-                        'line segment plot. False=density plot') 
+                        'line segment plot. False=density plot')
     (options, args) = parser.parse_args()
-    
+
     if len(args) != 1:
         print 'Requires 1 argument to be specified in commandline'
         print usage
         sys.exit()
     pklpath = args[0]
-    
+
     if options.raw_locations in ['True', 'TRUE', True]:
         raw_locations = True
         print 'Plotting raw locations...'
@@ -72,11 +72,11 @@ def main():
         print '--plot_raw_locations option must be '\
             'True or False. %s found.' %options.raw_locations
         sys.exit()
-    
-    # get dics from pkl 
+
+    # get dics from pkl
     meme_dic = get_dic_from_pklpath(pklpath)
     print meme_dic
-    
+
     event_count = 0    # used as y-axis locater...
     # init offsetters
     offset_length = 100
@@ -85,19 +85,19 @@ def main():
     Set Motif 1 to #CC6666, Motif 2 to #33CCCC Motif 3 to "green"
     The colors you want will depend on the discovered meme motif number.
     '''
-    
-    plot_settings_dic = {'intron_1_5p': {'offset': offsets[0], 
+
+    plot_settings_dic = {'intron_1_5p': {'offset': offsets[0],
                                          'color': ['#CC6666', '#CC6666', '#CC6666']},
-                         'intron_1_3p': {'offset': offsets[1], 
+                         'intron_1_3p': {'offset': offsets[1],
                                          'color': ['green', 'black', 'yellow']},
-                         'intron_2_5p': {'offset': offsets[2], 
+                         'intron_2_5p': {'offset': offsets[2],
                                          'color': ['red']},
-                         'intron_2_3p': {'offset': offsets[3], 
+                         'intron_2_3p': {'offset': offsets[3],
                                          'color': ['#33CCCC', 'black']}}
-                        
+
     # collect plot information: start, end, color, y position
     # into a plot dic.
-    
+
     plot_dic = {'start': [],
                 'end': [],
                 'color': [],
@@ -120,11 +120,11 @@ def main():
                 print 'Ran out of colors, using yellow as default.'
                 color = 'yellow'
             for key, value in \
-                zip(['start', 'end', 'color', 'ypos', 'motif_number'], 
+                zip(['start', 'end', 'color', 'ypos', 'motif_number'],
                     [start, end, color, ypos, '%s:Motif %s'%(region, motif_number)]):
                 plot_dic[key].append(value)
             event_count += 1
-            
+
     if raw_locations is False:
         # begin: get lists of starts, colors, labels for density plot
         density_plot_dic = {}
@@ -167,12 +167,12 @@ def main():
         istarts = [offsets[0], offsets[1], offsets[2], offsets[3]]
         iends = [offsets[1] - rect_length, offsets[2] - rect_length, offsets[3] - rect_length, offsets[4] - rect_length]
         for start, end in zip(istarts, iends):
-            plt.hlines(y=-rect_height/2., xmin=start, xmax=end, 
+            plt.hlines(y=-rect_height/2., xmin=start, xmax=end,
                        color='black', linewidths=1.5)
         # draw vertical lines representing break in intron
         breakstarts = [iends[0], istarts[1], iends[2], istarts[3]]
         for bstart in breakstarts:
-            plt.vlines(bstart, ymin=-rect_height, ymax=0, 
+            plt.vlines(bstart, ymin=-rect_height, ymax=0,
                        color='black', linewidths=1)
         plot_functions.plot_density(values_lists=starts_list,
                                     labels_lists=labels_with_nsites,
@@ -191,13 +191,13 @@ def main():
         plt.setp(ax.get_xticklabels(), visible=False)
         plt.show()
     else:
-        plot_functions.plot_hline_segments(starts=plot_dic['start'], 
-                                           stops=plot_dic['end'], 
-                                           ypos=plot_dic['ypos'], 
-                                           colors=plot_dic['color'], 
+        plot_functions.plot_hline_segments(starts=plot_dic['start'],
+                                           stops=plot_dic['end'],
+                                           ypos=plot_dic['ypos'],
+                                           colors=plot_dic['color'],
                                            labels=plot_dic['motif_number'])
-    
-    
-    
+
+
+
 if __name__ == '__main__':
     main()
