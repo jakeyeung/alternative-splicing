@@ -9,4 +9,5 @@
 *.txt
 *.args
 *.out
+*.bak
 shellscripts/
