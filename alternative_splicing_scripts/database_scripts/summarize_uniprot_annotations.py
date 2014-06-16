@@ -114,8 +114,11 @@ def get_features_dic(swissprot_annot_fpath, inclexcl_dic,
             try:
                 incl_or_excl = inclexcl_dic[event]
             except KeyError:
-                print 'Could not find %s in incl_excl_dic' %event
-                sys.exit()
+                # This is a hack so the code can generate plots 
+                # for constitutive exons
+                print 'Could not find if in inclusion or exclusion. '\
+                    'Ignore this if you are running this on a constitutive set'
+                incl_or_excl = incl_str
             # put feature into features dic
             if incl_or_excl == incl_str:
                 subdic = count_n_feature(features_dic[incl_str], feature)
@@ -348,8 +351,8 @@ def main():
         
     if normalize:
         # normalize by incl excl counts
-        incl_count = [100 * float(i) / n_incl for i in incl_count]
-        excl_count = [100 * float(i) / n_excl for i in excl_count]
+        incl_count = [float(i) / n_incl for i in incl_count]
+        excl_count = [float(i) / n_excl for i in excl_count]
     
     # Convert features key to full description
     annot_dic = get_features_annotations(features_list)
