@@ -11,6 +11,7 @@ import sys
 import csv
 from optparse import OptionParser
 from utilities import plot_utils
+from scipy import stats
 
 def get_events(cohort_filename, colname='event_name'):
     '''
@@ -115,6 +116,10 @@ def main():
                         'Adjusts 011 label by +0.03 in x, -0.03 in y\n'\
                         'and adjust 110 label by -0.05 in x, 0.05 in y.\n'\
                         'Adjusting is usually only required for 3 set venns')
+    parser.add_option('-b', '--n_bg_genes', dest='n_bg_genes',
+                      default=12446,
+                      help='Number of genes or events in background. Default 12446,'\
+                        'the number of genes in skipped exons gff3 file.')
     # Parse options
     (options, args) = parser.parse_args()
     
@@ -179,14 +184,26 @@ def main():
     
     else:
         print 'Overlapping genes:'
-        for g in (cohort1_events & cohort2_events):
-            print event_gsymbol_dic[g]
+        # for g in (cohort1_events & cohort2_events):
+        #     print event_gsymbol_dic[g]
+        # do fisher's exact test
+        gene_in_both = len(cohort1_events & cohort2_events)
+        gene_in_1_not_2 = len(cohort1_events) - gene_in_both
+        gene_in_2_not_1 = len(cohort2_events) - gene_in_both
+        gene_in_either_1_2 = gene_in_1_not_2 + gene_in_2_not_1 + gene_in_both
+        gene_in_neither_1_2 = int(options.n_bg_genes) - gene_in_either_1_2
+        
+        fishers_table = [[gene_in_both, gene_in_2_not_1], 
+                         [gene_in_1_not_2, gene_in_neither_1_2]]
+        _, pval = stats.fisher_exact(fishers_table)
+        print 'Fishers exact test pvalue for overlap: %.2e' %pval
         plot_utils.plot_two_set_venn(cohort1_events, 
                                      cohort2_events, 
                                      mycolors=('c', 'y'),
                                      mylabels=[label1, 
                                                label2],
                                      title=title)
+        
     
 if __name__ == '__main__':
     main()
