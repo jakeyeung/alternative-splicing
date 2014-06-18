@@ -114,8 +114,7 @@ def main():
     print 'Fishers exact inputs: \nmatches to list=%s, \nnon matches '\
         'to list=%s, \nmatches to bg=%s, \nnon matches to bg=%s' \
         %(n_in_reg, n_not_in_reg, n_in_reg_bg, n_not_in_reg_bg)
-    _, pvalue = stats.fisher_exact([[n_in_reg, n_not_in_reg], [n_in_reg_bg, n_not_in_reg_bg]],
-                                   alternative='greater')
+    _, pvalue = stats.fisher_exact([[n_in_reg, n_not_in_reg], [n_in_reg_bg, n_not_in_reg_bg]])
     
     print 'Out of %s genes in genelist1, %s matched to genelist2.\nPvalue: %s' \
         %(len(gene_list1), n_in_reg, pvalue)
