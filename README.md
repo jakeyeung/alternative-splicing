@@ -3,7 +3,7 @@ alternative-splicing
 
 This repository contains a number of useful scripts to analyze alternative splicing. Most of these scripts were used to process outputs of MISO. Therefore, these scripts are most useful if you have outputs from MISO to process.
 
-# Brief highlights of this repository:
+# Brief highlights of this repository, with example workflows:
 * [Identify differentially spliced events between two groups of samples using t-test.](#ttest)
 * [Create bed files and fasta files from a list of MISO events.](#bedfasta)
 * [Generate heatmaps of PSI values either in pair-wise comparison or group comparison.](#heatmaps)
@@ -30,10 +30,10 @@ This repository contains a number of useful scripts to analyze alternative splic
 * gplots
 
 ## Cloning repository
+```
 cd dir_to_place_repository
 git clone https://github.com/jakeyeung/alternative-splicing.git
-
-# Example workflows
+```
 
 <a name="ttest"/>
 ## T-test to find differentially spliced events between two groups of samples
@@ -46,7 +46,7 @@ git clone https://github.com/jakeyeung/alternative-splicing.git
 <a name="t_test_miso_output">
 ## 1. Perform t-test on MISO outputs
 
-### Inputs set using flags
+### Inputs for `t_test_miso_output.py`
 * `--group1_file`: textfile containing sample names in group 1
 * `--group2_file`: textfile containing sample names in group 2
 * `--main_dir`: directory containing sample names (should match group 1 and group 2). Inside each directory contains MISO raw outputs (MISO events catalogued by chromosomes) 
@@ -67,7 +67,7 @@ python t_test_miso_output.py --group1_file /path/to/group_1_samples.txt \
 <a name="adjust_pvals">
 ## 2. Adjust p-values for multiple-test correction
 
-### Inputs (positional arguments)
+### Positional arguments for `adjust_pvals.R`
 1. Input file
 2. Output file
 
@@ -79,7 +79,8 @@ Rscript adjust_pvalues.R output_from_t_test.txt pval_adjusted_output_from_t_test
 
 <a name="append_genenames">
 ## 3. Append gene names to output
-### Inputs 
+
+### Positional arguments for `append_genenames.py` 
 1. Input file
 2. Annotations path (gff3 file containing MISO IDs and gene names). One can download the gff3 annotation file from the MISO website
 3. Output file
