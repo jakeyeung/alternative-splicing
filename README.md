@@ -21,6 +21,7 @@ This repository contains a number of useful scripts to analyze alternative splic
 * Python 2.6 or greater
 * SciPy
 * NumPy
+
 ### R
 * R 3.0.0 or greater
 * ggplot2
@@ -28,6 +29,11 @@ This repository contains a number of useful scripts to analyze alternative splic
 * grid
 * RColorBrewer
 * gplots
+
+### Computational biology software
+* [MEME version 4.9.1 or greater](http://meme.nbcr.net/meme/doc/meme-install.html)
+* [ANCHOR](http://anchor.enzim.hu/) 
+* [bedtools](http://bedtools.readthedocs.org/en/latest/)
 
 ## Cloning repository
 ```
@@ -40,10 +46,10 @@ git clone https://github.com/jakeyeung/alternative-splicing.git
 
 ## Typical procedure:
 1. [Perform t-test using `t_test_miso_output.py`.](#t_test_miso_output)
-2. [Adjust p-values for multiple-test correction (Benjamini-Hochberg method) using `adjust_pvalues.R`](adjust_pvals)
-3. [Append gene names to output file](append_genenames)
+2. [Adjust p-values for multiple-test correction (Benjamini-Hochberg method) using `adjust_pvalues.R`](#adjust_pvals)
+3. [Append gene names to output file](#append_genenames)
 
-<a name="t_test_miso_output">
+<a name="t_test_miso_output"/>
 ## 1. Perform t-test on MISO outputs
 
 ### Inputs for `t_test_miso_output.py`
@@ -52,7 +58,7 @@ git clone https://github.com/jakeyeung/alternative-splicing.git
 * `--main_dir`: directory containing sample names (should match group 1 and group 2). Inside each directory contains MISO raw outputs (MISO events catalogued by chromosomes) 
 * `--output_directory`: directory for output
 * `--output_filename`: name of output file
-* `--min_counts: minimum junction read counts in a sample to be considered into a t-test. This value depends on the depth of your RNA-Seq data. Best practices suggest `min_counts` of 10 for a depth in the order of 50 million mapped read pairs
+* `--min_counts`: minimum junction read counts in a sample to be considered into a t-test. This value depends on the depth of your RNA-Seq data. Best practices suggest `min_counts` of 10 for a depth in the order of 50 million mapped read pairs
 
 *Example*
 ```
@@ -64,7 +70,7 @@ python t_test_miso_output.py --group1_file /path/to/group_1_samples.txt \
 							 --min_counts 10
 ```
 
-<a name="adjust_pvals">
+<a name="adjust_pvals"/>
 ## 2. Adjust p-values for multiple-test correction
 
 ### Positional arguments for `adjust_pvals.R`
@@ -77,7 +83,7 @@ cd R
 Rscript adjust_pvalues.R output_from_t_test.txt pval_adjusted_output_from_t_test.txt
 ```
 
-<a name="append_genenames">
+<a name="append_genenames"/>
 ## 3. Append gene names to output
 
 ### Positional arguments for `append_genenames.py` 
@@ -90,3 +96,28 @@ Rscript adjust_pvalues.R output_from_t_test.txt pval_adjusted_output_from_t_test
 cd alternative_splicing_scripts/miso_scripts
 python append_gene_names_to_textfile.py pval_adjusted_file annotations.gff3 output
 ```
+
+<a name="bedfasta"/>
+## Generate bed and fasta files from MISO outputs
+Currently, these scripts only work for MISO outputs for skipped exons/cassette exons.
+
+## Workflow
+Scripts used:
+* `alternative_splicing_scripts/miso_scripts/extract_coordinates_from_miso_summary.py`
+* `alternative_splicing_scripts/miso_scripts/split_beds_into_inclusion_exclusion.py`
+* `alternative_splicing_scripts/fasta_scripts/remove_chr_from_bed_file.py`
+
+Quick and dirty bash script example gluing these scripts together: `example_workflows/get_beds_fastas.full_pipeline.sh`
+
+<a name="heatmaps"/>
+## Generate heatmaps from MISO outputs.
+Works for MISO outputs for any types of alternative splicing.
+
+## Procedure
+1. [Reshape MISO output textfile into a matrix suitable for plotting in R.](#reshape)
+2. [Read matrix file, plot in R.](#plotheatmap)
+
+<a name="reshape"/>
+## 1. Reshape MISO output to matrix
+
+
