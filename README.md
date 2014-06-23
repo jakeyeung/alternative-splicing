@@ -113,7 +113,7 @@ Quick and dirty bash script example gluing these scripts together: `example_work
 
 <a name="heatmaps"/>
 ## Generate heatmaps from MISO outputs.
-Works for MISO outputs for any types of alternative splicing.
+Works for MISO outputs for any types of alternative splicing. These scripts allow visualization of MISO outputs (e.g. differentially spliced events) in a heatmap. Works for both pairwise comparison as well as groupwise comparison, but reshaping the data into a matrix format differs. Workflows for both types of comparisons are described below.
 
 ## Procedure
 1. [Reshape MISO output textfile into a matrix suitable for plotting in R.](#reshape)
@@ -124,12 +124,15 @@ Works for MISO outputs for any types of alternative splicing.
 <a name="reshapebf"/>
 ## 1a. Reshape MISO output to matrix: pairwise comparison (Bayes Factor)
 Inputs for alternative_splicing_scripts/miso_scripts/prepare_data_for_clustering_misobf.py:
-Arguments from option tags:
+
+Arguments from option flags:
 * `--sample1_name`: name of sample 1
 * `--sample2_name`: name of sample 2
+
 Positional arguments:
 1. MISO filtered output for pairwise comparison using Bayes Factor
 2. Output file
+
 <a name="reshapettest"/>
 ## 1b. Reshape MISO output to matrix: groupwise comparison (t-test)
 Positional arguments:
@@ -143,4 +146,47 @@ Positional arguments for R/plot_heatmap_psi_values.R:
 1. MISO output in matrix format [(reshaped)](#reshape)
 2. Output EPS file
 
+<a name="anchor"/>
+## Run ANCHOR analysis on MISO outputs.
+Written for analysis of cassette exons with ANCHOR. ANCHOR predicts protein binding regions within disordered segments.
+
+## Procedure
+1. [Translate nucleotide sequences (stored as `.fasta` format) to amino acid sequences.](#createproteinfiles)
+2. [Run ANCHOR on amino acid sequences.](#runanchor)
+3. [Plot enrichment of cassette exons compared to constitutive exons](#plotanchor) 
+
+<a name="createproteinfiles"/>
+## Translate nucleotide sequences to amino acid sequences
+Translate nucleotide sequences to amino acid sequences using `alternative_splicing_scripts/database_scripts/create_dna_protein_summary_file.py`.
+
+Option flags:
+* `-c --constitutive_exons: use this if your nucleotide sequences come from constitutive exons rather than cassette exons. --help for more information.
+
+Positional arguments:
+1. Ensembl dictionary in pkl format (created from [alternative_splicing_scripts/database_scripts/index_exon+info_to_pkl.py](#indexexons)]
+2. Fasta files (nucleotides)
+3. 1 | 2 | 3. 2 extracts cassette exon. 1 extracts upstream exon. 3 extracts downstream exon.
+4. Output path
+
+<a name="runanchor">
+## Run ANCHOR on amino acid sequences.
+
+Option flags:
+* `-h, --help for more information`
+
+Positional arguments:
+1. protein summary file from `create_dna_protein_summary_file.py`
+2. Output directory
+3. Summary output file, placed inside output directory.
+
+<a name="plotanchor"/>
+## Compare ANCHOR results between two sets of exons.
+
+Script: `alternative_splicing_scripts/motif_scripts/plot_anchor_results_comparisons.py`
+
+Option flags:
+* `-h, --help for details`
+
+Usage:
+`plot_anchor_results_comparisons.py anchor_results1.txt anchor_results2.txt`
 
