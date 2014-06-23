@@ -102,10 +102,12 @@ python append_gene_names_to_textfile.py pval_adjusted_file annotations.gff3 outp
 Currently, these scripts only work for MISO outputs for skipped exons/cassette exons.
 
 ## Workflow
-Scripts used:
+Scripts used to create bed files:
 * `alternative_splicing_scripts/miso_scripts/extract_coordinates_from_miso_summary.py`
 * `alternative_splicing_scripts/miso_scripts/split_beds_into_inclusion_exclusion.py`
-* `alternative_splicing_scripts/fasta_scripts/remove_chr_from_bed_file.py`
+Scripts and functions used to create fasta files:
+* `fastaFromBed`
+* `alternative_splicing_scripts/fasta_scripts/remove_chr_from_bed_file.py` (if human genome fasta file does not contain "chr" prefix in front of chromosome locations, you can remove them using this script.)
 
 Quick and dirty bash script example gluing these scripts together: `example_workflows/get_beds_fastas.full_pipeline.sh`
 
@@ -118,6 +120,27 @@ Works for MISO outputs for any types of alternative splicing.
 2. [Read matrix file, plot in R.](#plotheatmap)
 
 <a name="reshape"/>
-## 1. Reshape MISO output to matrix
+## Reshaping MISO output depends on whether MISO output was generated from a [pairwise comparison (Bayes factor)](#reshapebf) or [groupwise comparison (t-test)](#reshapettest)
+<a name="reshapebf"/>
+## 1a. Reshape MISO output to matrix: pairwise comparison (Bayes Factor)
+Inputs for alternative_splicing_scripts/miso_scripts/prepare_data_for_clustering_misobf.py:
+Arguments from option tags:
+* `--sample1_name`: name of sample 1
+* `--sample2_name`: name of sample 2
+Positional arguments:
+1. MISO filtered output for pairwise comparison using Bayes Factor
+2. Output file
+<a name="reshapettest"/>
+## 1b. Reshape MISO output to matrix: groupwise comparison (t-test)
+Positional arguments:
+1. MISO output file generated from [groupwise comparison via t-test](#ttest)
+2. Filename containing sample names for group 1
+3. Filename containing sample names for group 2
+4. Output file
+
+<a name="plotheatmap"/>
+Positional arguments for R/plot_heatmap_psi_values.R:
+1. MISO output in matrix format [(reshaped)](#reshape)
+2. Output EPS file
 
 
