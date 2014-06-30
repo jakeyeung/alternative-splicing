@@ -133,6 +133,14 @@ Positional arguments:
 1. MISO filtered output for pairwise comparison using Bayes Factor
 2. Output file
 
+<a name="plotheatmap"/>
+### Plot heatmap using `R/plot_heatmap_psi_values.R`
+
+Example:
+`Rscript R/plot_heatmap_psi_values.R reshaped_miso_output.txt myfigure.eps`
+
+* Input file for `R/plot_heatmap_psi_values.R` should be the output after [reshaping](#reshape).
+
 <a name="reshapettest"/>
 ## 1b. Reshape MISO output to matrix: groupwise comparison (t-test)
 Positional arguments:
