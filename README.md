@@ -7,6 +7,7 @@ This repository contains a number of useful scripts to analyze alternative splic
 * [Identify differentially spliced events between two groups of samples using t-test.](#ttest)
 * [Create bed files and fasta files from a list of MISO events.](#bedfasta)
 * [Generate heatmaps of PSI values either in pair-wise comparison or group comparison.](#heatmaps)
+* [Translate nucleotide sequences of cassette exons (or constitutive exons) to amino acid sequences](#createproteinfiles)
 * [Wrapper function to perform ANCHOR on exons to identify exons that may mediate protein-protein interactions.](#anchor)
 * [Wrapper function to perform MEME and TOMTOM analysis near genic regions of cassette exons to identify enriched motifs near alternatively spliced events and associate RNA binding proteins to these motifs.](#motifs)
 * [Perform conservation analysis of enriched motifs by calculating GERP scores of sites contributing to each motif.](#gerp)
@@ -44,7 +45,7 @@ git clone https://github.com/jakeyeung/alternative-splicing.git
 <a name="ttest"/>
 ## T-test to find differentially spliced events between two groups of samples
 
-## Typical procedure:
+### Procedure:
 1. [Perform t-test using `t_test_miso_output.py`.](#t_test_miso_output)
 2. [Adjust p-values for multiple-test correction (Benjamini-Hochberg method) using `adjust_pvalues.R`](#adjust_pvals)
 3. [Append gene names to output file](#append_genenames)
@@ -52,7 +53,8 @@ git clone https://github.com/jakeyeung/alternative-splicing.git
 <a name="t_test_miso_output"/>
 ## 1. Perform t-test on MISO outputs
 
-### Inputs for `t_test_miso_output.py`
+Inputs for `t_test_miso_output.py`
+
 * `--group1_file`: textfile containing sample names in group 1
 * `--group2_file`: textfile containing sample names in group 2
 * `--main_dir`: directory containing sample names (should match group 1 and group 2). Inside each directory contains MISO raw outputs (MISO events catalogued by chromosomes) 
@@ -86,7 +88,8 @@ Rscript adjust_pvalues.R output_from_t_test.txt pval_adjusted_output_from_t_test
 <a name="append_genenames"/>
 ## 3. Append gene names to output
 
-### Positional arguments for `append_genenames.py` 
+Positional arguments for `append_genenames.py`:
+
 1. Input file
 2. Annotations path (gff3 file containing MISO IDs and gene names). One can download the gff3 annotation file from the MISO website
 3. Output file
@@ -101,8 +104,9 @@ python append_gene_names_to_textfile.py pval_adjusted_file annotations.gff3 outp
 ## Generate bed and fasta files from MISO outputs
 Currently, these scripts only work for MISO outputs for skipped exons/cassette exons.
 
-## Workflow
+### Workflow
 Scripts used to create bed files:
+
 * `alternative_splicing_scripts/miso_scripts/extract_coordinates_from_miso_summary.py`
 * `alternative_splicing_scripts/miso_scripts/split_beds_into_inclusion_exclusion.py`
 Scripts and functions used to create fasta files:
@@ -115,7 +119,7 @@ Quick and dirty bash script example gluing these scripts together: `example_work
 ## Generate heatmaps from MISO outputs.
 Works for MISO outputs for any types of alternative splicing. These scripts allow visualization of MISO outputs (e.g. differentially spliced events) in a heatmap. Works for both pairwise comparison as well as groupwise comparison, but reshaping the data into a matrix format differs. Workflows for both types of comparisons are described below.
 
-## Procedure
+### Procedure
 1. [Reshape MISO output textfile into a matrix suitable for plotting in R.](#reshape)
 2. [Read matrix file, plot in R.](#plotheatmap)
 
@@ -126,10 +130,12 @@ Works for MISO outputs for any types of alternative splicing. These scripts allo
 Inputs for alternative_splicing_scripts/miso_scripts/prepare_data_for_clustering_misobf.py:
 
 Arguments from option flags:
+
 * `--sample1_name`: name of sample 1
 * `--sample2_name`: name of sample 2
 
 Positional arguments:
+
 1. MISO filtered output for pairwise comparison using Bayes Factor
 2. Output file
 
@@ -144,6 +150,7 @@ Example:
 <a name="reshapettest"/>
 ## 1b. Reshape MISO output to matrix: groupwise comparison (t-test)
 Positional arguments:
+
 1. MISO output file generated from [groupwise comparison via t-test](#ttest)
 2. Filename containing sample names for group 1
 3. Filename containing sample names for group 2
@@ -151,6 +158,7 @@ Positional arguments:
 
 <a name="plotheatmap"/>
 Positional arguments for R/plot_heatmap_psi_values.R:
+
 1. MISO output in matrix format [(reshaped)](#reshape)
 2. Output EPS file
 
@@ -163,6 +171,30 @@ Written for analysis of cassette exons with ANCHOR. ANCHOR predicts protein bind
 2. [Run ANCHOR on amino acid sequences.](#runanchor)
 3. [Plot enrichment of cassette exons compared to constitutive exons](#plotanchor) 
 
+<a name="indexexons"/>
+## Index ENSEMBL annotations
+
+Script: `database_scripts/index_exon_info_to_pkl.py`
+
+Takes as input `.gtf` file containing gene annotations from ENSEMBL and stores data as a python dictionary (`.pkl` file)
+
+Positional arguments:
+
+1. `.gtf` file of gene annotations from [ENSEMBL](ftp://ftp.ensembl.org/pub/).
+2. Output for pickled python dictionary.
+
+<a name="indexuniprot"/>
+## Index UniProt annotations
+
+Script: `database_scripts/index_unitprot_db.py`
+
+Positional arguments:
+
+1. Output pickle path
+
+Other required arguments:
+* `-f`: Path for `.dat` file containing uniprot annotations from [UniProt website](http://www.uniprot.org/downloads).
+
 <a name="createproteinfiles"/>
 ## Translate nucleotide sequences to amino acid sequences
 Translate nucleotide sequences to amino acid sequences using `alternative_splicing_scripts/database_scripts/create_dna_protein_summary_file.py`.
@@ -171,19 +203,21 @@ Option flags:
 * `-c --constitutive_exons: use this if your nucleotide sequences come from constitutive exons rather than cassette exons. --help for more information.
 
 Positional arguments:
-1. Ensembl dictionary in pkl format (created from [alternative_splicing_scripts/database_scripts/index_exon+info_to_pkl.py](#indexexons)]
+
+1. Ensembl dictionary in pkl format (created from [alternative_splicing_scripts/database_scripts/index_exon_info_to_pkl.py](#indexexons)]
 2. Fasta files (nucleotides)
 3. 1 | 2 | 3. 2 extracts cassette exon. 1 extracts upstream exon. 3 extracts downstream exon.
 4. Output path
 
-<a name="runanchor">
+<a name="runanchor"/>
 ## Run ANCHOR on amino acid sequences.
 
-Option flags:
+Option flags for `motif_scripts/run_anchor_batch.py`:
 * `-h, --help for more information`
 
 Positional arguments:
-1. protein summary file from `create_dna_protein_summary_file.py`
+
+1. Protein summary file from `database_scripts/create_dna_protein_summary_file.py`
 2. Output directory
 3. Summary output file, placed inside output directory.
 
@@ -198,3 +232,13 @@ Option flags:
 Usage:
 `plot_anchor_results_comparisons.py anchor_results1.txt anchor_results2.txt`
 
+<a name="uniprot"/>
+## Get UniProt annotations from amino acid sequences
+
+### Procedure
+1. Index `.gtf` file and `.dat` file from [ENSEMBL](#indexexons) and [UniProt](#indexuniprot), respectively.
+
+<a name="motifs"/>
+## Run motif discovery and identify enriched motifs associated with motifs of RNA binding proteins
+
+Script:
