@@ -17,6 +17,9 @@ evalue=$2
 dir_suffix=meme_run_seed_"$seed"_evalue_"$evalue"
 #main_dir=/Data/jyeung/projects/alternative_splicing/output/miso_outputs/rubin_takeda_pooled/SE.hg19.gff3/t_test_results/filter030
 main_dir=$3
+#MEME script
+meme_database=$4
+#meme_database=/Data/jyeung/projects/alternative_splicing/output/motif_outputs/meme_custom_dbs/indrect_direct_rbps_with_SRRM4.meme
 fasta_dir=$main_dir/fasta_files_100bp
 psp_dir=$main_dir/motif_outputs/psp_output/psp_files_run_"$seed"
 
@@ -25,4 +28,4 @@ bash $create_bg_fastas_script $seed $dir_suffix
 #run psp
 bash $run_psp_script $seed $dir_suffix $fasta_dir $psp_dir
 #run meme and tomtom
-bash $meme_tomtom_script $seed $dir_suffix $main_dir $psp_dir $evalue
+bash $meme_tomtom_script $seed $dir_suffix $main_dir $psp_dir $evalue $meme_database

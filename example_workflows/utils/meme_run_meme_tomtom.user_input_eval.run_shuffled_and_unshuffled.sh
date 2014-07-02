@@ -24,7 +24,8 @@ psp_dir=$4
 mydir=minw_"$minw"_maxw_"$maxw"_all_rnabps_"$length"bp_psp_"$mynumb"_"$meme_out_dirsuffix"
 evalue=$5
 # User Changeable: database name...
-db=/Data/jyeung/projects/alternative_splicing/output/motif_outputs/meme_custom_dbs/indrect_direct_rbps_with_SRRM4.meme
+# db=/Data/jyeung/projects/alternative_splicing/output/motif_outputs/meme_custom_dbs/indrect_direct_rbps_with_SRRM4.meme
+db=$6
 # without ESRP: db=/home/jyeung/meme/db/motif_databases/top_splice_factors_withSRRM4.meme
 # User changeable: qvalue threshold (for matching RBPs)
 q_thres=0.15
