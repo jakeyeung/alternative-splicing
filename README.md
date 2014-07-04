@@ -284,10 +284,18 @@ Positional arguments:
 
 <a name="gerp"/>
 ## Get evolutionary conservation of discovered motifs from MEME
+General idea: 
+
+1. [Calculate GERP scores for discovered motifs](#calculategerp) using the motif discovery [pipeline](#motifs). To compare GERP scores for a null distribution, use `-n, --null_mode` in `motif_scripts/summarize_meme_results.py`
+2. [Plot GERP scores from discovered motifs against the null](#plotgerp) to see if there is a statistically significant enrichment.
+
+<a name="calculategerp"/>
 
 Bash script gluing python scripts together: `example_workflows/get_gerp_scores.sh`
 
-Outputs: Creates a MEME summary file that incorporates GERP conservation scores with discovered motifs.
+Outputs: Creates a MEME summary file that incorporates GERP conservation scores with discovered motifs. Of interest are:
+* `.pkl` files with GERP information (e.g. may be named `summary.gerp_updated.pkl`), which are used for [plotting the GERP scores](#plotgerp).
+* `.summary` files with GERP information, basically the `.pkl` file converted into a text file which can be opened in a spreadsheet or text editor.
 
 Positional arguments:
 
@@ -296,3 +304,18 @@ Positional arguments:
 3. Filename containing TOMTOM summary (e.g., by default it would be the file `tomtom.summary` found in `main_dir/motif_outputs/meme_run1/summary`
 4. Directory containing GERP base-wise conservation scores (i.e. \*.maf.rates for chr1, chr2, chr3... chr22, chrX, chrY). They can be downloaded [here](http://mendel.stanford.edu/SidowLab/downloads/gerp/)(**6.3GB!**)
 
+To calculate GERP scores for a null set, set the following option flags `motif_scripts/summarize_meme_results`:
+*`-n, --null_mode` calculates a null distribution from discovered motifs. 
+
+<a name="plotgerp"/>
+
+Script: `motif_scripts/plot_anchor_results_comparison.py`
+
+Positional arguments:
+
+1. GERP scores from discovered motifs: `.pkl` file with GERP information created from [`example_workflows/get_gerp_scores.sh`](#calculategerp). 
+2. Null GERP scores: `.pkl` file with GERP information created from [`example_workflows/get_gerp_scores.sh`](#calculategerp) with `-n, --null_mode` flag in `motif_scripts/summarize_meme_results`.
+
+<a name="motifdistribution"/>
+
+Script: 
