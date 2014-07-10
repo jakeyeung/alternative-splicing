@@ -1,7 +1,7 @@
 alternative-splicing
 ====================
 
-This repository contains a number of useful scripts to analyze alternative splicing. Most of these scripts were used to process outputs of MISO. Therefore, these scripts are most useful if you have outputs from MISO to process.
+This repository contains a number of useful scripts to analyze alternative splicing. Most of these scripts were used to process outputs of MISO. Therefore, these scripts are most useful if you have outputs from MISO to process. No guarantees using these scripts, but I hope you can glean something useful from them.
 
 # Brief highlights of this repository, with example workflows:
 * [Identify differentially spliced events between two groups of samples using t-test.](#ttest)
@@ -12,20 +12,19 @@ This repository contains a number of useful scripts to analyze alternative splic
 * [Wrapper function to perform MEME and TOMTOM analysis near genic regions of cassette exons to identify enriched motifs near alternatively spliced events and associate RNA binding proteins to these motifs.](#motifs)
 * [Perform conservation analysis of enriched motifs by calculating GERP scores of sites contributing to each motif.](#gerp)
 * [Visualize distribution of sites contributing to each enriched motif.](#motifdistribution)
-* [Visualize overlap of alternatively spliced events in a Venn diagram.](#venndiagram)
 
 # Installation
 
 ## Packages and libraries required
 
 ### Python
-* Python 2.6 or greater
+* Python 2.6 or 2.7
 * SciPy
 * NumPy
 * [Bio](http://biopython.org/wiki/Main_Page) (for UniProt/SwissProt annotations)
 
 ### R
-* R 3.0.0 or greater
+* R 3.0.0 or R 3.0.1. May also work with R 2.14 and 2.15.
 * ggplot2
 * extrafont
 * grid
@@ -291,6 +290,8 @@ General idea:
 
 <a name="calculategerp"/>
 
+### 1. Calculate GERP scores
+
 Bash script gluing python scripts together: `example_workflows/get_gerp_scores.sh`
 
 Outputs: Creates a MEME summary file that incorporates GERP conservation scores with discovered motifs. Of interest are:
@@ -309,13 +310,26 @@ To calculate GERP scores for a null set, set the following option flags `motif_s
 
 <a name="plotgerp"/>
 
+### 2. Plot GERP scores
+
 Script: `motif_scripts/plot_anchor_results_comparison.py`
 
 Positional arguments:
 
 1. GERP scores from discovered motifs: `.pkl` file with GERP information created from [`example_workflows/get_gerp_scores.sh`](#calculategerp). 
-2. Null GERP scores: `.pkl` file with GERP information created from [`example_workflows/get_gerp_scores.sh`](#calculategerp) with `-n, --null_mode` flag in `motif_scripts/summarize_meme_results`.
+2. Null GERP scores: `.pkl` file with GERP information created from [`example_workflows/get_gerp_scores.sh`](#calculategerp) with `-n, --null_mode` flag in `motif_scripts/summarize_meme_results.py`.
 
 <a name="motifdistribution"/>
 
-Script: 
+## Plot motif distributions
+
+Script: `alternative_splicing_scripts/motif_scripts`
+
+Positional argumemnts:
+
+1. Pickle file from `alternative_splicing_scripts/motif_scripts/summarize_meme_results.py` (e.g. may be named `summary.gerp_updated.pkl`, see [here](#calculategerp))
+
+Outputs: 
+
+Displays a plot for MEME positions.
+
