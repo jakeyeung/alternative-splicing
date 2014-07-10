@@ -14,7 +14,7 @@ import pickle
 from scipy import stats
 import numpy as np
 
-    
+
 def read_pickle(pickle_path):
     with open(pickle_path, 'rb') as pkl_file:
         mydata = pickle.load(pkl_file)
@@ -23,10 +23,10 @@ def read_pickle(pickle_path):
 def save_dic_as_pickle(dic, output_fullpath, protocol=-1):
     '''
     Saves dictionary to output path.
-    
+
     Output path should end in some suffix like .pickle
-    
-    Protocol -1 uses highest protocol available. 
+
+    Protocol -1 uses highest protocol available.
     If protocol = 0, uses standard protocol 0.
     '''
     with open(output_fullpath, 'wb') as output:
@@ -35,8 +35,8 @@ def save_dic_as_pickle(dic, output_fullpath, protocol=-1):
 
 def split_info_to_two_groups(info_list, group_list):
     '''
-    Given list of info (e.g. psi medians) and corresponding group list, 
-    separate psi_medians into two separate lists. 
+    Given list of info (e.g. psi medians) and corresponding group list,
+    separate psi_medians into two separate lists.
     '''
     # Check the lengths are the same for both lists
     if len(info_list) != len(group_list):
@@ -46,11 +46,11 @@ def split_info_to_two_groups(info_list, group_list):
     # Define possible values in group_list
     group_1_str = '1'    # means this is in group1
     group_2_str = '2'    # means this is in group2
-    
+
     # Init output lists
     group_1_list = []
     group_2_list = []
-    
+
     for i, g in enumerate(group_list):
         if g==group_1_str:
             group_1_list.append(info_list[i])
@@ -60,22 +60,22 @@ def split_info_to_two_groups(info_list, group_list):
             print('Cannot tell if %s is in group_1 or group_2' %g)
             sys.exit()
     return group_1_list, group_2_list
-    
-def t_test_psi_info(psi_info_dic, psi_median_str='psi_median', 
+
+def t_test_psi_info(psi_info_dic, psi_median_str='psi_median',
                     counts_01_str='counts_01',
                     counts_10_str='counts_10',
                     group_str='group'):
     '''
-    Given psi info dic which is a dictionary that 
+    Given psi info dic which is a dictionary that
     contains psi_median for all samples, do a t-test between
     group1 and group2 (group info found inside psi_info).
-    
+
     Strings psi_median and group are used as keys to access
     information in dictionary.
-    
+
     Befoer t-testing, this code checks to make sure that both
-    counts_01 and counts_10 has at least one non-zero value. 
-    
+    counts_01 and counts_10 has at least one non-zero value.
+
     #TODO: Refactor code so checking if non-zero value is a function.
     '''
     # Get lists from dic
@@ -83,13 +83,13 @@ def t_test_psi_info(psi_info_dic, psi_median_str='psi_median',
     psi_median_list = psi_info_dic[psi_median_str]
     counts_01_list = psi_info_dic[counts_01_str]
     counts_10_list = psi_info_dic[counts_10_str]
-    
+
     # Separate counts_01 and counts_10 into two groups.
     counts_01_group1, counts_01_group2 = \
         split_info_to_two_groups(counts_01_list, group_list)
     counts_10_group1, counts_10_group2 = \
         split_info_to_two_groups(counts_10_list, group_list)
-        
+
     # Check that there is at least one non-zero value within
     # the two groups for counts_01 and counts_10
     threshold_count = 0
@@ -98,13 +98,13 @@ def t_test_psi_info(psi_info_dic, psi_median_str='psi_median',
         if sum([int(i) for i in g1 + g2]) > 0:
             threshold_count += 1
     # Must pass both threshold counts, i.e., threshold_count == 2
-    # to be able to continue the t-test. 
-    
+    # to be able to continue the t-test.
+
     if threshold_count == 2:
         # Separate the psi_median_list into two groups
         psi_medians_group1, psi_medians_group2 = \
             split_info_to_two_groups(psi_median_list, group_list)
-        
+
         # T-test the two groups
         if len(psi_medians_group1) > 1 and len(psi_medians_group2) > 1:
             _, pval = stats.ttest_ind(psi_medians_group1, psi_medians_group2)
@@ -117,36 +117,36 @@ def t_test_psi_info(psi_info_dic, psi_median_str='psi_median',
             pval = str(pval)
     else:    # Counts insufficient to t-test
         pval = 'NA'
-        
+
     return pval
-    
+
 def get_percent_accepted_from_header(header, percent_accept_index = 5):
     '''
     Read the row, assumes it is the miso header which contains (by default):
         percent_accepted column at index 5.
-        
-    Output percent accept 
+
+    Output percent accept
     '''
     # Get column names from index
     percent_str = header[percent_accept_index]
     # Get the right side of equal sign from e.g. "percent_accept=99"
     percent_accept = float(percent_str.split('=')[1])
     return percent_accept
-    
-def read_counts_from_miso_header(header, 
-                                 counts_index = 7, 
+
+def read_counts_from_miso_header(header,
+                                 counts_index = 7,
                                  assigned_counts_index = 8):
     '''
     Read the row, assumes it is the miso header which contains (by default):
         counts (0,0), (1,0), (0,1), (1,1) at index 7
         assigned-counts (0, 1) at index 8.
-        
-    Output counts and assigned-counts to user. 
+
+    Output counts and assigned-counts to user.
     '''
     # Get column names from index
     counts_str = header[counts_index]
     assigned_str = header[assigned_counts_index]
-    
+
     '''
     # Get counts by finding (0,0):, (1,0):, (0,1):, (1,1)
     # and
@@ -160,14 +160,14 @@ def read_counts_from_miso_header(header,
     counts_11 = []    # Reads matching both isoforms (exon bodies)
     assigned_counts_0 = []    # Counts assigned to inclusion isoform.
     assigned_counts_1 = []    # Counts assigned to exclusion isoform.
-    
+
     for jpat, jlist, jstr, jtype in \
-        zip(['0,0', '1,0', '0,1', '1,1','0', '1'], 
-            [counts_00, counts_10, counts_01, counts_11, assigned_counts_0, 
+        zip(['0,0', '1,0', '0,1', '1,1','0', '1'],
+            [counts_00, counts_10, counts_01, counts_11, assigned_counts_0,
              assigned_counts_1],
             [counts_str]*4 + [assigned_str]*2,
             ['c']*4 + ['ass_c']*2):
-        
+
         # Create regex expression to search
         if jtype == 'c':    # counts
             # Search digits after (0,0):
@@ -181,7 +181,7 @@ def read_counts_from_miso_header(header,
             sys.exit()
         match = re.search(reg_exprs, jstr)
         # match = re.search('(?<=\(0,0\)\:)\d+', counts_str)
-                
+
         if match:
             try:
                 jlist.append(int(match.group(0)))
@@ -191,28 +191,28 @@ def read_counts_from_miso_header(header,
             jlist.append(0)
     '''
     Return first element from each jlist. I use lists instead of a variable
-    so I could loop through each. 
+    so I could loop through each.
     '''
     return counts_00[0], counts_10[0], counts_01[0], counts_11[0], \
             assigned_counts_0[0], assigned_counts_1[0]
-            
-def get_info_from_miso(psi_median_str, log_score_str, 
-                       sample_name_str, 
-                       counts_00_str, counts_10_str, 
-                       counts_01_str, counts_11_str, 
-                       assigned_counts_0_str, 
-                       assigned_counts_1_str, 
+
+def get_info_from_miso(psi_median_str, log_score_str,
+                       sample_name_str,
+                       counts_00_str, counts_10_str,
+                       counts_01_str, counts_11_str,
+                       assigned_counts_0_str,
+                       assigned_counts_1_str,
                        percent_accepted_str,
                        group_str,
-                       psi_info_dic, 
+                       psi_info_dic,
                        samp,
                        group_1_samplenames,
-                       group_2_samplenames, 
+                       group_2_samplenames,
                        file_path,
                        min_total_counts=10):
     '''
     Checks if file exists, if exists, then add info to psi_info_dic.
-    
+
     But we only add info if (by default):
     min_total_counts >= 10 (sum of 10_counts and 01_counts)
     Threshold can be changed by changing min_total_counts
@@ -222,18 +222,18 @@ def get_info_from_miso(psi_median_str, log_score_str,
         '''
         First row contains percent_accepted and counts info.
         Second row is just column names (psi_value, log_score)
-        
+
         So read first row as header, but skip second row.
-        
+
         We will read the header then skip if the counts
-        for the events are unsatisfactory. 
+        for the events are unsatisfactory.
         '''
         header = reader.next()
         reader.next()
         # Get counts
         counts_00, counts_10, counts_01, counts_11, assigned_counts_0, \
             assigned_counts_1 = read_counts_from_miso_header(header)
-        
+
         # Counts must be above a certain threshold.
         if (int(counts_10) + int(counts_01)) < min_total_counts:
             pass    # Do not add any info to psi_info_dic
@@ -250,14 +250,14 @@ def get_info_from_miso(psi_median_str, log_score_str,
             else:
                 print('Could not place %s in either group 1 or group 2.' %samp)
             # Put counts into dic
-            for key, var in zip([counts_00_str, counts_10_str, 
-                                   counts_01_str, counts_11_str, 
-                                   assigned_counts_0_str, 
-                                   assigned_counts_1_str], 
-                                  [counts_00, counts_10, counts_01, counts_11, 
+            for key, var in zip([counts_00_str, counts_10_str,
+                                   counts_01_str, counts_11_str,
+                                   assigned_counts_0_str,
+                                   assigned_counts_1_str],
+                                  [counts_00, counts_10, counts_01, counts_11,
                                    assigned_counts_0, assigned_counts_1]):
                 psi_info_dic[key].append(var)
-            
+
             psi_value_list = []
             log_score_list = []
             for row in reader:
@@ -265,8 +265,13 @@ def get_info_from_miso(psi_median_str, log_score_str,
                 # Second column (row[1]) is log_score.
                 # Psi value is comma separated, split it when take
                 # the first value, which is the first isoform (inclusion ratio)
-                psi_value_list.append(float(row[0].split(',')[0]))
-                log_score_list.append(float(row[1]))
+                try:
+                    psi_value_list.append(float(row[0].split(',')[0]))
+                    log_score_list.append(float(row[1]))
+                except IndexError:
+                    print 'IndexError: trying to extract information from row.'
+                    print 'Row: %s' %row
+                    print 'File: %s' %file_path
             # keynames[0] should be psi_median_str from t_test_as_events()
             psi_info_dic[psi_median_str].append(np.median(psi_value_list))
             psi_info_dic[log_score_str].append(np.median(log_score_list))
@@ -290,9 +295,9 @@ def get_psi_dic_keynames(full_keynames=False):
     percent_accepted_str = 'percent_accepted'
     group_str = 'group'
     # Create keynames from constants
-    keynames = [psi_median_str, log_score_str, sample_name_str, counts_00_str, 
-                counts_10_str, counts_01_str, counts_11_str, 
-                assigned_counts_0_str, assigned_counts_1_str, 
+    keynames = [psi_median_str, log_score_str, sample_name_str, counts_00_str,
+                counts_10_str, counts_01_str, counts_11_str,
+                assigned_counts_0_str, assigned_counts_1_str,
                 percent_accepted_str, group_str]
     if full_keynames==True:
         pval_str = 'pval'
@@ -301,47 +306,47 @@ def get_psi_dic_keynames(full_keynames=False):
     else:
         pval_str = 'pval'
         event_str = 'event'
-    
+
     return keynames, psi_median_str, log_score_str, sample_name_str, \
         counts_00_str, counts_10_str, counts_01_str, counts_11_str, \
         assigned_counts_0_str, assigned_counts_1_str, \
         percent_accepted_str, group_str, pval_str, event_str
-    
-def get_psi_dic_across_samples(fname, group_1_samplenames, 
-                                group_2_samplenames, main_dir, chromo, 
+
+def get_psi_dic_across_samples(fname, group_1_samplenames,
+                                group_2_samplenames, main_dir, chromo,
                                 output_dir, min_counts):
     '''
     Look at each as event across all samples between the two groups, then
     do a t-test to see if they are indeed different.
-    
-    Write this information to file. 
+
+    Write this information to file.
     '''
     # Get keynames for psi_info_dic
     keynames, psi_median_str, log_score_str, sample_name_str, \
             counts_00_str, counts_10_str, counts_01_str, counts_11_str, \
             assigned_counts_0_str, assigned_counts_1_str, \
             percent_accepted_str, group_str, _, _ = get_psi_dic_keynames()
-            
+
     # Get psi information from each group as dictionary
     psi_info_dic = {}
     # Initialize keynames with empty list.
     for k in keynames:
         psi_info_dic[k] = []
-    
+
     for samp in group_1_samplenames + group_2_samplenames:
         file_dir = os.path.join(main_dir, samp, chromo, fname)
         if os.path.exists(file_dir):
             # Get psi info from file
             psi_info_dic = get_info_from_miso(psi_median_str, log_score_str,
-                                              sample_name_str, 
-                                              counts_00_str, counts_10_str, 
-                                              counts_01_str, counts_11_str, 
-                                              assigned_counts_0_str, 
-                                              assigned_counts_1_str, 
+                                              sample_name_str,
+                                              counts_00_str, counts_10_str,
+                                              counts_01_str, counts_11_str,
+                                              assigned_counts_0_str,
+                                              assigned_counts_1_str,
                                               percent_accepted_str,
                                               group_str,
-                                              psi_info_dic, 
-                                              samp, 
+                                              psi_info_dic,
+                                              samp,
                                               group_1_samplenames,
                                               group_2_samplenames,
                                               file_dir,
@@ -349,19 +354,19 @@ def get_psi_dic_across_samples(fname, group_1_samplenames,
         else:
             pass
     return psi_info_dic, keynames
-    
+
 def get_all_fnames(sample_dir_list, main_dir, chromo):
     '''
     For each sample,
-    
-    Looks into miso_dir/samp_dir/chromo and gets the filename of 
-    every file in that directory. 
-    
+
+    Looks into miso_dir/samp_dir/chromo and gets the filename of
+    every file in that directory.
+
     Returns a list of all possible filenames across all samples.
-    There will be no duplicates in this list. 
+    There will be no duplicates in this list.
     '''
     master_fnames_list = []
-    
+
     for samp_dir in sample_dir_list:
         file_dir = os.path.join(main_dir, samp_dir, chromo)
         try:
@@ -376,8 +381,8 @@ def get_all_fnames(sample_dir_list, main_dir, chromo):
     # Remove dulpicates.
     master_fnames_list = list(set(master_fnames_list))
     return master_fnames_list
-    
-    
+
+
 def create_chromo_list(prefix='chr'):
     '''
     Create list of chromosomes (chr1, chr2, chr3... chr22, chrX, chrY)
@@ -388,7 +393,7 @@ def create_chromo_list(prefix='chr'):
     # Create list of chromosome names corresponding to folders within sample dir
     chr_list = [''.join([chr_str, str(c)]) for c in range(1, 23) + ['X', 'Y']]
     return chr_list
-    
+
 def check_if_empty_dir(path, directory_list, suffix_dir_list):
     '''
     Given a path+directory+suffix_dir, check if there are any files
@@ -425,11 +430,11 @@ def check_if_empty_dir(path, directory_list, suffix_dir_list):
 def get_sample_names_from_file(sample_name_file):
     '''
     Open text file containing sample names on the columns.
-    
+
     Extract first column containing sample names, while appending
     a prefix in front of each sample name.
-    
-    Return sample names as a list. 
+
+    Return sample names as a list.
     '''
     sample_list = []
     with open(sample_name_file, 'rb') as readfile:
@@ -440,7 +445,7 @@ def get_sample_names_from_file(sample_name_file):
 
 def get_larger_list_size(list_of_interest, current_size):
     '''
-    Check if current length of output_fnames_list is 
+    Check if current length of output_fnames_list is
     larger than largest_fnames_size, if it is larger
     then update largest_fnames_size
     '''
@@ -457,7 +462,7 @@ def make_dir(path):
         os.makedirs(path)
     return path
 
-def write_combined_miso_header(sample_dir_names_list, main_dir, 
+def write_combined_miso_header(sample_dir_names_list, main_dir,
                                chromo, miso_output, csv_write_obj):
     '''
     For given miso output file (.miso), find that .miso file from a list of
@@ -478,27 +483,27 @@ def write_combined_miso_header(sample_dir_names_list, main_dir,
     assigned_counts_1_list = []
     for samp_dir in sample_dir_names_list:
         with \
-            open(os.path.join(main_dir, samp_dir, 
+            open(os.path.join(main_dir, samp_dir,
                               chromo, miso_output), 'rb') as readfile:
-            
+
             reader = csv.reader(readfile, delimiter='\t')
             header = reader.next()
-            # Get value of certain elements in header. 
+            # Get value of certain elements in header.
             percent_str = header[percent_accept_index]
             # Get only the percent by taking the float from right
             # of equal sign.
             percent_accept_list.append(float(percent_str.split('=')[1]))
-            
+
             # get counts and use regex to extract the counts:
             counts_str = header[counts_index]
             assigned_str = header[assigned_counts_index]
             # Find (0,0):, (1,0):, (0,1):, (1,1): and get integers after it:
-            for jpat, jlist, jstr, jtype in zip(['0,0', '1,0', 
+            for jpat, jlist, jstr, jtype in zip(['0,0', '1,0',
                                                  '0,1', '1,1',
-                                                 '0', '1'], 
-                                                [counts_00_list, 
-                                                 counts_10_list, 
-                                                 counts_01_list, 
+                                                 '0', '1'],
+                                                [counts_00_list,
+                                                 counts_10_list,
+                                                 counts_01_list,
                                                  counts_11_list,
                                                  assigned_counts_0_list,
                                                  assigned_counts_1_list],
@@ -520,20 +525,20 @@ def write_combined_miso_header(sample_dir_names_list, main_dir,
                             ('Error: could not convert %s to int.' %match.group(0))
                 else:
                     jlist.append(0)
-    # Modify the last saved header with percent_accept, 
+    # Modify the last saved header with percent_accept,
     # counts, assigned_counts and write as first line.
     # Modify percent_accept, counts and assigned_counts:
     header[percent_accept_index] = 'percent_accept=%.2f' \
         %(float(sum(percent_accept_list)) / len(percent_accept_list))
     header[counts_index] = 'counts=(0,0):%s,(1,0):%s,(0,1):%s,(1,1):%s' \
-        %(sum(counts_00_list), sum(counts_10_list), 
+        %(sum(counts_00_list), sum(counts_10_list),
           sum(counts_01_list), sum(counts_11_list))
     header[assigned_counts_index] = 'assigned_counts=0:%s,1:%s' \
         %(sum(assigned_counts_0_list), sum(assigned_counts_1_list))
     csv_write_obj.writerow(header)
     return None
 
-def write_combined_psi_logscore(sample_dir_names_list, main_dir, 
+def write_combined_psi_logscore(sample_dir_names_list, main_dir,
                                chromo, miso_output, csv_write_obj):
     '''
     For a given miso_output file (that should be common across the
@@ -548,7 +553,7 @@ def write_combined_psi_logscore(sample_dir_names_list, main_dir,
     sampled_psi_count = 0
     for samp_dir in sample_dir_names_list:
         with \
-            open(os.path.join(main_dir, samp_dir, 
+            open(os.path.join(main_dir, samp_dir,
                               chromo, miso_output), 'rb') as readfile:
             reader = csv.reader(readfile, delimiter='\t')
             # Skip first row and second row.

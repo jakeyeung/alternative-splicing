@@ -16,7 +16,7 @@ def extract_column_from_table(myfile, column_index_to_extract=1, header=False):
     '''
     Grab gene names from myfile, which is likely
     an output from motif_scripts/get_rbps_from_table.py
-    
+
     Extracts from second column, by default.
     Assumes no header in filename, by default.
     '''
@@ -29,26 +29,26 @@ def extract_column_from_table(myfile, column_index_to_extract=1, header=False):
             mylist.append(row[column_index_to_extract])
     return mylist
 
-def index_gene_exprs(gene_exprs_fname, gene_list, group_1, group_2, 
+def index_gene_exprs(gene_exprs_fname, gene_list, group_1, group_2,
                      gene_colname, convert_to_log2):
     '''
     Read gene expressions, assumes first column is gene names,
     other columns contain sample names found in group_1 and group_2.
     We want a dictionary with the form:
     {gene: {group1: [samp1, samp2...], group2: [sampA, sampB...]}}
-    
+
     If dealing with Rubin cohort...
     Group 1 should be PCa samples, Group 2 should be NEPC...
-    
-    convert_to_log2: either True or False. 
+
+    convert_to_log2: either True or False.
     '''
     # Initialize column names
     # gene_colname = 'gene'
     passcount = 0
-    
+
     # Initialize empty dic
     gene_exprs_dic = {}
-    
+
     # Initialize read object for gene exprs..
     with open(gene_exprs_fname, 'rb') as readfile:
         myreader = csv.reader(readfile, delimiter='\t')
@@ -70,16 +70,16 @@ def index_gene_exprs(gene_exprs_fname, gene_list, group_1, group_2,
             # Be warned, if you specified gene list, then row_gene
             # may not be in your dictionary. So check first before
             # putting gene expression into groups.
-            
+
             Convert exprs to log2 if convert_to_log2 is True.
             Add 1 to exprs to prevent infinities.
             '''
-            
+
             # if row_gene in gene_exprs_dic:
             if row_gene in gene_list:
                 # Init empty list in dic
                 if row_gene not in gene_exprs_dic:
-                    gene_exprs_dic[row_gene] = {'group1': [], 
+                    gene_exprs_dic[row_gene] = {'group1': [],
                                                 'group2': []}
                 for samp in group_1:
                     exprs = float(row[header.index(samp)])
@@ -93,7 +93,7 @@ def index_gene_exprs(gene_exprs_fname, gene_list, group_1, group_2,
                     gene_exprs_dic[row_gene]['group2'].append(exprs)
             else:
                 passcount += 1
-            
+
     print '%s genes not considered in this t-test.' %passcount
     return gene_exprs_dic
 
@@ -101,9 +101,9 @@ def t_test_gene_exprs_dic(gene_exprs_dic):
     '''
     The dictionary contains the form:
     {gene: {group1: [samp1, samp2...], group2: [sampA, sampB...]}}
-    We want to loop each gene, and t-test the two groups, the p-value 
+    We want to loop each gene, and t-test the two groups, the p-value
     will be appended as a new subkey.
-    
+
     Example Output dic:
     {gene: {group1: [samp1, samp2...], group2: [sampA, sampB...], pval: 0.05}}
     '''
@@ -117,23 +117,23 @@ def t_test_gene_exprs_dic(gene_exprs_dic):
             _, pval = stats.ttest_ind(g1_exprs, g2_exprs)
             gene_exprs_dic[gene]['pval'] = [pval]
         else:
-            # Prevents errors in write_dic_to_file by creating empty pval subkey 
-            gene_exprs_dic[gene]['pval'] = []    
+            # Prevents errors in write_dic_to_file by creating empty pval subkey
+            gene_exprs_dic[gene]['pval'] = []
             emptycount += 1
-    print '%s genes did not have gene exprs info.' %emptycount  
+    print '%s genes did not have gene exprs info.' %emptycount
     return gene_exprs_dic
 
 def write_dic_to_file(mydic, mykeys, mysubkeys, output_file):
     '''
-    Writes dic of the form: 
+    Writes dic of the form:
     {gene: {group1: [samp1, samp2...], group2: [sampA, sampB...], pval: 0.05}}
     to file.
-    
+
     Inputs:
         mydic
         mykeys such as ['gene']
         mysubkeys such as ['group1', 'group2', 'pval']
-    
+
     Outputs:
         File containing keys and subkeys as header,
         then gene, g1_samp_exprs, g2_samp_exprs, pval
@@ -141,13 +141,13 @@ def write_dic_to_file(mydic, mykeys, mysubkeys, output_file):
     '''
     # Init write counts
     writecounts = 0
-    
+
     # Initialize output file
     with open(output_file, 'wb') as writefile:
         mywriter = csv.writer(writefile, delimiter='\t')
         # Write Header
         mywriter.writerow(mykeys + mysubkeys)
-    
+
         # Loop through each gene, writing each gene info as a row.
         for k in mydic.keys():
             # Each gene is one row, so initialize empty list for each gene
@@ -156,7 +156,7 @@ def write_dic_to_file(mydic, mykeys, mysubkeys, output_file):
             for subkey in mysubkeys:
                 '''
                 # Condense to CSV, it's ok even for pval because
-                # pval was set to be a list of length 1, which 
+                # pval was set to be a list of length 1, which
                 # will have no effect during ',' joining.
                 '''
                 # Convert to string before making CSV...
@@ -184,7 +184,7 @@ def main():
                       default=False,
                       help='Boolean for convert expression to log2 scale. Default False')
     (opts, args) = parser.parse_args()
-    
+
     if len(args) < 4:
         print('Following must be specified in command line:\nGene Expression '\
               'Filename\nGroup 1 Samples Filename\nGroup 2 Samples '\
@@ -208,7 +208,7 @@ def main():
     else:
         print 'Expected --convert_to_log2 option to be True or False. '\
             '%s found.' %convert_to_log2
-    
+
     # If gene_list is specified, use that to get gene_list, otherwise
     # use the entire gene_exprs_fname to get gene_list.
     if gene_list_fname != None:
@@ -216,37 +216,36 @@ def main():
                                         column_index_to_extract=col_index,
                                         header=False)
     else:
-        gene_list = extract_column_from_table(gene_exprs_fname, 
-                                        column_index_to_extract=0, 
+        gene_list = extract_column_from_table(gene_exprs_fname,
+                                        column_index_to_extract=0,
                                         header=True)
     print '%s genes to be tested for differential expression' %len(gene_list)
-    
+
     #bugfix: make it case insensitive
     gene_list = [g.upper() for g in gene_list]
-    
+
     # Grab group 1 and group 2 sample names as a list.
-    group_1 = extract_column_from_table(group_1_samps_fname, 
-                                        column_index_to_extract=0, 
+    group_1 = extract_column_from_table(group_1_samps_fname,
+                                        column_index_to_extract=0,
                                         header=False)
-    group_2 = extract_column_from_table(group_2_samps_fname, 
-                                        column_index_to_extract=0, 
+    group_2 = extract_column_from_table(group_2_samps_fname,
+                                        column_index_to_extract=0,
                                         header=False)
     # Index gene expression values of group1 and group2, all as a dictionary.
-    gene_exprs_dic = index_gene_exprs(gene_exprs_fname, 
+    gene_exprs_dic = index_gene_exprs(gene_exprs_fname,
                                       gene_list,
                                       group_1,
                                       group_2,
                                       gene_colname,
                                       convert_to_log2)
-    
     # Do a t-test for each gene, append it to gene_exprs_dic
     gene_exprs_dic = t_test_gene_exprs_dic(gene_exprs_dic)
-    
+
     # Write dic to file
     writecounts = write_dic_to_file(gene_exprs_dic, ['gene'],
-                                    ['group1', 'group2', 'pval'], 
+                                    ['group1', 'group2', 'pval'],
                                     output_fname)
     print '%s rows written to: %s' %(writecounts, output_fname)
-    
+
 if __name__ == '__main__':
     main()
