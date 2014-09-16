@@ -3,7 +3,7 @@ Created on 2013-09-06
 
 @author: jyeung
 
-Given a text file containing a column of events, append beside 
+Given a text file containing a column of events, append beside
 the column th gene names found from MISO annotations v2 hg19.
 '''
 
@@ -24,7 +24,7 @@ class write_obj(object):
         self.writefile = open(output_path, 'wb')
         self.writeobj = csv.writer(self.writefile, delimiter='\t')
         self.path = output_path
-    
+
     def close(self):
         self.writefile.close()
 
@@ -47,7 +47,7 @@ def create_regexp_from_searchstr(searchstr):
     everything after searchstr+.
     Example, if searchstr = 'ID', we want to search for
     everything after 'ID+'
-    
+
     S+ means any non-white space character.
     '''
     regexp = ''.join(['(?<=', searchstr, '=)\S+'])
@@ -73,8 +73,8 @@ def search_from_split_str(split_str_list, searchstr):
     chr2:9624561:9624679:+@chr2:9627585:9627676:+@chr2:9628276:9628591:+
     from
     ID=chr2:9624561:9624679:+@chr2:9627585:9627676:+@chr2:9628276:9628591:+
-    
-    Note split_str_list is actually a LIST, basically iterate 
+
+    Note split_str_list is actually a LIST, basically iterate
     '''
     regexp = create_regexp_from_searchstr(searchstr)
     result = iterate_search_from_split_str_list(split_str_list, regexp)
@@ -93,7 +93,7 @@ def search_from_split_str2(split_str_list, list_index):
 def get_info_from_annot_row(annot_row, list_index):
     '''
     From a row in miso annot file, get its event.
-    Assumes a semicolon separated string containing event 
+    Assumes a semicolon separated string containing event
     in the 9th column (index 8).
     '''
     # Define constants
@@ -122,7 +122,7 @@ def contains_mystring(annot_row, col_index, mystring):
     Returns boolean True or False.
     '''
     return(annot_row[col_index] == mystring)
-    
+
 def get_event_gsymbol_from_row_str(row, ID_str, gsymbol_str, annot_dic):
     '''
     Grabs event and genesymbol then writes to annot_dic.
@@ -153,21 +153,25 @@ def get_dic_from_miso_reader(csv_readobj, only_gene=True):
     '''
     From csv_readobj, likely created from create_csv_obj,
     iterate its rows, collecting its eventname and genesymbol.
-    
-    only_gene = True: checks if third column has the string 'gene', 
+
+    only_gene = True: checks if third column has the string 'gene',
     skips if it is not 'gene'. This is useful because
     gene symbol in miso annotation only is in 'gene', not 'mRNA'
     or 'exon'.
+
+    Comment: 16 Sept 2014 Jake Yeung
+    gsymbol_index and other indices may change depending on gff file used.
     '''
     # Define constants and empty dics
     genestring_col_index = 2
-    gsymbol_index = -1
+    # gsymbol_index = -1    # for version 2 in humans
+    gsymbol_index = -2    # for mm9 version in mice
     ID_index = 1
     gene_str = 'gene'
     annot_dic = {}
     rowcount = 0
     genecount = 0
-    
+
     for annot_row in csv_readobj:
         if contains_mystring(annot_row, genestring_col_index, gene_str):
             annot_dic = get_event_gsymbol_from_row_index(annot_row, ID_index, gsymbol_index, annot_dic)
@@ -175,13 +179,13 @@ def get_dic_from_miso_reader(csv_readobj, only_gene=True):
         else:    # not 'gene', then probably doesnt contain gsymbol.
             pass
         rowcount += 1
-    
+
     print ('Iterated %s rows, of them %s were generows.' %(rowcount, genecount))
     return annot_dic
-        
+
 def index_miso_annots(annot_filepath):
     '''
-    Opens file using 'with', creates csv_read_obj, 
+    Opens file using 'with', creates csv_read_obj,
     then runs functions to get annot_dic.
     '''
     with open(annot_filepath, 'rb') as myfile:
@@ -214,7 +218,7 @@ def get_event_from_header(row, header, event_colname_str):
     # define constants
     event_str = 'event'    # A column name in input_header
     event_str2 = 'event_name'    # Second try for event_name
-    
+
     try:
         event = row[header.index(event_str)]
     except ValueError:
@@ -224,24 +228,24 @@ def get_event_from_header(row, header, event_colname_str):
             event = row[header.index(event_colname_str)]
     return event
 
-def iterate_rows_and_write_gsymbol(reader, header, annot_dic, writer_obj, 
+def iterate_rows_and_write_gsymbol(reader, header, annot_dic, writer_obj,
                                    genename_colname):
     '''
     Iterate rows in input_reader (a csv_read_obj) and try to
     find its corresponding gene name from dictionary.
-    
-    Searches for event_str in input_header, then uses that 
+
+    Searches for event_str in input_header, then uses that
     as index for its iterations to extract an event from row.
-    
+
     Writes new row to writefile.
     '''
     # Define constants
     original_header = header    # To preserve original index positions.
     header.insert(1, 'gsymbol')
-    
+
     # Write inserted header to file.
     writer_obj.writerow(header)
-    
+
     write_count = 0
     # Write header
     for row in reader:
@@ -260,33 +264,33 @@ def main(input_filepath, annot_filepath, output_filepath, genename_colname):
     called output_filepath.
     '''
     annot_dic = index_miso_annots(annot_filepath)
-    
+
     # Initialize my writefile
     writer_obj = write_obj(output_filepath)
-    
+
     with open(input_filepath, 'rb') as inputfile:
-        input_reader, input_header = create_csv_obj(inputfile, 
+        input_reader, input_header = create_csv_obj(inputfile,
                                                     skip_header=False)
-        write_count = iterate_rows_and_write_gsymbol(input_reader, 
-                                                     input_header, 
-                                                     annot_dic, 
+        write_count = iterate_rows_and_write_gsymbol(input_reader,
+                                                     input_header,
+                                                     annot_dic,
                                                      writer_obj.writeobj,
                                                      genename_colname)
     print('%s rows written to file: %s' %(write_count, output_filepath))
     writer_obj.close()
-    
+
 if __name__ == '__main__':
     usage = 'usage: %prog input_filepath annotation_filepath output_filepath'
     parser = OptionParser(usage=usage)
-    
+
     parser.add_option('-c', '--genename_colname', dest='genename_colname',
                       default='event',
                       help='Column name containing miso events. Default is "event"')
-    
+
     (options, args) = parser.parse_args()
     input_filepath = args[0]
     annot_filepath = args[1]
     output_filepath = args[2]
     genename_colname = options.genename_colname
-    
+
     main(input_filepath, annot_filepath, output_filepath, genename_colname)
